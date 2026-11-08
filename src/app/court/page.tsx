@@ -67,7 +67,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
         </div>
       </header>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-10">
           {/* Pending actions */}
           <section aria-labelledby="pending-heading">

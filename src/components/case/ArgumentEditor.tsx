@@ -108,7 +108,7 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
         </label>
         <div className="mb-3 flex flex-wrap gap-2">
           {OPENERS[role].map((o) => (
-            <button key={o} type="button" className="rounded-full border border-sepia/40 bg-white/40 px-3 py-1 text-xs font-semibold text-ink hover:bg-white/70" onClick={() => setBody((b) => (b ? b : o))}>
+            <button key={o} type="button" className="min-h-9 rounded-full border border-sepia/40 bg-white/40 px-3 py-1.5 text-left text-xs font-semibold text-ink hover:bg-white/70" onClick={() => setBody((b) => (b ? b : o))}>
               {o}
             </button>
           ))}

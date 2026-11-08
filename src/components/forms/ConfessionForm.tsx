@@ -36,7 +36,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
   const previewAlias = anonymousAlias(title || "preview").name;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
       <form {...formProps} className="space-y-7" noValidate>
         <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
           <label>
@@ -101,7 +101,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
             </label>
             <div className="mb-2 flex flex-wrap gap-1.5">
               {PROMPTS.map((p) => (
-                <button key={p} type="button" onClick={() => setConfession((c) => c || p)} className="rounded-full border border-sepia/40 bg-white/40 px-2.5 py-0.5 text-xs font-semibold text-ink hover:bg-white/70">
+                <button key={p} type="button" onClick={() => setConfession((c) => c || p)} className="min-h-9 rounded-full border border-sepia/40 bg-white/40 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-white/70">
                   {p}
                 </button>
               ))}

@@ -109,7 +109,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
         </div>
       ) : null}
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
         <section aria-labelledby="queue-heading" className="min-w-0">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <h2 id="queue-heading" className="font-display text-2xl font-bold text-parchment">

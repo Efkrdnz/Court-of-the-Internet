@@ -154,7 +154,14 @@ npm run build
 npm run test:e2e
 ```
 
-**End-to-end tests** play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also check role restrictions, the reaction and report flows, the **rendered leaderboards** (the 3-decided-case threshold, Wilson ordering recomputed from the displayed W–L records, the leader's record matching their profile, the 5-vote juror threshold, the entertaining-case order), **axe accessibility** on 13 pages, and **mobile layouts** on a Pixel 7 viewport (no horizontal scroll, working navigation).
+**End-to-end tests** (47, on a production build) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
+- role restrictions, the reaction and report flows
+- the rendered leaderboards (thresholds, Wilson order, agreement with profiles)
+- **axe accessibility** on 13 pages
+- **mobile usability** on a Pixel 7: 13 pages fit the device width, and confessing, claiming and filing a defense, voting, reacting, settings and the menu all work by touch, with ≥36px tap targets
+- `e2e/section12.spec.ts`, which checks every GOAL.md §12 requirement against the production server
+
+Animations are additionally reviewed frame by frame in [`docs/ANIMATION_REVIEW.md`](docs/ANIMATION_REVIEW.md).
 
 ---
 

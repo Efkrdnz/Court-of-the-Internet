@@ -1,35 +1,33 @@
 # Animation & visual review
 
-A manual, frame-by-frame review of the main animations, captured from the **production build** (`next start`) with motion enabled (`prefers-reduced-motion: no-preference`). Frames are in [`docs/review/`](review/). Automated checks for the same behaviour live in `e2e/section12.spec.ts` ("animations work without breaking interactions", "visual assets render correctly").
+A manual, frame-by-frame review of **every animation in the app**, captured from the **production build** (`next start`) with motion enabled. Frames are in [`docs/review/`](review/). The automated checks for the same behaviour are in `e2e/section12.spec.ts`: "animations work without breaking interactions" and "visual assets render correctly".
 
-## Verdict reveal (case page, first view in a session)
+## Inventory
 
-| Frame | What happens | Verified |
-| --- | --- | --- |
-| [`verdict-0150ms.png`](review/verdict-0150ms.png) | "The court will now come to order…" placeholder. The owl judge has the gavel raised, the verdict text is dimmed, and the tally bars are empty. | ✔ |
-| [`verdict-0700ms.png`](review/verdict-0700ms.png) | The gavel slams onto the sound block, and impact lines appear. The bars are still empty. | ✔ |
-| [`verdict-1250ms.png`](review/verdict-1250ms.png) / [`verdict-1500ms.png`](review/verdict-1500ms.png) | The GUILTY stamp has landed (spring scale-in from 2.6×), the verdict text fades to full opacity, and the tally bars fill in sequence. | ✔ |
-| [`verdict-2600ms.png`](review/verdict-2600ms.png) | Settled final state. The owl's idle gavel-tap keeps running, and **Replay the verdict** replays the sequence. | ✔ |
+| # | Animation | Where | Tech | Reviewed | Frames | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Verdict reveal: judge raises the gavel → slam with impact lines → stamp springs in → text fades in → tally bars fill | Case page, closed case (first view per session; **Replay** button) | Motion + CSS | ✔ frames + e2e | `verdict-0150ms` … `verdict-2600ms` | ✔ after fix A |
+| 2 | Winner's confetti (paper documents + gold/crimson pieces) | Verdict reveal when the viewer won | Motion | ✔ frame | `winner-confetti-1450ms` | ✔ does not cover controls (`pointer-events: none`) |
+| 3 | Achievement / level-up toast: spring pop-in, badge pop + shine sweep, confetti | Any page, after an unlock | Motion + CSS (`bdg-unlock`) | ✔ frames | `toast-0080ms`, `toast-0530ms`, `toast-1830ms` | ✔ after fix B |
+| 4 | Vote booth: selected card scales with a gold ring, the other dims, the cat jury changes mood, the confirm panel expands, and the tally bars fill after voting | Jury duty, case page | Motion | ✔ frames + e2e | `vote-1-choose`, `vote-2-confirm-opening`, `vote-3-confirm-open` | ✔ buttons usable mid-transition |
+| 5 | Reaction "bump" (scale/rotate) on toggle | Case page | Motion | ✔ e2e | (n/a, 300ms) | ✔ re-clickable immediately |
+| 6 | Character idle loops: blinking, breathing/bob, owl gavel tap, raccoon pointing jab, tail sway, hamster sweat + shake, pizza tears, cats' tail swish | Everywhere characters appear | CSS keyframes | ✔ e2e asserts running; frames | `judge-idle` | ✔ |
+| 7 | Character hover reactions (owl gavel slam + wide eyes, pigeon chest puff, raccoon harder jab, hamster cheek puff, bulldog flex, cats turn heads, pizza sobs) | `.chr-hover` containers | CSS | ✔ frames | `judge-idle` → `judge-hover` | ✔ |
+| 8 | Hero stamp slam (scale 2.5× → 1× with bounce) | Landing hero | CSS `prp-stamp-slam` (0.6s) | ✔ computed-style check + frames | `hero-stamp-0060ms`, `hero-stamp-1660ms` | ✔ plays during page load |
+| 9 | Evidence folder opens on hover (cover folds, papers lift) | Archives header | CSS `.prp-hover` | ✔ frames | `folder-closed` → `folder-open-hover` | ✔ |
+| 10 | Badge hover wiggle | Profiles, achievements | CSS `bdg-hover` | ✔ frames | `badge-idle` → `badge-hover` | ✔ |
+| 11 | Empty-state scenes: tumbleweed roll + dust, sleeping bailiff Z's + steam | Empty queues, archive searches, jury | CSS `scn-*` | ✔ frames | `tumbleweed-a` → `tumbleweed-b` | ✔ |
+| 12 | Loading gavel tap + rotating funny loading lines | Route `loading.tsx` (archives, leaderboards, queues…) | CSS `scn-loading-gavel` + interval | ✔ code review (short-lived) | n/a | ✔ |
+| 13 | Scales sway, wax-seal shine sweep | Archives stats, seals | CSS | ✔ visible in page screenshots | n/a | ✔ |
+| 14 | Page rise-in (`animate-in*`), spotlight flicker | Hero headings, landing spotlight | CSS | ✔ visual | n/a | ✔ subtle, non-blocking |
+| 15 | Card lift, button press, category-tile tilt on hover | Global | CSS transitions | ✔ visual | n/a | ✔ |
 
-**Issue found and fixed in this review:** the tally bars were mounted before the reveal started, so they were already full during the gavel slam instead of filling as the stamp landed. They are now remounted per reveal run and delayed by 1.15s (`TallyBars` `delay` prop, `key={runId}` in `VerdictReveal`).
+## Issues found during this review (fixed)
 
-Interactivity during and after the animation: the e2e test clicks **Replay**, then **Copy link** while the replay is running, and both respond. No element intercepts pointer events.
-
-## Character hover reactions
-
-| Frame | What happens |
-| --- | --- |
-| [`judge-idle.png`](review/judge-idle.png) → [`judge-hover.png`](review/judge-hover.png) | Hovering the owl judge swings the gavel arm into a slam, and the eyes widen. Every character has its own reaction (pigeon puffs its chest, raccoon jabs, hamster's cheeks puff, bulldog flexes, cats turn their heads, pizza sobs harder). See `src/components/art/characters.css`. |
-
-## Jury vote booth
-
-| Frame | What happens |
-| --- | --- |
-| [`vote-1-choose.png`](review/vote-1-choose.png) | The two verdict cards and a judging cat jury. Tallies are hidden. |
-| [`vote-2-confirm-opening.png`](review/vote-2-confirm-opening.png) | GUILTY is selected: the card scales up with a gold ring, the other dims, the cats switch to a shocked expression, and the confirmation panel starts expanding. |
-| [`vote-3-confirm-open.png`](review/vote-3-confirm-open.png) | The confirmation panel is open ("Votes are final…"). **Reconsider** and **Seal my vote** are usable immediately; e2e clicks both during and after the transition. |
+- **A. Tally bars filled too early.** In the verdict reveal the bars were already full before the gavel came down. They are now remounted per reveal run and fill as the stamp lands (`TallyBars` `delay` prop, `key={runId}`). Before: `verdict-0150ms` (old capture) showed full bars. After: bars are empty at 150ms and 700ms and filled from about 1.3s.
+- **B. Toast confetti covered the text.** Confetti was drawn over the toast card ("Cat Herder" partly hidden). It now falls behind and around the card (`z-0` confetti, `z-10` card, no clipping). See `toast-0530ms`.
 
 ## Reduced motion
 
-- **Player setting:** turning on "Reduce motion" in Settings sets `html[data-motion="reduce"]`. Every CSS animation is scoped to `html:not([data-motion="reduce"])` inside `@media (prefers-reduced-motion: no-preference)`, and Motion runs with `reducedMotion="always"`. Confetti isn't rendered, and the verdict shows its final state with no replay. Verified by e2e, which asserts zero running character animations.
-- **OS setting:** the OS preference is honoured the same way. Hydration-safe: the server and the first client render agree (`useReduceMotion`).
+- **Player setting:** turning on "Reduce motion" in Settings sets `html[data-motion="reduce"]`. Every CSS animation is scoped to `html:not([data-motion="reduce"])` inside `@media (prefers-reduced-motion: no-preference)`, and Motion runs with `reducedMotion="always"`. Confetti isn't rendered, and the verdict shows its final state with no replay. e2e asserts zero running character animations with the setting on.
+- **OS setting:** the OS preference is honoured identically. Rendering is hydration-safe (`useReduceMotion`): the server and the first client render agree.

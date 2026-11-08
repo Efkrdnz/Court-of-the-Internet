@@ -61,11 +61,12 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
             animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, rotate: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 380, damping: 24 }}
-            className="pointer-events-auto relative w-full max-w-sm overflow-hidden"
+            className="pointer-events-auto relative w-full max-w-sm"
             role="status"
           >
-            {celebratory ? <Confetti pieces={28} /> : null}
-            <div className="doc doc-ruled flex items-center gap-4 p-4 pr-10">
+            {/* Confetti falls behind and around the card so it never covers the text. */}
+            {celebratory ? <Confetti pieces={28} className="pointer-events-none absolute -inset-x-8 -top-28 bottom-0 z-0 overflow-visible" /> : null}
+            <div className="doc doc-ruled relative z-10 flex items-center gap-4 p-4 pr-10">
               {achievement ? (
                 <AchievementBadge icon={achievement.icon} tier={achievement.tier} className="bdg-unlock h-20 w-16 shrink-0" />
               ) : (

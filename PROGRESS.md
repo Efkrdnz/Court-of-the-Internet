@@ -35,7 +35,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 - [x] Original SVG characters: owl judge (3 moods), pigeon attorney, raccoon prosecutor, hamster, bulldog bailiff, cat jury (4 moods), crying pizza
 - [x] Stamps, wax seals, gavel, evidence folder, crest, 12 category icons, 30 UI icons, ornaments
 - [x] 20 achievement badges (4 tiers + locked), avatar builder (8 species × 8 hats × 6 accessories × 6 backdrops), 5 empty-state scenes
-- [x] Microinteractions (gavel slam, stamp slam, verdict reveal, vote transitions, confetti, hover reactions); reduced-motion respected (OS + per-user setting, hydration-safe)
+- [x] Microinteractions (gavel slam, stamp slam, verdict reveal, vote transitions, confetti, hover reactions); reduced-motion respected (OS + per-user setting, hydration-safe). All 15 animations reviewed frame by frame in `docs/ANIMATION_REVIEW.md`
 
 ## Phase 6: Statistics, profiles, achievements, leaderboards
 - [x] XP/levels/titles, reputation (verdict-only, floored), streaks; recompute audit matches counters
@@ -57,9 +57,9 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 - [x] Monetization architecture (`PaymentProvider`, entitlements, fairness test)
 
 ## Phase 9: Integration testing, accessibility, responsive polish
-- [x] Playwright e2e (34 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
+- [x] Playwright e2e (47 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
 - [x] axe accessibility checks on 13 pages (no serious/critical violations)
-- [x] Mobile (Pixel 7) checks for 13 pages + mobile nav
+- [x] Mobile (Pixel 7): 13 pages fit the *device* width (checker fixed to compare against the device, not the layout viewport), plus touch flows for confess, claim/defend, vote, react, settings and menu with ≥36px tap targets
 - [x] Bugs found & fixed by e2e: Zod 4 optional checkbox keys, React 19 form reset wiping inputs, grid overflow on mobile, streaming redirects
 
 ## Phase 10: Final debugging, docs, deployment prep
@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **43/43 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **47/47 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -85,9 +85,24 @@ Last full run: **43/43 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint 
 | Navigation is functional | `§12 navigation is functional` (every header link, user menu, footer, logo, case cards) + mobile nav test |
 | Forms have appropriate validation | Empty-submit errors and duplicate/PII/limit rules in `lifecycle.spec.ts` and integration tests |
 | Visual assets render correctly | `§12 visual assets render correctly` (every labelled SVG has drawing content and is laid out, 4 self-hosted fonts loaded, OG PNGs valid, no console errors) |
-| Animations work without breaking interactions | `§12 animations…` (verdict reveal plays, replay + copy usable, CSS idle animations running, vote-booth transition and reaction bump clickable, reduce-motion setting turns them off) |
-| Mobile layouts usable | `e2e/mobile.spec.ts` (13 pages, Pixel 7, no horizontal scroll, mobile menu) |
+| Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
+| Mobile layouts usable | `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
 | Important gameplay flows have automated tests | 67 Vitest + 43 Playwright tests |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
+
+## Per-phase evidence (re-run on the final commit)
+
+| Phase | Verified by |
+| --- | --- |
+| 1 Architecture & spec | `docs/SPEC.md`. Every rule in it is exercised by the suites below |
+| 2 Database & backend foundations | `prisma migrate deploy` on fresh test/e2e DBs each run; rate-limiter + content-filter tests; the seed plays 42 cases through the services |
+| 3 Auth, authorization, lifecycle | `tests/integration/lifecycle.test.ts`, `social-moderation.test.ts` (sessions, bans, roles); `e2e/lifecycle.spec.ts` |
+| 4 Gameplay interfaces | `e2e/lifecycle.spec.ts`, `e2e/mobile.spec.ts` touch flows, `section12` vote/navigation tests |
+| 5 Visual identity & animation | `section12` visual-assets + animation tests; `docs/ANIMATION_REVIEW.md` |
+| 6 Stats, profiles, achievements, leaderboards | stats-audit tests + `npm run audit:stats`; `tests/integration/leaderboards.test.ts`; `e2e/leaderboards.spec.ts`; achievement assertions in lifecycle tests |
+| 7 Archives, discovery, sharing | `section12` archives test; OG image checks; reaction + share flows in e2e |
+| 8 Moderation & security | moderation integration tests; report flow, staff-only 404 and redirects in e2e; CSP header asserted; fairness test |
+| 9 Testing, accessibility, responsive | `e2e/a11y.spec.ts` (axe, 13 pages), `e2e/mobile.spec.ts` |
+| 10 Debugging, docs, deployment | `tsc`, ESLint, `next build`, production `next start` route check; README reviewed against GOAL.md |

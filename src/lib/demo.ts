@@ -6,6 +6,7 @@ export const DEMO_PASSWORD = "objection-sustained";
 
 export const DEMO_ACCOUNTS = [
   { username: "judge_wigsworth", blurb: "Admin & moderator. Has the gavel.", role: "ADMIN" },
+  { username: "clerk_pemberton", blurb: "Moderator. Keeper of the docket.", role: "MODERATOR" },
   { username: "counselor_coo", blurb: "Pigeon attorney with a winning streak.", role: "PLAYER" },
   { username: "da_rascal", blurb: "Raccoon prosecutor. Points at things.", role: "PLAYER" },
   { username: "hammy_the_accused", blurb: "Serial defendant. Cheeks full.", role: "PLAYER" },

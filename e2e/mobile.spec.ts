@@ -20,3 +20,102 @@ test("mobile navigation menu opens and navigates", async ({ page }) => {
   await page.waitForURL(/\/archives/);
   await expect(page.locator("#mobile-nav")).toHaveCount(0);
 });
+
+/* ---------- Usability beyond layout: real flows on a phone ---------- */
+
+async function phoneLogin(browser: import("@playwright/test").Browser, username: string) {
+  const { devices } = await import("@playwright/test");
+  const context = await browser.newContext({ ...devices["Pixel 7"] });
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.locator(`form:has(input[name="username"][value="${username}"]) button`).tap();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  return page;
+}
+
+async function expectTapTargets(page: import("@playwright/test").Page) {
+  // Every visible button and button-styled link is at least 36px tall and fully on screen.
+  const bad = await page.locator("button:visible, a.btn:visible").evaluateAll((els) =>
+    els
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return { text: (el.textContent ?? "").trim().slice(0, 40), h: r.height, left: r.left, right: r.right };
+      })
+      .filter((b) => b.h > 0 && (b.h < 36 || b.left < -1 || b.right > window.innerWidth + 1)),
+  );
+  expect(bad).toEqual([]);
+}
+
+test("mobile: confess a crime end to end on a phone", async ({ browser }) => {
+  const page = await phoneLogin(browser, "fresh_intern");
+  await page.goto("/confess");
+  await expectTapTargets(page);
+  await page.locator(`label:has(input[value="gaming-offenses"])`).tap();
+  const sfx = Date.now().toString(36).slice(-5);
+  await page.getByLabel("Case title").fill(`I paused the online game to win ${sfx}`);
+  await page.getByLabel("The confession").fill("It was an online match, which cannot be paused, so I unplugged the router instead and claimed the win by forfeit. Twice.");
+  await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).tap();
+  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
+  await expect(page.getByText(/entered into the record/)).toBeVisible();
+  await expectNoHorizontalScroll(page);
+});
+
+test("mobile: serve on a jury and react on a phone", async ({ browser }) => {
+  const page = await phoneLogin(browser, "da_rascal");
+  await page.goto("/jury");
+  await page.waitForURL(/\/jury\?case=\d+/);
+  await expectNoHorizontalScroll(page);
+  const notGuilty = page.getByRole("button", { name: /^NOT GUILTY/ });
+  await notGuilty.scrollIntoViewIfNeeded();
+  await expect(notGuilty).toBeInViewport();
+  await notGuilty.tap();
+  await page.getByRole("button", { name: "Seal my vote" }).tap();
+  await expect(page.getByText("Your vote is sealed.")).toBeVisible();
+  await expect(page.getByRole("group", { name: /^Tally:/ })).toBeVisible();
+  await expectTapTargets(page);
+  // Reactions + share on a closed case.
+  await page.goto("/cases/2");
+  await page.waitForURL(/\/cases\/2-/);
+  const relatable = page.getByRole("button", { name: /Relatable/ });
+  const pressed = await relatable.getAttribute("aria-pressed");
+  await relatable.tap();
+  await expect(relatable).not.toHaveAttribute("aria-pressed", pressed!);
+  await expect(page.getByRole("button", { name: "Copy verdict summary" })).toBeInViewport({ ratio: 0 }).catch(() => undefined);
+  await expectNoHorizontalScroll(page);
+});
+
+test("mobile: dashboard, queues and settings are usable on a phone", async ({ browser }) => {
+  const page = await phoneLogin(browser, "counselor_coo");
+  for (const path of ["/court", "/defend", "/prosecute", "/settings", "/notifications", "/u/counselor_coo", "/archives"]) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    await expectNoHorizontalScroll(page);
+    await expectTapTargets(page);
+    await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
+  }
+  // The account menu works on touch.
+  await page.getByRole("button", { name: /Account menu/ }).tap();
+  await page.getByRole("menuitem", { name: "Settings" }).tap();
+  await expect(page).toHaveURL(/\/settings$/);
+  // Settings form submits on mobile.
+  await page.getByRole("button", { name: "Save preferences" }).tap();
+  await expect(page.getByText("Preferences saved.")).toBeVisible();
+});
+
+test("mobile: claim a case and file a defense on a phone", async ({ browser }) => {
+  const page = await phoneLogin(browser, "juror_whiskers");
+  await page.goto("/defend");
+  await page.getByRole("button", { name: "Assign me a random case" }).tap();
+  await page.waitForURL(/\/defend\/.+/);
+  await expect(page.getByText("You hold this case.")).toBeVisible();
+  await expectNoHorizontalScroll(page);
+  await expectTapTargets(page);
+  await page.getByRole("button", { name: /^Your Honour, my client is a victim/ }).tap();
+  await page.getByLabel("Your defense").fill(
+    "Your Honour, my client is a victim of circumstance. The snack was unattended, the night was long, and hunger is not a crime: it is a lifestyle.",
+  );
+  await page.getByRole("button", { name: "File the defense" }).tap();
+  await page.waitForURL(/\?filed=defense/);
+  await expect(page.getByText("Defense filed!")).toBeVisible();
+});

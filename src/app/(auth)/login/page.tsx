@@ -59,7 +59,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                       <Avatar config={parseAvatar(u.avatar)} className="h-11 w-11 shrink-0" />
                       <span className="min-w-0">
                         <span className="block font-bold text-parchment">
-                          {u.displayName} {d.role === "ADMIN" ? <span className="pill ml-1 bg-gold text-ink">Admin</span> : null}
+                          {u.displayName} {d.role === "ADMIN" ? <span className="pill ml-1 bg-gold text-ink">Admin</span> : d.role === "MODERATOR" ? <span className="pill ml-1 bg-gold/70 text-ink">Mod</span> : null}
                         </span>
                         <span className="block truncate text-xs text-parchment/60">{d.blurb}</span>
                       </span>

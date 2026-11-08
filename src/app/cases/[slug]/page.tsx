@@ -159,7 +159,7 @@ export default async function CasePage({ params, searchParams }: Props) {
         </div>
       </header>
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-8">
           <ArgumentPanel kind="confession" person={c.accused} body={c.confession} context={detail.context} filedAt={c.createdAt} category={c.category} />
           <ArgumentPanel
