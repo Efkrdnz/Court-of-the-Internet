@@ -65,4 +65,4 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## Phase 10: Final debugging, docs, deployment prep
 - [x] `tsc`, ESLint, `next build` clean
 - [x] README (setup, scripts, testing, deployment, external services, limitations), MONETIZATION.md
-- [~] Final verification against GOAL.md §12 (see bottom of README / final report)
+- [x] Final verification against GOAL.md §12: app starts, full lifecycle e2e, role restrictions, single votes, atomic claims, stats audit, profiles/leaderboards, persisted archives, navigation, validation, art + animations, mobile, clean tsc/lint/build, automated tests, README, documented limitations
