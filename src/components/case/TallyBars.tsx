@@ -2,7 +2,20 @@
 
 import { motion } from "motion/react";
 
-export function TallyBars({ guilty, notGuilty, animate = true, light = false }: { guilty: number; notGuilty: number; animate?: boolean; light?: boolean }) {
+export function TallyBars({
+  guilty,
+  notGuilty,
+  animate = true,
+  light = false,
+  delay = 0,
+}: {
+  guilty: number;
+  notGuilty: number;
+  animate?: boolean;
+  light?: boolean;
+  /** Seconds to wait before the bars fill (used to sync with the verdict stamp). */
+  delay?: number;
+}) {
   const total = guilty + notGuilty;
   const g = total ? guilty / total : 0;
   const ng = total ? notGuilty / total : 0;
@@ -20,7 +33,7 @@ export function TallyBars({ guilty, notGuilty, animate = true, light = false }: 
               className={`h-full rounded-full bg-gradient-to-r ${r.color}`}
               initial={animate ? { width: 0 } : false}
               animate={{ width: `${Math.max(r.pct * 100, r.value ? 4 : 0)}%` }}
-              transition={{ duration: 0.9, delay: 0.15 * i, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{ duration: 0.9, delay: delay + 0.15 * i, ease: [0.2, 0.8, 0.2, 1] }}
             />
           </div>
           <span className={`w-20 shrink-0 text-right font-type text-sm tabular-nums ${light ? "text-ink" : "text-parchment"}`}>

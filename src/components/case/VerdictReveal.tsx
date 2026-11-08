@@ -118,7 +118,7 @@ export function VerdictReveal({
                 {outcome === "won" ? "You won this case!" : "You lost this one. Appeal denied."}
               </p>
             ) : null}
-            {verdict !== "DISMISSED" || guilty + notGuilty > 0 ? <TallyBars guilty={guilty} notGuilty={notGuilty} animate={!reduce && runId > 0} /> : null}
+            {verdict !== "DISMISSED" || guilty + notGuilty > 0 ? <TallyBars key={runId} guilty={guilty} notGuilty={notGuilty} animate={!reduce && runId > 0} delay={runId > 0 ? 1.15 : 0} /> : null}
             {!reduce ? (
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRunId((r) => r + 1)}>
                 Replay the verdict
