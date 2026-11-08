@@ -87,7 +87,7 @@ test("mobile: serve on a jury and react on a phone", async ({ browser }) => {
 
 test("mobile: dashboard, queues and settings are usable on a phone", async ({ browser }) => {
   const page = await phoneLogin(browser, "counselor_coo");
-  for (const path of ["/court", "/defend", "/prosecute", "/settings", "/notifications", "/u/counselor_coo", "/archives"]) {
+  for (const path of ["/court", "/defend", "/prosecute", "/settings", "/notifications", "/u/counselor_coo", "/archives", "/cases/1", "/cases/27", "/leaderboards", "/jury", "/"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     await expectNoHorizontalScroll(page);

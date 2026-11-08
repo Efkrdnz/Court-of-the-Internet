@@ -86,7 +86,7 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
                   </Link>
                 ) : null}
               </div>
-              <button type="button" onClick={dismiss} className="absolute right-3 top-3 rounded p-1 text-sepia hover:text-ink" aria-label="Dismiss notification">
+              <button type="button" onClick={dismiss} className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-full text-sepia hover:bg-ink/10 hover:text-ink" aria-label="Dismiss notification">
                 ✕
               </button>
             </div>

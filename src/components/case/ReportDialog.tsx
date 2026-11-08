@@ -33,7 +33,7 @@ export function ReportDialog({
   }
   return (
     <>
-      <button type="button" className="inline-flex items-center gap-1.5 text-xs font-semibold text-parchment/60 hover:text-[#ff9d9d]" onClick={() => ref.current?.showModal()}>
+      <button type="button" className="inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-parchment/60 hover:text-[#ff9d9d]" onClick={() => ref.current?.showModal()}>
         <IconFlag className="h-3.5 w-3.5" /> Report to the clerks
       </button>
       <dialog ref={ref} className="m-auto w-[min(92vw,32rem)] rounded-xl bg-transparent p-0 backdrop:bg-night/80 backdrop:backdrop-blur-sm" aria-labelledby="report-title">

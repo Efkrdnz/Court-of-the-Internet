@@ -20,9 +20,17 @@ export async function expectNoHorizontalScroll(page: Page) {
   const device = page.viewportSize()!.width;
   const { scroll, inner, culprits } = await page.evaluate((W) => {
     const culprits: string[] = [];
+    // Content clipped by an on-screen overflow:hidden/clip ancestor can't cause horizontal scroll.
+    const clipped = (el: Element) => {
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        const ox = getComputedStyle(a).overflowX;
+        if ((ox === "hidden" || ox === "clip" || ox === "auto" || ox === "scroll") && a.getBoundingClientRect().right <= W + 1) return true;
+      }
+      return false;
+    };
     for (const el of Array.from(document.querySelectorAll("body *"))) {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.right > W + 1 && !el.closest("[aria-hidden=true], .no-scrollbar")) {
+      if (r.width > 0 && r.right > W + 1 && !el.closest("[aria-hidden=true], .no-scrollbar") && !clipped(el)) {
         culprits.push(`${el.tagName.toLowerCase()} "${(el.getAttribute("class") ?? "").slice(0, 50)}" right=${Math.round(r.right)}`);
       }
     }
