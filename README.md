@@ -143,6 +143,7 @@ npm test
 - cosmetics entitlements, sessions and password rotation
 - an atomic rate limiter
 - a randomised "season", after which every player's counters must **exactly match a full recomputation from history**
+- leaderboards: Wilson ordering (40–8 beats 3–0 beats 10–10), participation thresholds, exclusion of banned and deleted players, anonymous convictions kept off the public board, and every board built from real played games
 
 ```bash
 npm run build
@@ -152,7 +153,7 @@ npm run build
 npm run test:e2e
 ```
 
-**End-to-end tests** play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also check role restrictions, the reaction and report flows, **axe accessibility** on 13 pages, and **mobile layouts** on a Pixel 7 viewport (no horizontal scroll, working navigation).
+**End-to-end tests** play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also check role restrictions, the reaction and report flows, the **rendered leaderboards** (the 3-decided-case threshold, Wilson ordering recomputed from the displayed W–L records, the leader's record matching their profile, the 5-vote juror threshold, the entertaining-case order), **axe accessibility** on 13 pages, and **mobile layouts** on a Pixel 7 viewport (no horizontal scroll, working navigation).
 
 ---
 

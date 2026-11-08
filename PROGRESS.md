@@ -57,7 +57,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 - [x] Monetization architecture (`PaymentProvider`, entitlements, fairness test)
 
 ## Phase 9: Integration testing, accessibility, responsive polish
-- [x] Playwright e2e: full trial across 5 browser contexts, guards, reactions, reports
+- [x] Playwright e2e (34 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
 - [x] axe accessibility checks on 13 pages (no serious/critical violations)
 - [x] Mobile (Pixel 7) checks for 13 pages + mobile nav
 - [x] Bugs found & fixed by e2e: Zod 4 optional checkbox keys, React 19 form reset wiping inputs, grid overflow on mobile, streaming redirects

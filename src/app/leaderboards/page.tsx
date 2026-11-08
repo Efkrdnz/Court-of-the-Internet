@@ -31,9 +31,10 @@ function Board<T extends Person>({
   empty: string;
   tone: "teal" | "crimson" | "gold" | "plum";
 }) {
+  const headingId = `lb-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
     <section
-      aria-labelledby={`lb-${title}`}
+      aria-labelledby={headingId}
       className={clsx(
         "velvet flex flex-col p-5",
         tone === "teal" && "bg-gradient-to-b from-teal/25",
@@ -42,7 +43,7 @@ function Board<T extends Person>({
         tone === "plum" && "bg-gradient-to-b from-plum/40",
       )}
     >
-      <h2 id={`lb-${title}`} className="font-display text-2xl font-black text-parchment">
+      <h2 id={headingId} className="font-display text-2xl font-black text-parchment">
         {title}
       </h2>
       <p className="mb-4 text-xs text-parchment/60">{subtitle}</p>
