@@ -155,14 +155,15 @@ npm run build
 npm run test:e2e
 ```
 
-**End-to-end tests** (47, on a production build) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
+**End-to-end tests** (51, on a production build) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
 - role restrictions, the reaction and report flows
 - the rendered leaderboards (thresholds, Wilson order, agreement with profiles)
 - **axe accessibility** on 13 pages
-- **mobile usability** on a Pixel 7: 13 pages fit the device width, and confessing, claiming and filing a defense, voting, reacting, settings and the menu all work by touch, with ≥36px tap targets
+- **mobile usability** on a Pixel 7: the whole multi-player trial also runs on the phone profile; 13 pages fit the device width; confessing, claiming and filing a defense, voting, reacting, settings and the menu all work by touch, with ≥36px tap targets
+- a **pixel-level art check**: every illustration is rasterised in the browser and must show visible, multi-coloured pixels, covering all characters, 12 category icons, 20 badges and 4 stamps
 - `e2e/section12.spec.ts`, which checks every GOAL.md §12 requirement against the production server
 
-Animations are additionally reviewed frame by frame in [`docs/ANIMATION_REVIEW.md`](docs/ANIMATION_REVIEW.md).
+Animations are additionally reviewed frame by frame in [`docs/ANIMATION_REVIEW.md`](docs/ANIMATION_REVIEW.md), and every GOAL.md requirement is traced to its implementation and evidence in [`docs/REQUIREMENTS_TRACE.md`](docs/REQUIREMENTS_TRACE.md).
 
 ---
 

@@ -28,7 +28,8 @@ test("a full trial: confess → defend → prosecute → jury → verdict → ar
   await page.getByLabel("Case title").fill(title);
   await page
     .getByLabel("The confession")
-    .fill("Every time my roommate picks a show I don't like, the remote mysteriously ends up behind the frozen peas. He has started watching with gloves on.");
+    // Unique per run: the court rejects word-for-word duplicate confessions (anti-spam).
+    .fill(`Every time my roommate picks a show I don't like, the remote mysteriously ends up behind the frozen peas. He now watches with gloves on (${suffix}).`);
   await expect(page.getByRole("complementary", { name: "Live preview" }).getByText(title)).toBeVisible();
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).check();
   await page.getByRole("button", { name: "Submit my confession to the court" }).click();

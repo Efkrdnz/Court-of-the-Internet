@@ -1,9 +1,11 @@
 import type { Browser, Page } from "@playwright/test";
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 /** Opens a fresh browser context signed in as a seeded demo account. */
 export async function demoPage(browser: Browser, username: string): Promise<Page> {
-  const context = await browser.newContext();
+  // Use the current project's device (desktop or phone) for every extra player.
+  const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch, contextOptions } = test.info().project.use;
+  const context = await browser.newContext({ viewport, userAgent, deviceScaleFactor, isMobile, hasTouch, ...contextOptions });
   const page = await context.newPage();
   await page.goto("/login");
   await page.locator(`form:has(input[name="username"][value="${username}"]) button`).click();

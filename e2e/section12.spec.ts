@@ -6,6 +6,7 @@ import { execSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { demoPage } from "./helpers";
+import { ACHIEVEMENTS } from "../src/lib/achievements";
 
 const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgresql://court:court@localhost:5432/court_e2e?schema=public";
 const prisma = new PrismaClient({ datasourceUrl: DATABASE_URL });
@@ -257,4 +258,67 @@ test("§12 statistics are calculated correctly (profile = database = full recomp
   await expect(row("Defendant", "Found guilty")).toContainText(String(s.timesConvicted));
   await expect(page.getByText(`${s.xp} XP`)).toBeVisible();
   await expect(page.getByText("Reputation", { exact: true }).locator("..")).toContainText(String(s.reputation));
+});
+
+/**
+ * Pixel-level check: every labelled illustration is rasterised in the browser
+ * (SVG → canvas) and must produce visible, multi-coloured pixels. Together these pages
+ * show every character, all 12 category icons, all 20 achievement badges, all verdict
+ * stamps, avatars, seals, the crest and the empty-state scenes.
+ */
+test("§12 visual assets render correctly (rasterised pixels, all art)", async ({ browser }) => {
+  const page = await demoPage(browser, "counselor_coo");
+  const pages = ["/", "/confess", "/u/counselor_coo", "/archives", "/archives?verdict=MISTRIAL", "/archives?verdict=DISMISSED", "/archives?q=zzzz-none", "/leaderboards", "/cases/1", "/jury", "/nope"];
+  const seen = new Set<string>();
+  const failures: string[] = [];
+  for (const path of pages) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    const results = await page.locator('svg[role="img"]').evaluateAll(async (svgs) => {
+      const out: { label: string; opaque: number; colors: number; total: number }[] = [];
+      for (const svg of svgs as SVGSVGElement[]) {
+        const r = svg.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8) continue;
+        const clone = svg.cloneNode(true) as SVGSVGElement;
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const w = Math.round(r.width), h = Math.round(r.height);
+        clone.setAttribute("width", String(w));
+        clone.setAttribute("height", String(h));
+        const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" }));
+        const img = new Image();
+        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h).data;
+        let opaque = 0;
+        const colors = new Set<number>();
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] > 32) {
+            opaque++;
+            colors.add(((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4));
+          }
+        }
+        URL.revokeObjectURL(url);
+        out.push({ label: svg.getAttribute("aria-label") ?? "?", opaque, colors: colors.size, total: w * h });
+      }
+      return out;
+    });
+    for (const r of results) {
+      seen.add(r.label);
+      if (r.opaque < r.total * 0.05) failures.push(`${path}: "${r.label}" nearly blank (${r.opaque}/${r.total} opaque px)`);
+      if (r.colors < 3) failures.push(`${path}: "${r.label}" has only ${r.colors} colours`);
+    }
+  }
+  expect(failures).toEqual([]);
+  const labels = [...seen].join(" | ");
+  // Coverage: every kind of art actually appeared and was checked.
+  for (const needle of [/owl|judge/i, /pigeon/i, /raccoon/i, /hamster/i, /bulldog|bailiff/i, /cat/i, /pizza/i, /Rubber stamp: GUILTY/i, /Rubber stamp: NOT GUILTY/i, /Rubber stamp: MISTRIAL/i, /Rubber stamp: DISMISSED/i, /seal/i, /crest/i, /tumbleweed|no cases/i, /404|confused|pigeon/i]) {
+    expect(labels, `art matching ${needle} was rendered`).toMatch(needle);
+  }
+  const categoryIcons = [...seen].filter((l) => /Crimes|Offenses|Disputes|Treason|Hot Takes|Theft|Misconduct|Shenanigans|Incidents|Fashion|Blunders|Mischief/.test(l));
+  expect(new Set(categoryIcons).size, "all 12 category icons rendered").toBeGreaterThanOrEqual(12);
+  const missingBadges = ACHIEVEMENTS.map((a) => a.name).filter((name) => !seen.has(name));
+  expect(missingBadges, "all 20 achievement badges rendered").toEqual([]);
 });
