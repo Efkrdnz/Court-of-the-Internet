@@ -1,0 +1,163 @@
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { db } from "@/server/db";
+import { resetClock } from "@/server/clock";
+import { castVote, claimCase } from "@/server/services/cases";
+import { toggleReaction } from "@/server/services/reactions";
+import {
+  adjournNow,
+  dismissReports,
+  fileReport,
+  grantEntitlement,
+  removeCase,
+  setBan,
+  strikeArgument,
+} from "@/server/services/moderation";
+import { hitRateLimit } from "@/server/rate-limit";
+import { authenticate, changePassword, updateProfile } from "@/server/services/accounts";
+import { createSession, resolveSession } from "@/server/auth/sessions";
+import { DEFAULT_AVATAR } from "@/lib/avatar";
+import { advance, achievementKeys, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
+
+beforeEach(async () => {
+  await resetDb();
+  useFakeClock();
+  process.env.COURT_QUORUM = "10";
+  process.env.COURT_MAX_EXTENSIONS = "1";
+});
+afterAll(async () => {
+  resetClock();
+  await db.$disconnect();
+});
+
+describe("reactions", () => {
+  it("toggles reactions and keeps counters in sync", async () => {
+    const [accused, attorney, prosecutor, fan] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await expect(toggleReaction(fan, c.id, "HILARIOUS")).rejects.toMatchObject({ code: "INVALID_STATE" });
+    await toDeliberation(c.id, attorney, prosecutor);
+    expect(await toggleReaction(fan, c.id, "HILARIOUS")).toMatchObject({ active: true, counts: { hilariousCount: 1 } });
+    expect(await toggleReaction(fan, c.id, "LEGENDARY")).toMatchObject({ active: true, counts: { legendaryCount: 1 } });
+    let row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.reactionScore).toBe(5);
+    expect(await toggleReaction(fan, c.id, "HILARIOUS")).toMatchObject({ active: false, counts: { hilariousCount: 0 } });
+    row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.reactionScore).toBe(3);
+    await expect(toggleReaction(attorney, c.id, "LEGENDARY")).rejects.toMatchObject({ code: "INELIGIBLE" });
+  });
+
+  it("grants Legendary Litigator at 10 legendary reactions", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const fans = await makeUsers(10, "fan");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    for (const f of fans) await toggleReaction(f, c.id, "LEGENDARY");
+    for (const id of [accused, attorney, prosecutor]) expect(await achievementKeys(id)).toContain("legendary-litigator");
+  });
+});
+
+describe("moderation", () => {
+  it("auto-hides a case after three distinct reports and blocks gameplay", async () => {
+    const accused = await makeUser();
+    const reporters = await makeUsers(3, "reporter");
+    const c = await makeCase(accused);
+    await fileReport(reporters[0], { caseId: c.id, target: "CASE", reason: "REAL_PERSON" });
+    await expect(fileReport(reporters[0], { caseId: c.id, target: "CASE", reason: "SPAM" })).rejects.toMatchObject({
+      code: "ALREADY_DONE",
+    });
+    await fileReport(reporters[1], { caseId: c.id, target: "CASE", reason: "HARASSMENT" });
+    const result = await fileReport(reporters[2], { caseId: c.id, target: "CASE", reason: "PERSONAL_INFO" });
+    expect(result.autoReview).toBe(true);
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.moderationState).toBe("UNDER_REVIEW");
+    expect(row.openReports).toBe(3);
+    const lawyer = await makeUser();
+    await expect(claimCase(lawyer, c.id, "DEFENSE")).rejects.toMatchObject({ code: "INVALID_STATE" });
+
+    const mod = await makeUser("the_clerk", "MODERATOR");
+    await dismissReports(mod, c.id);
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("VISIBLE");
+    await claimCase(lawyer, c.id, "DEFENSE");
+  });
+
+  it("lets staff remove cases, strike arguments, ban users and adjourn; players cannot", async () => {
+    const [accused, attorney, prosecutor, player] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("chief_justice", "ADMIN");
+    const c = await makeCase(accused);
+    await expect(removeCase(player, c.id, "nope")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await toDeliberation(c.id, attorney, prosecutor);
+
+    await strikeArgument(admin, c.id, "DEFENSE");
+    expect((await db.argument.findFirstOrThrow({ where: { caseId: c.id, role: "DEFENSE" } })).stricken).toBe(true);
+
+    const jurors = await makeUsers(10);
+    await voteAll(c.id, jurors, 7);
+    const outcome = await adjournNow(admin, c.id);
+    expect(outcome).toMatchObject({ kind: "closed", verdict: "GUILTY" });
+
+    await removeCase(admin, c.id, "Names a real person");
+    const removed = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(removed.moderationState).toBe("REMOVED");
+    expect(await db.moderationAction.count()).toBe(3);
+
+    // Banning releases held claims and ends sessions.
+    const other = await makeCase(accused);
+    await claimCase(player, other.id, "DEFENSE");
+    await createSession(player);
+    await setBan(admin, player, true, "Contempt");
+    expect((await db.case.findUniqueOrThrow({ where: { id: other.id } })).status).toBe("AWAITING_DEFENSE");
+    expect(await db.session.count({ where: { userId: player } })).toBe(0);
+    await expect(castVote(player, c.id, "GUILTY")).rejects.toMatchObject({ code: "BANNED" });
+  });
+
+  it("only lets admins grant cosmetics, which then unlock items", async () => {
+    const player = await makeUser();
+    const admin = await makeUser("boss", "ADMIN");
+    await expect(
+      updateProfile(player, { displayName: "P", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "velvet-rope", featuredBadge: null }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(grantEntitlement(player, player, "theme:velvet-rope")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await grantEntitlement(admin, player, "theme:velvet-rope");
+    await updateProfile(player, { displayName: "P", bio: "hi", avatar: DEFAULT_AVATAR, profileTheme: "velvet-rope", featuredBadge: null });
+    expect((await db.user.findUniqueOrThrow({ where: { id: player } })).profileTheme).toBe("velvet-rope");
+    await expect(
+      updateProfile(player, { displayName: "P", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: "certified-menace" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("accounts and sessions", () => {
+  it("authenticates, rotates sessions on password change", async () => {
+    const id = await makeUser("hammy_two");
+    await expect(authenticate("hammy_two", "wrong-password")).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+    await expect(authenticate("nobody", "objection!")).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+    expect(await authenticate("hammy_two", "objection!")).toEqual({ id });
+    const a = await createSession(id);
+    const b = await createSession(id);
+    expect((await resolveSession(a.token))?.id).toBe(id);
+    await changePassword(id, "objection!", "new-password-123", a.token);
+    expect((await resolveSession(a.token))?.id).toBe(id);
+    expect(await resolveSession(b.token)).toBeNull();
+    expect(await resolveSession("garbage")).toBeNull();
+  });
+
+  it("expires sessions", async () => {
+    const id = await makeUser();
+    const s = await createSession(id);
+    advance(31 * 24 * 60 * 60_000);
+    expect(await resolveSession(s.token)).toBeNull();
+  });
+});
+
+describe("rate limiting", () => {
+  it("allows N hits per window and resets afterwards", async () => {
+    for (let i = 0; i < 3; i++) expect((await hitRateLimit("test:key", 3, 60)).allowed).toBe(true);
+    expect((await hitRateLimit("test:key", 3, 60)).allowed).toBe(false);
+    advance(minutes(1) + 1);
+    expect((await hitRateLimit("test:key", 3, 60)).allowed).toBe(true);
+  });
+
+  it("is atomic under concurrency", async () => {
+    const results = await Promise.all(Array.from({ length: 20 }, () => hitRateLimit("test:burst", 5, 60)));
+    expect(results.filter((r) => r.allowed)).toHaveLength(5);
+  });
+});

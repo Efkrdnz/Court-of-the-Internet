@@ -1,0 +1,59 @@
+/**
+ * Normalises user-submitted text before validation and storage.
+ * React escapes on output, so this is about hygiene, not HTML sanitisation:
+ * it strips invisible/control characters and tames whitespace abuse.
+ */
+export function normalizeText(input: string, { multiline = true }: { multiline?: boolean } = {}): string {
+  let s = input.normalize("NFC");
+  // Zero-width and bidi control characters (used for spoofing / filter evasion).
+  s = s.replace(/[​-‏‪-‮⁠-⁤﻿]/g, "");
+  // ASCII control chars except tab/newline.
+  s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+  s = s.replace(/\r\n?/g, "\n").replace(/\t/g, " ");
+  if (!multiline) s = s.replace(/\n+/g, " ");
+  s = s.replace(/[  ]{2,}/g, " ");
+  s = s.replace(/\n{3,}/g, "\n\n");
+  s = s
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n");
+  return s.trim();
+}
+
+/** Character count as users perceive it (grapheme-ish: code points). */
+export function charCount(s: string): number {
+  return Array.from(s).length;
+}
+
+export function slugify(input: string, maxLength = 60): string {
+  const slug = input
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, maxLength)
+    .replace(/-+$/g, "");
+  return slug || "case";
+}
+
+export function formatCaseNumber(n: number): string {
+  return n.toString().padStart(4, "0");
+}
+
+export function casePath(c: { number: number; slug: string }): string {
+  return `/cases/${c.number}-${c.slug}`;
+}
+
+/** Parses "42-some-slug" or "42" into 42. */
+export function parseCaseParam(param: string): number | null {
+  const match = /^(\d{1,9})(?:-|$)/.exec(param);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+export function pluralize(n: number, one: string, many = `${one}s`): string {
+  return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
+}

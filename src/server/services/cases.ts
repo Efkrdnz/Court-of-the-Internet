@@ -1,0 +1,414 @@
+import "server-only";
+import { randomBytes } from "node:crypto";
+import type { ArgumentRole, CaseStatus, VoteChoice } from "@prisma/client";
+import { db, type Tx } from "../db";
+import { clock } from "../clock";
+import { gameConfig } from "../config";
+import { CourtError, isUniqueViolation } from "../errors";
+import { screenFields, screenText, similarity } from "@/lib/content-filter";
+import { casePath, formatCaseNumber, slugify } from "@/lib/text";
+import { XP } from "@/lib/progression";
+import { awardXp, assertActiveUser, checkStatAchievements, grantAchievements, notify } from "./progress";
+
+export const OPEN_STATUS: Record<ArgumentRole, CaseStatus> = {
+  DEFENSE: "AWAITING_DEFENSE",
+  PROSECUTION: "AWAITING_PROSECUTION",
+};
+export const CLAIMED_STATUS: Record<ArgumentRole, CaseStatus> = {
+  DEFENSE: "DEFENSE_CLAIMED",
+  PROSECUTION: "PROSECUTION_CLAIMED",
+};
+const ROLE_NOUN: Record<ArgumentRole, string> = { DEFENSE: "defense attorney", PROSECUTION: "prosecutor" };
+
+/* ------------------------------------------------------------------ */
+/* Phase 1: Confession                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface ConfessionData {
+  title: string;
+  category: string;
+  confession: string;
+  context?: string;
+  anonymous: boolean;
+}
+
+export async function confess(userId: string, input: ConfessionData) {
+  const screened = screenFields({ title: input.title, confession: input.confession, context: input.context });
+  if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, screened.field);
+
+  const now = clock.now();
+  const dayAgo = new Date(now.getTime() - 24 * 3_600_000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 3_600_000);
+
+  return db.$transaction(async (tx) => {
+    await assertActiveUser(tx, userId);
+    // Serialise confessions per user so the daily cap can't be raced.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"confess:" + userId}))`;
+
+    const recentCount = await tx.case.count({ where: { accusedId: userId, createdAt: { gte: dayAgo } } });
+    if (recentCount >= gameConfig.maxConfessionsPerDay) {
+      throw new CourtError(
+        "RATE_LIMITED",
+        `The court accepts at most ${gameConfig.maxConfessionsPerDay} confessions per day. Come back tomorrow, menace.`,
+      );
+    }
+
+    const recent = await tx.case.findMany({
+      where: { accusedId: userId, createdAt: { gte: monthAgo } },
+      select: { title: true, confession: true },
+      take: 50,
+      orderBy: { createdAt: "desc" },
+    });
+    for (const r of recent) {
+      if (r.title.toLowerCase() === input.title.toLowerCase() || similarity(r.confession, input.confession) > 0.75) {
+        throw new CourtError("CONFLICT", "You've already confessed to this crime recently. Double jeopardy!", "confession");
+      }
+    }
+    const globalDupe = await tx.case.findFirst({
+      where: {
+        confession: { equals: input.confession, mode: "insensitive" },
+        createdAt: { gte: new Date(now.getTime() - 7 * 24 * 3_600_000) },
+      },
+      select: { id: true },
+    });
+    if (globalDupe) {
+      throw new CourtError("CONFLICT", "That exact confession is already on the docket. Copy-paste crimes are inadmissible.", "confession");
+    }
+
+    const created = await tx.case.create({
+      data: {
+        title: input.title,
+        slug: slugify(input.title),
+        category: input.category,
+        confession: input.confession,
+        context: input.context ?? null,
+        anonymous: input.anonymous,
+        aliasSeed: randomBytes(8).toString("hex"),
+        accusedId: userId,
+        createdAt: now,
+      },
+      select: { id: true, number: true, slug: true, title: true },
+    });
+
+    await tx.userStats.update({
+      where: { userId },
+      data: {
+        totalConfessions: { increment: 1 },
+        ...(input.anonymous ? {} : { casesConfessed: { increment: 1 } }),
+      },
+    });
+    await awardXp(tx, userId, XP.confess, "confess", created.id);
+    await checkStatAchievements(tx, userId, created.id);
+    if (!input.anonymous && input.category === "food-crimes") {
+      await grantAchievements(tx, userId, ["snack-attack"], created.id);
+    }
+    return created;
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Phases 2 & 3: Claims                                                */
+/* ------------------------------------------------------------------ */
+
+function eligibilityError(
+  c: { accusedId: string; attorneyId: string | null; prosecutorId: string | null },
+  userId: string,
+  role: ArgumentRole,
+): string | null {
+  if (c.accusedId === userId) {
+    return role === "DEFENSE"
+      ? "Nice try, but you can't defend yourself. The court appoints a stranger."
+      : "You can't prosecute your own crime. That's just a confession with extra steps.";
+  }
+  if (role === "PROSECUTION" && c.attorneyId === userId) {
+    return "You defended this case. Switching sides mid-trial is frowned upon (and forbidden).";
+  }
+  return null;
+}
+
+export async function claimCase(userId: string, caseId: string, role: ArgumentRole) {
+  return db.$transaction(async (tx) => {
+    await assertActiveUser(tx, userId);
+    // One claim attempt per user at a time, so the "one active claim per role" rule holds under concurrency.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"claim:" + userId}))`;
+    const now = clock.now();
+    const openStatus = OPEN_STATUS[role];
+    const claimedStatus = CLAIMED_STATUS[role];
+
+    const current = await tx.case.findFirst({
+      where: { claimedById: userId, status: claimedStatus, claimExpiresAt: { gt: now } },
+      select: { id: true, number: true, claimExpiresAt: true },
+    });
+    if (current?.id === caseId) return { caseId, expiresAt: current.claimExpiresAt!, alreadyHeld: true };
+    if (current) {
+      throw new CourtError(
+        "INELIGIBLE",
+        `You're already the ${ROLE_NOUN[role]} on Case No. ${formatCaseNumber(current.number)}. File or release it first.`,
+      );
+    }
+
+    const c = await tx.case.findUnique({
+      where: { id: caseId },
+      select: {
+        id: true,
+        number: true,
+        title: true,
+        slug: true,
+        status: true,
+        accusedId: true,
+        attorneyId: true,
+        prosecutorId: true,
+        claimedById: true,
+        claimExpiresAt: true,
+        moderationState: true,
+      },
+    });
+    if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (c.moderationState === "UNDER_REVIEW") {
+      throw new CourtError("INVALID_STATE", "This case is under review by the court clerks and can't be claimed right now.");
+    }
+    const ineligible = eligibilityError(c, userId, role);
+    if (ineligible) throw new CourtError("INELIGIBLE", ineligible);
+
+    const expiresAt = new Date(now.getTime() + gameConfig.claimMs);
+    const result = await tx.case.updateMany({
+      where: {
+        id: caseId,
+        moderationState: "VISIBLE",
+        accusedId: { not: userId },
+        ...(role === "PROSECUTION" ? { attorneyId: { not: userId } } : {}),
+        OR: [{ status: openStatus }, { status: claimedStatus, claimExpiresAt: { lt: now } }],
+      },
+      data: { status: claimedStatus, claimedById: userId, claimExpiresAt: expiresAt },
+    });
+    if (result.count === 0) {
+      throw new CourtError("CONFLICT", "Too slow, counselor! Another player already claimed this case.");
+    }
+
+    // A lazily-reclaimed expired claim: close out the previous holder's record.
+    const stale = await tx.caseClaim.findMany({ where: { caseId, role, outcome: "ACTIVE" }, select: { id: true, userId: true } });
+    if (stale.length) {
+      await tx.caseClaim.updateMany({ where: { id: { in: stale.map((s) => s.id) } }, data: { outcome: "EXPIRED", resolvedAt: now } });
+      for (const s of stale) {
+        await notify(tx, s.userId, {
+          type: "CLAIM_EXPIRED",
+          title: `Your claim on Case No. ${formatCaseNumber(c.number)} expired`,
+          body: "The case went back on the docket and another player picked it up.",
+          href: role === "DEFENSE" ? "/defend" : "/prosecute",
+        });
+      }
+    }
+
+    await tx.caseClaim.create({ data: { caseId, userId, role, claimedAt: now, expiresAt } });
+    await notify(tx, c.accusedId, {
+      type: "CASE_CLAIMED",
+      title: role === "DEFENSE" ? "An attorney has taken your case!" : "A prosecutor is coming for you…",
+      body:
+        role === "DEFENSE"
+          ? `Someone is drafting your defense for “${c.title}”.`
+          : `A prosecutor is preparing a rebuttal for “${c.title}”.`,
+      href: casePath(c),
+    });
+    return { caseId, expiresAt, alreadyHeld: false };
+  });
+}
+
+export async function releaseClaim(userId: string, caseId: string) {
+  return db.$transaction(async (tx) => {
+    const now = clock.now();
+    const c = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, claimedById: true } });
+    if (!c || c.claimedById !== userId) throw new CourtError("INVALID_STATE", "You don't hold a claim on this case.");
+    const role: ArgumentRole = c.status === "DEFENSE_CLAIMED" ? "DEFENSE" : "PROSECUTION";
+    const res = await tx.case.updateMany({
+      where: { id: caseId, claimedById: userId, status: CLAIMED_STATUS[role] },
+      data: { status: OPEN_STATUS[role], claimedById: null, claimExpiresAt: null },
+    });
+    if (res.count === 0) throw new CourtError("INVALID_STATE", "You don't hold a claim on this case.");
+    await tx.caseClaim.updateMany({
+      where: { caseId, userId, outcome: "ACTIVE" },
+      data: { outcome: "RELEASED", resolvedAt: now },
+    });
+    return { role };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Argument submission                                                 */
+/* ------------------------------------------------------------------ */
+
+export async function submitArgument(userId: string, caseId: string, role: ArgumentRole, body: string) {
+  const screened = screenText(body);
+  if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, "body");
+
+  return db.$transaction(async (tx) => {
+    await assertActiveUser(tx, userId);
+    const now = clock.now();
+    const claimedStatus = CLAIMED_STATUS[role];
+    const c = await tx.case.findUnique({
+      where: { id: caseId },
+      select: {
+        id: true,
+        number: true,
+        slug: true,
+        title: true,
+        status: true,
+        accusedId: true,
+        attorneyId: true,
+        claimedById: true,
+        claimExpiresAt: true,
+        moderationState: true,
+        arguments: { where: { role }, select: { id: true } },
+      },
+    });
+    if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (c.arguments.length > 0) {
+      throw new CourtError("ALREADY_DONE", `The ${ROLE_NOUN[role]} has already filed for this case.`);
+    }
+    const ineligible = eligibilityError({ ...c, prosecutorId: null }, userId, role);
+    if (ineligible) throw new CourtError("INELIGIBLE", ineligible);
+    if (c.status !== claimedStatus || c.claimedById !== userId) {
+      throw new CourtError("INVALID_STATE", "You don't hold the claim on this case. It may have expired and been requeued.");
+    }
+    if (!c.claimExpiresAt || c.claimExpiresAt.getTime() + gameConfig.claimGraceMs < now.getTime()) {
+      throw new CourtError("INVALID_STATE", "Your claim expired before you filed. The case has been returned to the docket.");
+    }
+
+    const isProsecution = role === "PROSECUTION";
+    const deliberationEndsAt = new Date(now.getTime() + gameConfig.deliberationMs);
+    const advanced = await tx.case.updateMany({
+      where: { id: caseId, status: claimedStatus, claimedById: userId },
+      data: isProsecution
+        ? {
+            status: "DELIBERATION",
+            prosecutorId: userId,
+            claimedById: null,
+            claimExpiresAt: null,
+            prosecutionFiledAt: now,
+            deliberationStartsAt: now,
+            deliberationEndsAt,
+          }
+        : {
+            status: "AWAITING_PROSECUTION",
+            attorneyId: userId,
+            claimedById: null,
+            claimExpiresAt: null,
+            defenseFiledAt: now,
+          },
+    });
+    if (advanced.count === 0) throw new CourtError("CONFLICT", "The case changed while you were writing. Please refresh.");
+
+    const claim = await tx.caseClaim.findFirst({
+      where: { caseId, userId, role, outcome: "ACTIVE" },
+      orderBy: { claimedAt: "desc" },
+    });
+    const writingSeconds = claim ? Math.max(0, Math.round((now.getTime() - claim.claimedAt.getTime()) / 1000)) : 0;
+    try {
+      await tx.argument.create({ data: { caseId, authorId: userId, role, body, createdAt: now, writingSeconds } });
+    } catch (e) {
+      if (isUniqueViolation(e)) throw new CourtError("ALREADY_DONE", `The ${ROLE_NOUN[role]} has already filed for this case.`);
+      throw e;
+    }
+    if (claim) {
+      await tx.caseClaim.update({ where: { id: claim.id }, data: { outcome: "SUBMITTED", resolvedAt: now } });
+    }
+
+    await tx.userStats.update({
+      where: { userId },
+      data: isProsecution ? { prosecutionsFiled: { increment: 1 } } : { defensesFiled: { increment: 1 } },
+    });
+    await awardXp(tx, userId, XP.fileArgument, isProsecution ? "file-prosecution" : "file-defense", caseId);
+    await checkStatAchievements(tx, userId, caseId);
+    if (claim && writingSeconds <= 180) await grantAchievements(tx, userId, ["speed-lawyer"], caseId);
+
+    const href = casePath(c);
+    if (isProsecution) {
+      const msg = {
+        type: "PROSECUTION_FILED" as const,
+        title: "The jury is now deliberating",
+        body: `Both sides have spoken on “${c.title}”. The verdict arrives in ${Math.round(gameConfig.deliberationMs / 3_600_000)}h.`,
+        href,
+      };
+      await notify(tx, c.accusedId, msg);
+      if (c.attorneyId) await notify(tx, c.attorneyId, msg);
+    } else {
+      await notify(tx, c.accusedId, {
+        type: "DEFENSE_FILED",
+        title: "Your defense has been filed",
+        body: `Your attorney has spoken on “${c.title}”. Now we wait for a prosecutor.`,
+        href,
+      });
+    }
+    return { caseId, number: c.number, slug: c.slug };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 4: Jury                                                       */
+/* ------------------------------------------------------------------ */
+
+export async function castVote(userId: string, caseId: string, choice: VoteChoice) {
+  return db.$transaction(async (tx) => {
+    await assertActiveUser(tx, userId);
+    const now = clock.now();
+    const c = await tx.case.findUnique({
+      where: { id: caseId },
+      select: {
+        status: true,
+        accusedId: true,
+        attorneyId: true,
+        prosecutorId: true,
+        deliberationEndsAt: true,
+        moderationState: true,
+      },
+    });
+    if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (c.status !== "DELIBERATION") throw new CourtError("INVALID_STATE", "This case isn't accepting votes.");
+    if (!c.deliberationEndsAt || c.deliberationEndsAt <= now) {
+      throw new CourtError("INVALID_STATE", "Deliberation has closed. The verdict is being read.");
+    }
+    if (c.moderationState === "UNDER_REVIEW") {
+      throw new CourtError("INVALID_STATE", "Voting is paused while the clerks review this case.");
+    }
+    if ([c.accusedId, c.attorneyId, c.prosecutorId].includes(userId)) {
+      throw new CourtError("INELIGIBLE", "You're part of this case, so you can't sit on its jury. Nice try.");
+    }
+    const existing = await tx.vote.findUnique({ where: { caseId_userId: { caseId, userId } }, select: { id: true } });
+    if (existing) throw new CourtError("ALREADY_DONE", "You've already voted on this case. The court remembers.");
+
+    // Row-locking conditional update: serialises against the closing transaction.
+    const counted = await tx.case.updateMany({
+      where: { id: caseId, status: "DELIBERATION", deliberationEndsAt: { gt: now } },
+      data: choice === "GUILTY" ? { guiltyVotes: { increment: 1 } } : { notGuiltyVotes: { increment: 1 } },
+    });
+    if (counted.count === 0) throw new CourtError("INVALID_STATE", "Deliberation has closed. The verdict is being read.");
+    try {
+      await tx.vote.create({ data: { caseId, userId, choice, createdAt: now } });
+    } catch (e) {
+      if (isUniqueViolation(e)) throw new CourtError("ALREADY_DONE", "You've already voted on this case. The court remembers.");
+      throw e;
+    }
+    await tx.userStats.update({ where: { userId }, data: { juryVotes: { increment: 1 } } });
+    await awardXp(tx, userId, XP.juryVote, "jury-vote", caseId);
+    await checkStatAchievements(tx, userId, caseId);
+
+    const tallies = await tx.case.findUniqueOrThrow({
+      where: { id: caseId },
+      select: { guiltyVotes: true, notGuiltyVotes: true },
+    });
+    return { choice, ...tallies };
+  });
+}
+
+/** Re-exported for actions that need to know eligibility without mutating. */
+export function participantRole(
+  c: { accusedId: string; attorneyId: string | null; prosecutorId: string | null },
+  userId: string | null | undefined,
+): "ACCUSED" | "DEFENSE" | "PROSECUTION" | null {
+  if (!userId) return null;
+  if (c.accusedId === userId) return "ACCUSED";
+  if (c.attorneyId === userId) return "DEFENSE";
+  if (c.prosecutorId === userId) return "PROSECUTION";
+  return null;
+}
+
+export type { Tx };

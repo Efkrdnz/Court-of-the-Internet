@@ -1,0 +1,403 @@
+// Court of the Internet: relational data model.
+// See docs/SPEC.md for the lifecycle rules these tables enforce.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PLAYER
+  MODERATOR
+  ADMIN
+}
+
+enum MembershipTier {
+  FREE
+  PATRON
+}
+
+enum CaseStatus {
+  AWAITING_DEFENSE
+  DEFENSE_CLAIMED
+  AWAITING_PROSECUTION
+  PROSECUTION_CLAIMED
+  DELIBERATION
+  CLOSED
+}
+
+enum Verdict {
+  GUILTY
+  NOT_GUILTY
+  MISTRIAL
+  DISMISSED
+}
+
+enum ModerationState {
+  VISIBLE
+  UNDER_REVIEW
+  REMOVED
+}
+
+enum ArgumentRole {
+  DEFENSE
+  PROSECUTION
+}
+
+enum ClaimOutcome {
+  ACTIVE
+  SUBMITTED
+  EXPIRED
+  RELEASED
+}
+
+enum VoteChoice {
+  GUILTY
+  NOT_GUILTY
+}
+
+enum ReactionType {
+  HILARIOUS
+  OUTRAGEOUS
+  LEGENDARY
+  RELATABLE
+}
+
+enum ReportReason {
+  PERSONAL_INFO
+  REAL_PERSON
+  HARASSMENT
+  HATE
+  VIOLENCE
+  SEXUAL
+  ILLEGAL
+  SPAM
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
+
+enum NotificationType {
+  CASE_CLAIMED
+  DEFENSE_FILED
+  PROSECUTION_FILED
+  VERDICT
+  CLAIM_EXPIRED
+  ACHIEVEMENT
+  LEVEL_UP
+  DELIBERATION_EXTENDED
+  MODERATION
+}
+
+enum EntitlementSource {
+  EARNED
+  GRANTED
+  PURCHASED
+}
+
+model User {
+  id                  String         @id @default(cuid())
+  username            String         @unique
+  displayName         String
+  passwordHash        String
+  role                UserRole       @default(PLAYER)
+  bio                 String         @default("")
+  avatar              Json           // AvatarConfig, see src/lib/avatar.ts
+  profileTheme        String         @default("mahogany")
+  featuredBadge       String?        // achievement key shown next to name
+  reducedMotion       Boolean        @default(false)
+  mutedCategories     String[]       @default([])
+  allowFeaturing      Boolean        @default(true)
+  membershipTier      MembershipTier @default(FREE)
+  membershipExpiresAt DateTime?
+  bannedAt            DateTime?
+  banReason           String?
+  deletedAt           DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  sessions        Session[]
+  stats           UserStats?
+  confessions     Case[]            @relation("Accused")
+  defenses        Case[]            @relation("Attorney")
+  prosecutions    Case[]            @relation("Prosecutor")
+  claims          CaseClaim[]
+  arguments       Argument[]
+  votes           Vote[]
+  reactions       Reaction[]
+  achievements    UserAchievement[]
+  notifications   Notification[]
+  reportsFiled    Report[]          @relation("Reporter")
+  entitlements    Entitlement[]
+  moderationLog   ModerationAction[] @relation("Moderator")
+  xpEvents        XpEvent[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model UserStats {
+  userId                   String @id
+  user                     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  xp                       Int    @default(0)
+  reputation               Int    @default(0)
+  casesConfessed           Int    @default(0) // public (non-anonymous) confessions
+  totalConfessions         Int    @default(0) // including anonymous (private)
+  timesConvicted           Int    @default(0)
+  timesAcquitted           Int    @default(0)
+  defenseWins              Int    @default(0)
+  defenseLosses            Int    @default(0)
+  defenseMistrials         Int    @default(0)
+  prosecutionWins          Int    @default(0)
+  prosecutionLosses        Int    @default(0)
+  prosecutionMistrials     Int    @default(0)
+  currentDefenseStreak     Int    @default(0)
+  longestDefenseStreak     Int    @default(0)
+  currentProsecutionStreak Int    @default(0)
+  longestProsecutionStreak Int    @default(0)
+  juryVotes                Int    @default(0)
+  juryMajorityVotes        Int    @default(0)
+  defensesFiled            Int    @default(0)
+  prosecutionsFiled        Int    @default(0)
+
+  @@index([xp])
+  @@index([reputation])
+}
+
+model Case {
+  id                String          @id @default(cuid())
+  number            Int             @unique @default(autoincrement())
+  slug              String
+  title             String
+  category          String
+  confession        String
+  context           String?
+  anonymous         Boolean         @default(false)
+  aliasSeed         String          // stable seed for the anonymous alias
+  status            CaseStatus      @default(AWAITING_DEFENSE)
+  verdict           Verdict?
+  moderationState   ModerationState @default(VISIBLE)
+  removalReason     String?
+
+  accusedId         String
+  accused           User            @relation("Accused", fields: [accusedId], references: [id])
+  attorneyId        String?
+  attorney          User?           @relation("Attorney", fields: [attorneyId], references: [id])
+  prosecutorId      String?
+  prosecutor        User?           @relation("Prosecutor", fields: [prosecutorId], references: [id])
+
+  // Current claim (denormalised for atomic conditional updates).
+  claimedById       String?
+  claimExpiresAt    DateTime?
+
+  deliberationStartsAt DateTime?
+  deliberationEndsAt   DateTime?
+  extensionsUsed       Int       @default(0)
+
+  guiltyVotes       Int     @default(0)
+  notGuiltyVotes    Int     @default(0)
+  hilariousCount    Int     @default(0)
+  outrageousCount   Int     @default(0)
+  legendaryCount    Int     @default(0)
+  relatableCount    Int     @default(0)
+  reactionScore     Int     @default(0) // weighted, for "entertaining" ranking
+  controversy       Float   @default(0) // 1 - |g-ng|/total, set at close
+  viewCount         Int     @default(0)
+  openReports       Int     @default(0)
+
+  createdAt         DateTime  @default(now())
+  defenseFiledAt    DateTime?
+  prosecutionFiledAt DateTime?
+  closedAt          DateTime?
+  updatedAt         DateTime  @updatedAt
+
+  arguments     Argument[]
+  claims        CaseClaim[]
+  votes         Vote[]
+  reactions     Reaction[]
+  reports       Report[]
+  featured      FeaturedCase[]
+  moderationLog ModerationAction[]
+
+  @@index([status, moderationState, createdAt])
+  @@index([status, closedAt])
+  @@index([accusedId])
+  @@index([attorneyId])
+  @@index([prosecutorId])
+  @@index([category])
+  @@index([claimedById])
+}
+
+model Argument {
+  id         String       @id @default(cuid())
+  caseId     String
+  case       Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User         @relation(fields: [authorId], references: [id])
+  role       ArgumentRole
+  body       String
+  stricken   Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  writingSeconds Int      @default(0)
+
+  @@unique([caseId, role])
+  @@index([authorId])
+}
+
+model CaseClaim {
+  id         String       @id @default(cuid())
+  caseId     String
+  case       Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+  role       ArgumentRole
+  outcome    ClaimOutcome @default(ACTIVE)
+  claimedAt  DateTime     @default(now())
+  expiresAt  DateTime
+  resolvedAt DateTime?
+
+  @@index([userId, outcome])
+  @@index([caseId])
+  @@index([outcome, expiresAt])
+}
+
+model Vote {
+  id        String     @id @default(cuid())
+  caseId    String
+  case      Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  choice    VoteChoice
+  createdAt DateTime   @default(now())
+
+  @@unique([caseId, userId])
+  @@index([userId])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  caseId    String
+  case      Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  type      ReactionType
+  createdAt DateTime     @default(now())
+
+  @@unique([caseId, userId, type])
+  @@index([userId])
+}
+
+model UserAchievement {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key        String
+  caseId     String?
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([key])
+}
+
+model XpEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  reason    String
+  caseId    String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  href      String?
+  data      Json?
+  readAt    DateTime?
+  toastedAt DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  caseId      String
+  case        Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reporterId  String
+  reporter    User         @relation("Reporter", fields: [reporterId], references: [id])
+  reason      ReportReason
+  details     String?
+  target      String       @default("CASE") // CASE | DEFENSE | PROSECUTION
+  status      ReportStatus @default(OPEN)
+  resolvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@unique([caseId, reporterId, target])
+  @@index([status, createdAt])
+}
+
+model ModerationAction {
+  id          String   @id @default(cuid())
+  moderatorId String
+  moderator   User     @relation("Moderator", fields: [moderatorId], references: [id])
+  action      String
+  caseId      String?
+  case        Case?    @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  targetUserId String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model FeaturedCase {
+  day       String   @id // YYYY-MM-DD (UTC)
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  pinnedBy  String?
+  createdAt DateTime @default(now())
+}
+
+model Entitlement {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemKey   String
+  source    EntitlementSource
+  createdAt DateTime          @default(now())
+
+  @@unique([userId, itemKey])
+}
+
+model RateLimit {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+}
