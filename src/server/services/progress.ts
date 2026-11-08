@@ -4,6 +4,7 @@ import type { Tx } from "../db";
 import { CourtError } from "../errors";
 import { getAchievement } from "@/lib/achievements";
 import { levelForXp, levelTitle } from "@/lib/progression";
+import { clock } from "../clock";
 
 export async function assertActiveUser(tx: Tx, userId: string) {
   const user = await tx.user.findUnique({
@@ -22,7 +23,7 @@ export async function notify(
   userId: string,
   n: { type: NotificationType; title: string; body: string; href?: string; data?: Prisma.InputJsonValue },
 ) {
-  await tx.notification.create({ data: { userId, ...n } });
+  await tx.notification.create({ data: { userId, ...n, createdAt: clock.now() } });
 }
 
 export async function awardXp(tx: Tx, userId: string, amount: number, reason: string, caseId?: string) {
@@ -32,7 +33,7 @@ export async function awardXp(tx: Tx, userId: string, amount: number, reason: st
     data: { xp: { increment: amount } },
     select: { xp: true },
   });
-  await tx.xpEvent.create({ data: { userId, amount, reason, caseId } });
+  await tx.xpEvent.create({ data: { userId, amount, reason, caseId, createdAt: clock.now() } });
   const before = levelForXp(stats.xp - amount);
   const after = levelForXp(stats.xp);
   if (after > before) {
@@ -68,7 +69,7 @@ export async function grantAchievements(tx: Tx, userId: string, keys: string[], 
   const fresh = unique.filter((k) => !have.has(k));
   if (fresh.length === 0) return [];
   await tx.userAchievement.createMany({
-    data: fresh.map((key) => ({ userId, key, caseId })),
+    data: fresh.map((key) => ({ userId, key, caseId, unlockedAt: clock.now() })),
     skipDuplicates: true,
   });
   for (const key of fresh) {

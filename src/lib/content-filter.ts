@@ -117,7 +117,11 @@ export function screenText(text: string, { allowSpamCheck = true }: { allowSpamC
   if (HANDLE.test(text)) return fail("handle");
 
   for (const word of normaliseForWords(text)) {
-    if (SLURS.has(word) || SLURS_COLLAPSED.has(collapseRepeats(word))) return fail("hate");
+    if (SLURS.has(word)) return fail("hate");
+    // Stretched spellings ("fooooo") are compared in collapsed form, but only when the word
+    // actually has repeated letters, so ordinary words like "con" or "niger" never match.
+    const collapsed = collapseRepeats(word);
+    if (collapsed !== word && SLURS_COLLAPSED.has(collapsed)) return fail("hate");
   }
   if (VIOLENCE.some((re) => re.test(text))) return fail("violence");
   if (SERIOUS.some((re) => re.test(text))) return fail("serious-crime");

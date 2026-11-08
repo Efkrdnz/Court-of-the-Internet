@@ -203,7 +203,7 @@ async function applyVerdictEffects(
     await checkStatAchievements(tx, side.userId, c.id);
     await notify(tx, side.userId, {
       type: "VERDICT",
-      title: won ? "You won your case! 🏆" : lost ? "You lost your case" : `Verdict: ${VERDICT_HEADLINE[verdict]}`,
+      title: won ? "You won your case!" : lost ? "You lost your case" : `Verdict: ${VERDICT_HEADLINE[verdict]}`,
       body:
         verdict === "DISMISSED"
           ? `“${c.title}” was dismissed for lack of quorum.`
@@ -238,6 +238,8 @@ async function applyVerdictEffects(
             : `You voted ${j.choice === "GUILTY" ? "guilty" : "not guilty"} on “${c.title}”. Final tally ${tally}.`,
         href,
         data: { verdict },
+        createdAt: clock.now(),
+        toastedAt: clock.now(), // inbox only; toasts are reserved for participants
       })),
     });
   }

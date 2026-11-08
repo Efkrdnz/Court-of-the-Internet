@@ -1,0 +1,145 @@
+/*
+ * Motion for achievement badges (bdg-) and empty-state scenes (scn-).
+ * Every animation is opt-in to motion: it runs only when the OS allows motion
+ * AND the site-level preference (<html data-motion="reduce">) has not disabled it.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ---- Badges ---------------------------------------------------- */
+
+  /* Add .bdg-unlock to an <AchievementBadge> the moment it is earned. */
+  html:not([data-motion="reduce"]) .bdg-unlock {
+    animation: bdg-pop 900ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    transform-origin: 50% 42%;
+  }
+  html:not([data-motion="reduce"]) .bdg-unlock .bdg-sweep {
+    animation: bdg-sweep 1100ms ease-in-out 450ms both;
+  }
+  html:not([data-motion="reduce"]) .bdg-unlock .bdg-shine {
+    animation: bdg-twinkle 1200ms ease-out 650ms both;
+  }
+
+  /* Legendary badges keep shimmering softly. */
+  html:not([data-motion="reduce"]) .bdg--legendary .bdg-shine {
+    animation: bdg-twinkle 2600ms ease-in-out infinite;
+  }
+
+  /* Hover wiggle (opt-in with .bdg-hover). */
+  html:not([data-motion="reduce"]) .bdg-hover {
+    transform-origin: 50% 10%;
+  }
+  html:not([data-motion="reduce"]) .bdg-hover:hover {
+    animation: bdg-wiggle 700ms ease-in-out;
+  }
+
+  @keyframes bdg-pop {
+    0% { transform: scale(0.2) rotate(-25deg); opacity: 0; }
+    55% { transform: scale(1.18) rotate(8deg); opacity: 1; }
+    75% { transform: scale(0.96) rotate(-3deg); }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  @keyframes bdg-sweep {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(150px); }
+  }
+  @keyframes bdg-twinkle {
+    0% { transform: scale(0.3) rotate(-45deg); opacity: 0; }
+    40% { transform: scale(1.25) rotate(10deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  @keyframes bdg-wiggle {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-7deg); }
+    40% { transform: rotate(6deg); }
+    60% { transform: rotate(-4deg); }
+    80% { transform: rotate(2deg); }
+  }
+
+  /* ---- Scenes ---------------------------------------------------- */
+
+  html:not([data-motion="reduce"]) .scn-tumbleweed {
+    animation: scn-roll 7s linear infinite;
+  }
+  html:not([data-motion="reduce"]) .scn-dust {
+    animation: scn-dust 7s linear infinite;
+  }
+
+  html:not([data-motion="reduce"]) .scn-z {
+    animation: scn-z 3s ease-in-out infinite both;
+  }
+  html:not([data-motion="reduce"]) .scn-z-2 { animation-delay: 1s; }
+  html:not([data-motion="reduce"]) .scn-z-3 { animation-delay: 2s; }
+
+  html:not([data-motion="reduce"]) .scn-bubble {
+    animation: scn-bubble 3s ease-in-out infinite;
+  }
+  html:not([data-motion="reduce"]) .scn-steam {
+    animation: scn-steam 2.4s ease-in-out infinite;
+  }
+
+  html:not([data-motion="reduce"]) .scn-question {
+    animation: scn-bob 2.2s ease-in-out infinite;
+  }
+  html:not([data-motion="reduce"]) .scn-question-2 { animation-delay: -0.7s; }
+  html:not([data-motion="reduce"]) .scn-question-3 { animation-delay: -1.4s; }
+
+  html:not([data-motion="reduce"]) .scn-loading-gavel {
+    animation: scn-gavel 900ms cubic-bezier(0.5, 0, 0.6, 1) infinite;
+  }
+  html:not([data-motion="reduce"]) .scn-loading-impact {
+    animation: scn-impact 900ms ease-out infinite;
+  }
+  html:not([data-motion="reduce"]) .scn-loading-block {
+    animation: scn-block 900ms ease-out infinite;
+  }
+
+  @keyframes scn-roll {
+    0% { transform: translate(-90px, 0) rotate(0deg); }
+    18% { transform: translate(-20px, -12px) rotate(160deg); }
+    28% { transform: translate(14px, 0) rotate(250deg); }
+    50% { transform: translate(110px, -14px) rotate(470deg); }
+    62% { transform: translate(160px, 0) rotate(570deg); }
+    100% { transform: translate(330px, 0) rotate(900deg); }
+  }
+  @keyframes scn-dust {
+    0%, 100% { opacity: 0; transform: translateX(-40px); }
+    20%, 60% { opacity: 1; }
+    80% { opacity: 0; transform: translateX(200px); }
+  }
+  @keyframes scn-z {
+    0% { transform: translate(-8px, 10px) scale(0.6); opacity: 0; }
+    25% { opacity: 1; }
+    75% { opacity: 1; }
+    100% { transform: translate(6px, -14px) scale(1.1) rotate(8deg); opacity: 0; }
+  }
+  @keyframes scn-bubble {
+    0%, 100% { transform: scale(0.45); }
+    50% { transform: scale(1.15); }
+  }
+  @keyframes scn-steam {
+    0%, 100% { transform: translateY(2px) scaleY(0.9); opacity: 0.4; }
+    50% { transform: translateY(-3px) scaleY(1.1); opacity: 1; }
+  }
+  @keyframes scn-bob {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    50% { transform: translateY(-6px) rotate(6deg); }
+  }
+  @keyframes scn-gavel {
+    0% { transform: rotate(28deg); }
+    45% { transform: rotate(32deg); }
+    62% { transform: rotate(0deg); }
+    70% { transform: rotate(3deg); }
+    78% { transform: rotate(0deg); }
+    100% { transform: rotate(28deg); }
+  }
+  @keyframes scn-impact {
+    0%, 58% { opacity: 0; transform: scale(0.6); }
+    64% { opacity: 1; transform: scale(1); }
+    85%, 100% { opacity: 0; transform: scale(1.25); }
+  }
+  @keyframes scn-block {
+    0%, 60% { transform: scaleY(1); }
+    64% { transform: scaleY(0.9); }
+    74%, 100% { transform: scaleY(1); }
+  }
+}

@@ -25,6 +25,7 @@ describe("content filter", () => {
 
   it("flags slurs even with leetspeak", () => {
     expect(screenText("you absolute f4gg0t").ok).toBe(false);
+    expect(screenText("you absolute faaaggot").ok).toBe(false);
   });
 
   it.each([
@@ -37,6 +38,7 @@ describe("content filter", () => {
     "I rewatched The Suicide Squad without my partner.",
     "My heroine in the book club was a scoundrel.",
     "I scored 1,000,000 points and lied about it.",
+    "This was a long con with a furry accomplice in Niger.",
   ])("allows harmless confession %j", (text) => {
     expect(screenText(text)).toEqual({ ok: true });
   });

@@ -1,0 +1,172 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import clsx from "clsx";
+import { getLeaderboards } from "@/server/queries/players";
+import { percent } from "@/lib/format";
+import { getAchievement } from "@/lib/achievements";
+import type { AvatarConfig } from "@/lib/avatar";
+import { Avatar } from "@/components/art/avatar";
+import { AchievementBadge } from "@/components/art/badges";
+import { BailiffBulldog } from "@/components/art/characters";
+import { CaseFileCard } from "@/components/case/CaseFileCard";
+
+export const metadata: Metadata = { title: "Leaderboards", description: "The most feared attorneys, prosecutors, defendants and jurors of the Court of the Internet." };
+
+type Person = { username: string; displayName: string; avatar: AvatarConfig; featuredBadge: string | null };
+
+function Board<T extends Person>({
+  title,
+  subtitle,
+  rows,
+  stat,
+  detail,
+  empty,
+  tone,
+}: {
+  title: string;
+  subtitle: string;
+  rows: T[];
+  stat: (r: T) => React.ReactNode;
+  detail: (r: T) => React.ReactNode;
+  empty: string;
+  tone: "teal" | "crimson" | "gold" | "plum";
+}) {
+  return (
+    <section
+      aria-labelledby={`lb-${title}`}
+      className={clsx(
+        "velvet flex flex-col p-5",
+        tone === "teal" && "bg-gradient-to-b from-teal/25",
+        tone === "crimson" && "bg-gradient-to-b from-crimson/25",
+        tone === "gold" && "bg-gradient-to-b from-gold/15",
+        tone === "plum" && "bg-gradient-to-b from-plum/40",
+      )}
+    >
+      <h2 id={`lb-${title}`} className="font-display text-2xl font-black text-parchment">
+        {title}
+      </h2>
+      <p className="mb-4 text-xs text-parchment/60">{subtitle}</p>
+      {rows.length === 0 ? (
+        <p className="my-auto py-6 text-center text-sm italic text-parchment/60">{empty}</p>
+      ) : (
+        <ol className="space-y-1.5">
+          {rows.map((r, i) => {
+            const badge = r.featuredBadge ? getAchievement(r.featuredBadge) : undefined;
+            return (
+              <li key={r.username}>
+                <Link href={`/u/${r.username}`} className={clsx("flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-night/40", i === 0 && "bg-gold/10 ring-1 ring-gold/40")}>
+                  <span className={clsx("w-7 shrink-0 text-center font-display text-lg font-black", i === 0 ? "text-gold-light" : i < 3 ? "text-parchment" : "text-parchment/50")}>
+                    {i + 1}
+                  </span>
+                  <Avatar config={r.avatar} className="h-10 w-10 shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate font-bold text-parchment">{r.displayName}</span>
+                      {badge ? <AchievementBadge icon={badge.icon} tier={badge.tier} className="h-5 w-4 shrink-0" title={badge.name} /> : null}
+                    </span>
+                    <span className="block truncate text-xs text-parchment/55">{detail(r)}</span>
+                  </span>
+                  <span className="shrink-0 text-right font-display text-lg font-black text-gold-light">{stat(r)}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+export default async function LeaderboardsPage() {
+  const lb = await getLeaderboards();
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <header className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
+        <div className="animate-in">
+          <p className="eyebrow">Hall of fame (and shame)</p>
+          <h1 className="mt-2 font-display text-4xl font-black text-parchment sm:text-6xl">
+            The <span className="gilded-text italic">leaderboards</span>
+          </h1>
+          <p className="mt-3 max-w-2xl text-lg text-parchment/75">
+            Win-rate boards are ranked by a confidence-adjusted score (the Wilson lower bound), so a lucky 1–0 rookie can&apos;t outrank a seasoned 30–8 litigator.
+            You need at least {lb.thresholds.decided} decided cases in a role to qualify.
+          </p>
+        </div>
+        <BailiffBulldog className="chr-hover chr-sticker mx-auto w-48" />
+      </header>
+
+      <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <Board
+          title="Best defense attorneys"
+          subtitle={`Min. ${lb.thresholds.decided} decided cases · ranked by confidence-adjusted win rate`}
+          rows={lb.attorneys}
+          stat={(r) => percent(r.rate)}
+          detail={(r) => `${r.wins}W–${r.losses}L · streak ${r.streak}`}
+          empty="No attorney has argued enough cases yet. The bar is open."
+          tone="teal"
+        />
+        <Board
+          title="Best prosecutors"
+          subtitle={`Min. ${lb.thresholds.decided} decided cases · ranked by confidence-adjusted conviction rate`}
+          rows={lb.prosecutors}
+          stat={(r) => percent(r.rate)}
+          detail={(r) => `${r.wins}W–${r.losses}L · streak ${r.streak}`}
+          empty="No prosecutor qualifies yet. Justice awaits."
+          tone="crimson"
+        />
+        <Board
+          title="Most convicted defendants"
+          subtitle="Public confessions only · the court's most wanted"
+          rows={lb.convicts}
+          stat={(r) => r.convictions}
+          detail={(r) => `${r.confessed} confessions · ${r.acquittals} acquittals`}
+          empty="Nobody has been convicted yet. Suspicious."
+          tone="gold"
+        />
+        <Board
+          title="Longest win streaks"
+          subtitle="Best ever consecutive wins in either role"
+          rows={lb.streaks}
+          stat={(r) => r.streak}
+          detail={(r) => `${r.side} streak`}
+          empty="No streaks yet. Be the first."
+          tone="plum"
+        />
+        <Board
+          title="Most active jurors"
+          subtitle={`Min. ${lb.thresholds.juryVotes} votes · the backbone of justice`}
+          rows={lb.jurors}
+          stat={(r) => r.votes}
+          detail={(r) => `${percent(r.agreement)} with the majority`}
+          empty="The jury box is empty. Report for duty!"
+          tone="gold"
+        />
+        <Board
+          title="Most reputable"
+          subtitle="Reputation is earned only through verdicts"
+          rows={lb.reputation}
+          stat={(r) => r.reputation}
+          detail={(r) => `Level ${r.level} · ${r.xp} XP`}
+          empty="Nobody has a reputation yet. Lucky them."
+          tone="teal"
+        />
+      </div>
+
+      <section aria-labelledby="ent-heading" className="mt-16">
+        <h2 id="ent-heading" className="rule-ornate mb-2 font-display text-2xl font-bold">
+          <span className="text-parchment">Most entertaining cases</span>
+        </h2>
+        <p className="mb-6 text-center text-sm text-parchment/60">Ranked by gallery reactions (Legendary counts triple).</p>
+        {lb.entertaining.length === 0 ? (
+          <p className="velvet p-6 text-center text-parchment/70">No reactions yet. Tough crowd.</p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {lb.entertaining.map((c, i) => (
+              <CaseFileCard key={c.id} c={c} footer={<p className="text-xs font-bold uppercase tracking-widest text-sepia">#{i + 1} · {c.reactionScore} reaction points</p>} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
