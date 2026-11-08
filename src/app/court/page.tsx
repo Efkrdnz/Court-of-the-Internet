@@ -254,7 +254,7 @@ function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-lg bg-night/50 p-2.5">
       <p className="font-display text-xl font-black text-gold-light">{value}</p>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-parchment/60">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-parchment/60">{label}</p>
     </div>
   );
 }

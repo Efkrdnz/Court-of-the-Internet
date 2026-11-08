@@ -92,7 +92,9 @@ Last full run: **47/47 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint 
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
-## Per-phase evidence (re-run on the final commit)
+## Per-phase evidence
+
+`bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
 
 | Phase | Verified by |
 | --- | --- |
@@ -104,5 +106,5 @@ Last full run: **47/47 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint 
 | 6 Stats, profiles, achievements, leaderboards | stats-audit tests + `npm run audit:stats`; `tests/integration/leaderboards.test.ts`; `e2e/leaderboards.spec.ts`; achievement assertions in lifecycle tests |
 | 7 Archives, discovery, sharing | `section12` archives test; OG image checks; reaction + share flows in e2e |
 | 8 Moderation & security | moderation integration tests; report flow, staff-only 404 and redirects in e2e; CSP header asserted; fairness test |
-| 9 Testing, accessibility, responsive | `e2e/a11y.spec.ts` (axe, 13 pages), `e2e/mobile.spec.ts` |
+| 9 Testing, accessibility, responsive | `e2e/a11y.spec.ts` (axe, 13 pages), `e2e/mobile.spec.ts`; an 18-page Pixel 7 contact sheet reviewed by eye (found and fixed the mobile menu being trapped in the header) |
 | 10 Debugging, docs, deployment | `tsc`, ESLint, `next build`, production `next start` route check; README reviewed against GOAL.md |

@@ -160,7 +160,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
                   excerpt={
                     role === "PROSECUTION" && c.defenseExcerpt ? (
                       <div className="argument argument-defense mt-3 !p-3">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal">The defense argues</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal">The defense argues</p>
                         <p className="mt-1 line-clamp-4 font-type text-sm text-ink/85">{c.defenseExcerpt}</p>
                       </div>
                     ) : undefined

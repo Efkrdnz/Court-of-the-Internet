@@ -18,7 +18,7 @@ export async function SiteHeader({ user }: { user: SessionUser | null }) {
           <Crest className="h-11 w-11 shrink-0 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105" />
           <span className="min-w-0 leading-none">
             <span className="block max-w-[8.5rem] font-blackletter text-lg leading-[1.05] text-gold-light min-[420px]:max-w-none min-[420px]:truncate min-[420px]:text-xl sm:text-2xl">Court of the Internet</span>
-            <span className="hidden text-[10px] font-bold uppercase tracking-[0.3em] text-parchment/50 sm:block">All rise · Est. 2026</span>
+            <span className="hidden text-[11px] font-bold uppercase tracking-[0.3em] text-parchment/50 sm:block">All rise · Est. 2026</span>
           </span>
         </Link>
 

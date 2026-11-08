@@ -16,6 +16,12 @@ test("mobile navigation menu opens and navigates", async ({ page }) => {
   await page.getByRole("button", { name: "Open menu" }).click();
   const nav = page.locator("#mobile-nav");
   await expect(nav).toBeVisible();
+  // The panel covers the screen below the header and every link is visible (not clipped).
+  const box = (await nav.boundingBox())!;
+  expect(box.height).toBeGreaterThan(page.viewportSize()!.height * 0.8);
+  for (const label of ["Courtroom", "Confess", "Defend", "Prosecute", "Jury Duty", "Archives", "Leaderboards"]) {
+    await expect(nav.getByRole("link", { name: label, exact: true })).toBeInViewport();
+  }
   await nav.getByRole("link", { name: "Archives" }).click();
   await page.waitForURL(/\/archives/);
   await expect(page.locator("#mobile-nav")).toHaveCount(0);

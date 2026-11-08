@@ -116,6 +116,7 @@ All state changes go through `src/server/services/*`. They run in transactions, 
 | `npm run db:migrate` | Create/apply a migration in development |
 | `npm run db:deploy` | Apply migrations (production) |
 | `npm run db:seed` | Seed an empty database (`-- --reset` wipes the dev DB first) |
+| `bash scripts/verify-phases.sh` | Re-run each of the 10 development phases' suites separately and print PASS/FAIL per phase |
 | `npm run audit:stats` | Check every player's stored stats against a full recomputation from history |
 | `npx tsx scripts/build-og-art.tsx` | Re-render the character SVGs used by Open Graph images (`assets/og-art`) |
 

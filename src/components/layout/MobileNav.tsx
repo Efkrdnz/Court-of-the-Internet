@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
@@ -36,7 +37,8 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
       >
         {open ? <IconX className="h-6 w-6" /> : <IconMenu className="h-6 w-6" />}
       </button>
-      {open ? (
+      {/* Portalled to <body>: the header's backdrop-filter would otherwise trap this fixed panel inside the header. */}
+      {open ? createPortal(
         <div id="mobile-nav" ref={panelRef} className="fixed inset-x-0 bottom-0 top-[64px] z-50 overflow-y-auto bg-night/95 px-5 pb-10 pt-4 backdrop-blur">
           <ul className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => {
@@ -94,7 +96,8 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
               </Link>
             </li>
           </ul>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

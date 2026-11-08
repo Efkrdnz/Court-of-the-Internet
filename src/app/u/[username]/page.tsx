@@ -166,7 +166,7 @@ export default async function ProfilePage({ params }: Props) {
                 <AchievementBadge icon={a.icon} tier={a.tier} locked={!at} className="bdg-hover h-24 w-20" title={a.name} />
                 <p className="mt-2 font-display font-bold leading-tight text-parchment">{a.name}</p>
                 <p className="mt-1 text-xs text-parchment/65">{a.description}</p>
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: TIER_STYLE[a.tier].ring }}>
+                <p className="mt-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: TIER_STYLE[a.tier].ring }}>
                   {TIER_STYLE[a.tier].label}
                   {at ? ` · ${formatDate(at)}` : ""}
                 </p>

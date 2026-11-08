@@ -37,7 +37,7 @@ export function PersonChip({
       <span className={clsx("inline-flex items-center gap-2", className)}>
         <span className={clsx(avatarSize, "grid place-items-center rounded-full border-2 border-dashed", dark ? "border-gold/40" : "border-sepia/40")} aria-hidden />
         <span className="leading-tight">
-          {role ? <span className={clsx("block text-[10px] font-bold uppercase tracking-widest", dark ? "text-gold-light/80" : "text-sepia")}>{role}</span> : null}
+          {role ? <span className={clsx("block text-[11px] font-bold uppercase tracking-widest", dark ? "text-gold-light/80" : "text-sepia")}>{role}</span> : null}
           <span className={clsx("block text-sm italic", dark ? "text-parchment/60" : "text-sepia/80")}>Seat vacant</span>
         </span>
       </span>
@@ -52,7 +52,7 @@ export function PersonChip({
     <>
       {avatar}
       <span className="min-w-0 leading-tight">
-        {role ? <span className={clsx("block text-[10px] font-bold uppercase tracking-widest", dark ? "text-gold-light/80" : "text-sepia")}>{role}</span> : null}
+        {role ? <span className={clsx("block text-[11px] font-bold uppercase tracking-widest", dark ? "text-gold-light/80" : "text-sepia")}>{role}</span> : null}
         <span className={clsx("block truncate font-bold", size === "lg" ? "text-lg" : "text-sm", dark ? "text-parchment" : "text-ink")}>
           {person.displayName}
         </span>

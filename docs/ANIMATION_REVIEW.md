@@ -1,6 +1,6 @@
 # Animation & visual review
 
-A manual, frame-by-frame review of **every animation in the app**, captured from the **production build** (`next start`) with motion enabled. Frames are in [`docs/review/`](review/). The automated checks for the same behaviour are in `e2e/section12.spec.ts`: "animations work without breaking interactions" and "visual assets render correctly".
+A manual, frame-by-frame review of **every animation in the app** (all 15 now have captured frames and/or measured computed styles), captured from the **production build** (`next start`) with motion enabled. Frames are in [`docs/review/`](review/). The automated checks for the same behaviour are in `e2e/section12.spec.ts`: "animations work without breaking interactions" and "visual assets render correctly".
 
 ## Inventory
 
@@ -17,10 +17,10 @@ A manual, frame-by-frame review of **every animation in the app**, captured from
 | 9 | Evidence folder opens on hover (cover folds, papers lift) | Archives header | CSS `.prp-hover` | ✔ frames | `folder-closed` → `folder-open-hover` | ✔ |
 | 10 | Badge hover wiggle | Profiles, achievements | CSS `bdg-hover` | ✔ frames | `badge-idle` → `badge-hover` | ✔ |
 | 11 | Empty-state scenes: tumbleweed roll + dust, sleeping bailiff Z's + steam | Empty queues, archive searches, jury | CSS `scn-*` | ✔ frames | `tumbleweed-a` → `tumbleweed-b` | ✔ |
-| 12 | Loading gavel tap + rotating funny loading lines | Route `loading.tsx` (archives, leaderboards, queues…) | CSS `scn-loading-gavel` + interval | ✔ code review (short-lived) | n/a | ✔ |
+| 12 | Loading gavel tap + rotating funny loading lines | Route `loading.tsx` (archives, leaderboards, queues…) | CSS `scn-loading-gavel` + interval | ✔ frames (RSC response delayed 2.5s to hold the loading state): `animation-name: scn-gavel` running, line changed "Powdering the wigs…" → "Waking the jury cats…" | `loading-a`, `loading-b` | ✔ |
 | 13 | Scales sway, wax-seal shine sweep | Archives stats, seals | CSS | ✔ visible in page screenshots | n/a | ✔ |
-| 14 | Page rise-in (`animate-in*`), spotlight flicker | Hero headings, landing spotlight | CSS | ✔ visual | n/a | ✔ subtle, non-blocking |
-| 15 | Card lift, button press, category-tile tilt on hover | Global | CSS transitions | ✔ visual | n/a | ✔ |
+| 14 | Page rise-in (`animate-in*`), spotlight flicker | Hero headings, landing spotlight | CSS `rise` 0.6s | ✔ frames + measured: h1 opacity 0.25 / translateY 10.5px shortly after load → 1 / 0 at 900ms | `risein-early`, `risein-done` | ✔ subtle, non-blocking |
+| 15 | Card lift, button press, category-tile tilt on hover | Global | CSS transitions | ✔ frames + measured on "Confess a crime": hover `translateY(-1px)`, pressed `scale(0.99) translateY(1px)` | `button-rest`, `button-hover`, `button-pressed` | ✔ |
 
 ## Issues found during this review (fixed)
 
@@ -31,3 +31,10 @@ A manual, frame-by-frame review of **every animation in the app**, captured from
 
 - **Player setting:** turning on "Reduce motion" in Settings sets `html[data-motion="reduce"]`. Every CSS animation is scoped to `html:not([data-motion="reduce"])` inside `@media (prefers-reduced-motion: no-preference)`, and Motion runs with `reducedMotion="always"`. Confetti isn't rendered, and the verdict shows its final state with no replay. e2e asserts zero running character animations with the setting on.
 - **OS setting:** the OS preference is honoured identically. Rendering is hydration-safe (`useReduceMotion`): the server and the first client render agree.
+
+## Mobile visual review
+
+A contact sheet of 18 pages plus the open menu was captured on a Pixel 7 (412px), signed in (admin) and signed out, and reviewed by eye. Every page measured `scrollWidth == innerWidth == 412`.
+- **Fixed: mobile menu trapped in the header.** The header's `backdrop-filter` makes it the containing block for `position: fixed` children, so the full-screen menu panel was confined to the 64px header and only "Courtroom" was visible. The panel is now portalled to `<body>` (`MobileNav`), and the e2e test asserts it covers more than 80% of the screen with all 7 links in view. See [`mobile-menu-open.png`](review/mobile-menu-open.png).
+- **Fixed: micro-labels raised from 10px to 11px** for legibility (role tags, stat captions).
+- **Fixed earlier in this pass:** overflow on `/court` and `/confess`, the wordmark truncating, and small tap targets (prompt chips, toast dismiss, report button).
