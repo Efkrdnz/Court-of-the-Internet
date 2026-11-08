@@ -1,18 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import { loginAction, signupAction } from "@/app/actions/auth";
-import type { ActionResult } from "@/app/actions/_util";
+import { useFormAction } from "@/components/ui/useFormAction";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FieldError, FormAlert } from "@/components/ui/FormAlert";
 import { LIMITS } from "@/lib/limits";
 
 export function LoginForm({ next }: { next: string }) {
-  const [state, action] = useActionState<ActionResult | null, FormData>(loginAction, null);
+  const [state, formProps, pending] = useFormAction(loginAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
   return (
-    <form action={action} className="space-y-4" noValidate>
+    <form {...formProps} className="space-y-4" noValidate>
       <input type="hidden" name="next" value={next} />
       {state && !state.ok && !fe?.username && !fe?.password ? <FormAlert className="!text-crimson">{state.error}</FormAlert> : null}
       <div>
@@ -29,7 +28,7 @@ export function LoginForm({ next }: { next: string }) {
         <input id="login-password" name="password" type="password" autoComplete="current-password" className="input" required aria-invalid={!!fe?.password} />
         <FieldError errors={fe?.password} />
       </div>
-      <SubmitButton className="btn-burgundy w-full" pendingLabel="Checking your credentials…">
+      <SubmitButton pending={pending} className="btn-burgundy w-full" pendingLabel="Checking your credentials…">
         Enter the courtroom
       </SubmitButton>
       <p className="text-center text-sm text-sepia">
@@ -43,10 +42,10 @@ export function LoginForm({ next }: { next: string }) {
 }
 
 export function SignupForm({ next }: { next: string }) {
-  const [state, action] = useActionState<ActionResult | null, FormData>(signupAction, null);
+  const [state, formProps, pending] = useFormAction(signupAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
   return (
-    <form action={action} className="space-y-4" noValidate>
+    <form {...formProps} className="space-y-4" noValidate>
       <input type="hidden" name="next" value={next} />
       {/* Honeypot for bots: hidden from people and assistive tech. */}
       <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
@@ -112,7 +111,7 @@ export function SignupForm({ next }: { next: string }) {
         </span>
       </label>
       <FieldError errors={fe?.acceptRules} />
-      <SubmitButton className="btn-burgundy w-full" pendingLabel="Swearing you in…">
+      <SubmitButton pending={pending} className="btn-burgundy w-full" pendingLabel="Swearing you in…">
         Swear me in
       </SubmitButton>
       <p className="text-center text-sm text-sepia">

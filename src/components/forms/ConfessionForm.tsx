@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { motion } from "motion/react";
 import { useReduceMotion } from "@/components/ui/useReduceMotion";
 import { confessAction } from "@/app/actions/cases";
-import type { ActionResult } from "@/app/actions/_util";
+import { useFormAction } from "@/components/ui/useFormAction";
 import { CATEGORIES, getCategory } from "@/lib/categories";
 import { LIMITS } from "@/lib/limits";
 import { charCount } from "@/lib/text";
@@ -23,9 +23,9 @@ const PROMPTS = [
   "I've been pretending for months that…",
 ];
 
-export function ConfessionForm({ displayName }: { displayName: string }) {
+export function ConfessionForm({ displayName, quorum, deliberationHours }: { displayName: string; quorum: number; deliberationHours: number }) {
   const reduce = useReduceMotion();
-  const [state, action] = useActionState<ActionResult | null, FormData>(confessAction, null);
+  const [state, formProps, pending] = useFormAction(confessAction);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<string>("");
   const [confession, setConfession] = useState("");
@@ -37,7 +37,7 @@ export function ConfessionForm({ displayName }: { displayName: string }) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-      <form action={action} className="space-y-7" noValidate>
+      <form {...formProps} className="space-y-7" noValidate>
         <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
           <label>
             Website <input name="website" tabIndex={-1} autoComplete="off" />
@@ -165,7 +165,7 @@ export function ConfessionForm({ displayName }: { displayName: string }) {
             </span>
           </label>
           <FieldError errors={fe?.acceptRules} />
-          <SubmitButton className="btn-lg w-full" pendingLabel="Entering it into the record…">
+          <SubmitButton pending={pending} className="btn-lg w-full" pendingLabel="Entering it into the record…">
             Submit my confession to the court
           </SubmitButton>
         </div>
@@ -204,7 +204,9 @@ export function ConfessionForm({ displayName }: { displayName: string }) {
             <strong className="text-gold-light">Next:</strong> a stranger claims your case and writes your defense.
           </li>
           <li>Then a prosecutor reads both and argues for conviction.</li>
-          <li>Finally a jury of players votes for 24 hours. At least 10 votes are needed for a verdict.</li>
+          <li>
+            Finally a jury of players votes for {deliberationHours} hours. At least {quorum} votes are needed for a verdict.
+          </li>
         </ol>
       </aside>
     </div>

@@ -210,7 +210,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
             nobody wins or loses.
           </p>
           <p className="velvet p-4">
-            <strong className="text-gold-light">Abandoned a case?</strong> Claims last 30 minutes. If time runs out, the case goes back on the docket.
+            <strong className="text-gold-light">Abandoned a case?</strong> Claims last {Math.round(gameConfig.claimMs / 60_000)} minutes. If time runs out, the case goes back on the docket.
           </p>
           <p className="velvet p-4">
             <strong className="text-gold-light">Fair play.</strong> You can never judge your own case, defend yourself, or buy a verdict. Everything is enforced

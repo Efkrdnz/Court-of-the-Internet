@@ -64,6 +64,8 @@ export async function submitArgumentAction(
   let target: string;
   try {
     const user = await requireActiveUser();
+    // `role` is bound on the client, so never trust it without checking.
+    if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
     await enforceRateLimit(`argue:${user.id}`, 10, 600);
     const input = argumentSchema.parse(formObject(formData));
     const result = await submitArgument(user.id, input.caseId, role, input.body);

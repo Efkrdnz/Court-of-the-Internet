@@ -18,8 +18,10 @@ const text = (opts: { min?: number; max: number; label: string; multiline?: bool
       message: `${opts.label} must be at most ${opts.max} characters.`,
     });
 
+// Unchecked checkboxes are simply absent from FormData, so the key must be optional (Zod 4).
 const checkbox = z
-  .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean(), z.undefined(), z.null()])
+  .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean(), z.null()])
+  .optional()
   .transform((v) => v === "on" || v === "true" || v === true);
 
 export const confessionSchema = z.object({

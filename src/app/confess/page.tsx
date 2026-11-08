@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/current-user";
+import { publicGameConfig } from "@/server/config";
 import { ConfessionForm } from "@/components/forms/ConfessionForm";
 import { HamsterDefendant } from "@/components/art/characters";
 import { FormAlert } from "@/components/ui/FormAlert";
@@ -43,7 +44,7 @@ export default async function ConfessPage() {
       ) : user.bannedAt ? (
         <FormAlert>You are banned and cannot file new confessions.</FormAlert>
       ) : (
-        <ConfessionForm displayName={user.displayName} />
+        <ConfessionForm displayName={user.displayName} {...publicGameConfig()} />
       )}
     </div>
   );

@@ -51,5 +51,8 @@
   },
   "prisma": {
     "seed": "tsx --conditions=react-server prisma/seed.ts"
+  },
+  "overrides": {
+    "playwright-core": "1.63.0"
   }
 }

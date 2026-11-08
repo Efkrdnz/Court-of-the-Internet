@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import clsx from "clsx";
 import { changePasswordAction, deleteAccountAction, updatePreferencesAction, updateProfileAction } from "@/app/actions/settings";
 import type { ActionResult } from "@/app/actions/_util";
+import { useFormAction } from "@/components/ui/useFormAction";
 import { ACCESSORIES, BACKDROPS, HEADWEAR, SPECIES, type AvatarConfig } from "@/lib/avatar";
 import { CATEGORIES } from "@/lib/categories";
 import { LIMITS } from "@/lib/limits";
@@ -56,7 +57,7 @@ export function ProfileForm({
   badges: { key: string; name: string }[];
   locks: LockInfo;
 }) {
-  const [state, action] = useActionState<ActionResult | null, FormData>(updateProfileAction, null);
+  const [state, formProps, pending] = useFormAction(updateProfileAction);
   const [avatar, setAvatar] = useState<AvatarConfig>(initial.avatar);
   const [theme, setTheme] = useState(initial.profileTheme);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
@@ -97,7 +98,7 @@ export function ProfileForm({
   );
 
   return (
-    <form action={action} className="space-y-6">
+    <form {...formProps} className="space-y-6">
       <div className="grid gap-6 md:grid-cols-[180px_1fr]">
         <div className="text-center">
           <Avatar config={avatar} className="mx-auto h-40 w-40" />
@@ -177,7 +178,7 @@ export function ProfileForm({
       </fieldset>
       <Result state={state} />
       <div className="flex justify-end">
-        <SubmitButton className="btn-burgundy" pendingLabel="Saving…">
+        <SubmitButton pending={pending} className="btn-burgundy" pendingLabel="Saving…">
           Save profile
         </SubmitButton>
       </div>
@@ -186,9 +187,9 @@ export function ProfileForm({
 }
 
 export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean; allowFeaturing: boolean; mutedCategories: string[] } }) {
-  const [state, action] = useActionState<ActionResult | null, FormData>(updatePreferencesAction, null);
+  const [state, formProps, pending] = useFormAction(updatePreferencesAction);
   return (
-    <form action={action} className="space-y-5">
+    <form {...formProps} className="space-y-5">
       <label className="flex items-start gap-3">
         <input type="checkbox" name="reducedMotion" defaultChecked={initial.reducedMotion} className="mt-1 h-5 w-5 accent-burgundy" />
         <span>
@@ -218,7 +219,7 @@ export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean
       </fieldset>
       <Result state={state} />
       <div className="flex justify-end">
-        <SubmitButton className="btn-burgundy" pendingLabel="Saving…">
+        <SubmitButton pending={pending} className="btn-burgundy" pendingLabel="Saving…">
           Save preferences
         </SubmitButton>
       </div>
@@ -227,10 +228,10 @@ export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean
 }
 
 export function PasswordForm() {
-  const [state, action] = useActionState<ActionResult | null, FormData>(changePasswordAction, null);
+  const [state, formProps, pending] = useFormAction(changePasswordAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
   return (
-    <form action={action} className="grid gap-4 sm:grid-cols-3">
+    <form {...formProps} className="grid gap-4 sm:grid-cols-3">
       <div>
         <label htmlFor="pw-current" className="field-label">
           Current password
@@ -256,7 +257,7 @@ export function PasswordForm() {
         <Result state={state} />
       </div>
       <div className="flex justify-end sm:col-span-3">
-        <SubmitButton className="btn-burgundy" pendingLabel="Updating…">
+        <SubmitButton pending={pending} className="btn-burgundy" pendingLabel="Updating…">
           Change password
         </SubmitButton>
       </div>
@@ -265,10 +266,10 @@ export function PasswordForm() {
 }
 
 export function DeleteAccountForm() {
-  const [state, action] = useActionState<ActionResult | null, FormData>(deleteAccountAction, null);
+  const [state, formProps, pending] = useFormAction(deleteAccountAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
   return (
-    <form action={action} className="grid gap-4 sm:grid-cols-2">
+    <form {...formProps} className="grid gap-4 sm:grid-cols-2">
       <p className="text-sm sm:col-span-2">
         Your username and profile are scrubbed and you are signed out everywhere. Cases you took part in stay in the public record, credited to &ldquo;Former
         Citizen&rdquo;. This cannot be undone.
@@ -289,7 +290,7 @@ export function DeleteAccountForm() {
       </div>
       {state && !state.ok && !fe ? <FormAlert className="sm:col-span-2 !text-crimson">{state.error}</FormAlert> : null}
       <div className="flex justify-end sm:col-span-2">
-        <SubmitButton className="btn-crimson" pendingLabel="Sealing your record…">
+        <SubmitButton pending={pending} className="btn-crimson" pendingLabel="Sealing your record…">
           Delete my account
         </SubmitButton>
       </div>

@@ -47,7 +47,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
         <Avatar config={parseAvatar(user.avatar)} className="h-20 w-20 sm:h-24 sm:w-24" />
         <div className="min-w-0">
           <p className="eyebrow">Your courtroom</p>
-          <h1 className="font-display text-3xl font-black text-parchment sm:text-4xl">Good day, {user.displayName}.</h1>
+          <h1 className="font-display text-3xl font-black text-parchment sm:text-4xl">Good day, {user.displayName.replace(/[.!?]+$/, "")}.</h1>
           <p className="text-parchment/70">
             Level {summary.level.level} · <span className="text-gold-light">{summary.level.title}</span> · Reputation {summary.reputation}
           </p>

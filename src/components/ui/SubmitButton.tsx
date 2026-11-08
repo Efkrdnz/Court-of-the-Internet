@@ -10,6 +10,7 @@ export function SubmitButton({
   disabled,
   name,
   value,
+  pending: pendingProp,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
@@ -17,8 +18,11 @@ export function SubmitButton({
   disabled?: boolean;
   name?: string;
   value?: string;
+  /** Pending state from useFormAction (useFormStatus only tracks native form actions). */
+  pending?: boolean;
 }) {
-  const { pending } = useFormStatus();
+  const status = useFormStatus();
+  const pending = pendingProp ?? status.pending;
   return (
     <button type="submit" name={name} value={value} className={clsx("btn", className)} disabled={pending || disabled} aria-busy={pending}>
       {pending ? (

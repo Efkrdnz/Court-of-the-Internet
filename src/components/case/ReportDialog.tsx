@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { reportAction } from "@/app/actions/cases";
-import type { ActionResult } from "@/app/actions/_util";
+import { useFormAction } from "@/components/ui/useFormAction";
 import { REPORT_REASONS } from "@/lib/validation";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FieldError, FormAlert } from "@/components/ui/FormAlert";
@@ -18,7 +18,7 @@ export function ReportDialog({
   alreadyReported: string[];
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [state, action] = useActionState<ActionResult | null, FormData>(reportAction, null);
+  const [state, formProps, pending] = useFormAction(reportAction);
 
   useEffect(() => {
     if (state?.ok) {
@@ -37,7 +37,7 @@ export function ReportDialog({
         <IconFlag className="h-3.5 w-3.5" /> Report to the clerks
       </button>
       <dialog ref={ref} className="m-auto w-[min(92vw,32rem)] rounded-xl bg-transparent p-0 backdrop:bg-night/80 backdrop:backdrop-blur-sm" aria-labelledby="report-title">
-        <form action={action} className="doc doc-ruled p-6">
+        <form {...formProps} className="doc doc-ruled p-6">
           <h2 id="report-title" className="font-display text-2xl font-black">
             Report this case
           </h2>
@@ -81,7 +81,7 @@ export function ReportDialog({
             <button type="button" className="btn btn-ink btn-sm" onClick={() => ref.current?.close()}>
               Cancel
             </button>
-            <SubmitButton className="btn-crimson btn-sm" pendingLabel="Filing report…">
+            <SubmitButton pending={pending} className="btn-crimson btn-sm" pendingLabel="Filing report…">
               Submit report
             </SubmitButton>
           </div>

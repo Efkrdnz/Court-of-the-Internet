@@ -123,6 +123,17 @@ describe("validation", () => {
       expect(ok.data.anonymous).toBe(true);
       expect(ok.data.context).toBeUndefined();
     }
+    // Unchecked checkboxes are absent from FormData entirely.
+    const noAnon = confessionSchema.safeParse({
+      title: "I hid the TV remote in the freezer",
+      category: "roommate-disputes",
+      confession: "Every time my roommate picks a show I don't like, the remote ends up behind the frozen peas.",
+      acceptRules: "on",
+    });
+    expect(noAnon.success && noAnon.data.anonymous).toBe(false);
+    const noRules = confessionSchema.safeParse({ title: "A valid title", category: "food-crimes", confession: "x".repeat(10) + " this is long enough to pass the minimum." });
+    expect(noRules.success).toBe(false);
+    if (!noRules.success) expect(noRules.error.issues.map((i) => i.message)).toContain("You must accept the community rules.");
     const bad = confessionSchema.safeParse({ title: "x", category: "nope", confession: "short", acceptRules: undefined });
     expect(bad.success).toBe(false);
   });

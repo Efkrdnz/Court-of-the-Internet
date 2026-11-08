@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import clsx from "clsx";
 import { moderationAction } from "@/app/actions/moderation";
-import type { ActionResult } from "@/app/actions/_util";
+import { useFormAction } from "@/components/ui/useFormAction";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 
 /** A tiny form that posts one moderation operation and shows the result inline. */
@@ -28,12 +27,16 @@ export function ModForm({
   options?: { name: string; values: string[] };
   confirmText?: string;
 }) {
-  const [state, action] = useActionState<ActionResult | null, FormData>(moderationAction, null);
+  const [state, formProps, pending] = useFormAction(moderationAction);
   return (
     <form
-      action={action}
+      action={formProps.action}
       onSubmit={(e) => {
-        if (confirmText && !confirm(confirmText)) e.preventDefault();
+        if (confirmText && !confirm(confirmText)) {
+          e.preventDefault();
+          return;
+        }
+        formProps.onSubmit(e);
       }}
       className="on-dark flex flex-wrap items-center gap-2"
     >
@@ -51,6 +54,7 @@ export function ModForm({
         </select>
       ) : null}
       <SubmitButton
+        pending={pending}
         className={clsx("btn-sm", tone === "ghost" && "btn-ghost", tone === "crimson" && "btn-crimson", tone === "teal" && "btn-teal")}
         pendingLabel="Working…"
       >

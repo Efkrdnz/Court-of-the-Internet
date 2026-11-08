@@ -121,7 +121,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 </Link>
               </h2>
               <p className="text-sm text-parchment/60">
-                Accused: @{focusCase.accused.username}
+                Votes: {focusCase.guiltyVotes} guilty · {focusCase.notGuiltyVotes} not guilty · Accused: @{focusCase.accused.username}
                 {focusCase.anonymous ? " (anonymous publicly)" : ""}
               </p>
             </div>

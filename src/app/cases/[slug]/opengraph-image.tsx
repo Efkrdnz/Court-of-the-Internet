@@ -56,42 +56,43 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             position: "relative",
             background: "#efe3c8",
             borderRadius: 14,
-            border: "6px double #8a6d1c",
+            border: "5px solid #8a6d1c",
             padding: "34px 44px",
             boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, paddingRight: 280 }}>
+          <div style={{ position: "absolute", top: 8, left: 8, right: 8, bottom: 8, border: "2px solid #6b1426", borderRadius: 8, display: "flex" }} />
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, paddingRight: 300 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ fontFamily: "Fraktur", fontSize: 40, color: "#6b1426" }}>Court of the Internet</div>
               {visible ? (
                 <div style={{ display: "flex", background: "#c9a227", color: "#2b1d05", padding: "4px 14px", borderRadius: 6, fontFamily: "Playfair", fontWeight: 700, fontSize: 22 }}>
-                  Case No. {formatCaseNumber(c.number)}
+                  {`Case No. ${formatCaseNumber(c.number)}`}
                 </div>
               ) : null}
             </div>
             {visible ? (
-              <>
+              <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
                 <div style={{ marginTop: 10, fontFamily: "Playfair", fontWeight: 700, fontSize: 22, color: "#5a4632", letterSpacing: 2 }}>
                   {`THE PEOPLE v. ${accused.toUpperCase()} · ${getCategory(c.category).label.toUpperCase()}`}
                 </div>
-                <div style={{ marginTop: 14, fontFamily: "Playfair", fontWeight: 900, fontSize: c.title.length > 60 ? 46 : 56, lineHeight: 1.08, color: "#1a0f12" }}>{c.title}</div>
-                <div style={{ marginTop: 18, fontFamily: "Elite", fontSize: 24, lineHeight: 1.45, color: "#2a1c16" }}>“{confession}”</div>
+                <div style={{ marginTop: 14, fontFamily: "Playfair", fontWeight: 900, fontSize: c.title.length > 60 ? 42 : 50, lineHeight: 1.08, color: "#1a0f12" }}>{c.title}</div>
+                <div style={{ marginTop: 18, fontFamily: "Elite", fontSize: 22, lineHeight: 1.45, color: "#2a1c16" }}>{`“${confession}”`}</div>
                 <div style={{ marginTop: "auto", display: "flex", gap: 24, fontSize: 24, color: "#5a4632", fontWeight: 700 }}>
                   {closed ? <span>{`Final tally: ${c.guiltyVotes} guilty · ${c.notGuiltyVotes} not guilty`}</span> : <span>The jury is still out. Cast your vote!</span>}
                 </div>
-              </>
+              </div>
             ) : (
               <div style={{ marginTop: 40, fontFamily: "Playfair", fontWeight: 900, fontSize: 64, color: "#1a0f12" }}>This case has been sealed.</div>
             )}
           </div>
-          <img src={art} width={280} height={303} style={{ position: "absolute", right: 30, bottom: 20 }} alt="" />
+          <img src={art} width={250} height={271} style={{ position: "absolute", right: 34, bottom: 22 }} alt="" />
           {visible ? (
             <div
               style={{
                 position: "absolute",
                 right: 40,
-                top: 40,
+                top: 34,
                 display: "flex",
                 transform: "rotate(-10deg)",
                 border: `7px solid ${stamp.color}`,
@@ -100,7 +101,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 color: stamp.color,
                 fontFamily: "Playfair",
                 fontWeight: 900,
-                fontSize: stamp.text.length > 8 ? 48 : 64,
+                fontSize: stamp.text.length > 8 ? 40 : 54,
                 letterSpacing: 3,
                 opacity: 0.88,
                 background: "rgba(239,227,200,0.6)",

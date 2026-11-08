@@ -11,6 +11,7 @@ import { registerUser } from "../src/server/services/accounts";
 import { castVote, claimCase, confess, submitArgument } from "../src/server/services/cases";
 import { closeDeliberation } from "../src/server/services/verdict";
 import { toggleReaction } from "../src/server/services/reactions";
+import { fileReport } from "../src/server/services/moderation";
 import { DEMO_PASSWORD } from "../src/lib/demo";
 import {
   AWAITING_DEFENSE_CASES,
@@ -166,6 +167,14 @@ async function main() {
   console.log(
     `Opened ${DELIBERATION_CASES.length} jury cases, ${AWAITING_PROSECUTION_CASES.length} awaiting prosecution, ${AWAITING_DEFENSE_CASES.length} awaiting defense.`,
   );
+
+  // A couple of open reports so the moderation console has something to review.
+  t = realNow - 30 * MIN;
+  const reported = await db.case.findFirst({ where: { title: AWAITING_DEFENSE_CASES[1].title }, select: { id: true } });
+  if (reported) {
+    await fileReport(id("quiet_quokka"), { caseId: reported.id, target: "CASE", reason: "REAL_PERSON", details: "Could this be about a real coworker? Feels identifiable." });
+    await fileReport(id("mx_meowington"), { caseId: reported.id, target: "CASE", reason: "HARASSMENT" });
+  }
 
   // Older notifications shouldn't all pop as toasts on first login.
   await db.notification.updateMany({

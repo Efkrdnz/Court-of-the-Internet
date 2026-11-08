@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import clsx from "clsx";
 import { submitArgumentAction, releaseAction } from "@/app/actions/cases";
-import type { ActionResult } from "@/app/actions/_util";
+import { useFormAction } from "@/components/ui/useFormAction";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FieldError, FormAlert } from "@/components/ui/FormAlert";
 import { CharCounter } from "@/components/ui/CharCounter";
@@ -34,7 +34,7 @@ const OPENERS = {
 export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; role: "DEFENSE" | "PROSECUTION"; expiresAt: string }) {
   const storageKey = `coti-draft-${role}-${caseId}`;
   const [body, setBody] = useState("");
-  const [state, action] = useActionState<ActionResult | null, FormData>(submitArgumentAction.bind(null, role), null);
+  const [state, formProps, pending] = useFormAction(submitArgumentAction.bind(null, role));
   const [releasing, startRelease] = useTransition();
   const [releaseError, setReleaseError] = useState<string | null>(null);
 
@@ -90,13 +90,14 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
       {releaseError ? <FormAlert>{releaseError}</FormAlert> : null}
 
       <form
-        action={(fd) => {
+        action={formProps.action}
+        onSubmit={(e) => {
           try {
             localStorage.removeItem(storageKey);
           } catch {
             /* ignore */
           }
-          return action(fd);
+          formProps.onSubmit(e);
         }}
         className="doc doc-ruled p-5 sm:p-7"
       >
@@ -140,7 +141,7 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
         </details>
 
         <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-          <SubmitButton className={clsx("btn-lg", isDefense ? "btn-teal" : "btn-crimson")} pendingLabel="Filing with the clerk…" disabled={tooShort || tooLong}>
+          <SubmitButton pending={pending} className={clsx("btn-lg", isDefense ? "btn-teal" : "btn-crimson")} pendingLabel="Filing with the clerk…" disabled={tooShort || tooLong}>
             {isDefense ? "File the defense" : "File the prosecution"}
           </SubmitButton>
         </div>

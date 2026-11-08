@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/server/auth/current-user";
 import { currentClaim, listQueue, type QueueSort } from "@/server/queries/cases";
 import { runMaintenance } from "@/server/services/maintenance";
 import { db } from "@/server/db";
+import { publicGameConfig } from "@/server/config";
 import { CATEGORIES, isCategoryKey } from "@/lib/categories";
 import { percent } from "@/lib/format";
 import { casePath, formatCaseNumber } from "@/lib/text";
@@ -39,6 +40,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
   await runMaintenance();
   const user = await getCurrentUser();
   const copy = COPY[role];
+  const cfg = publicGameConfig();
   const category = typeof searchParams.category === "string" && isCategoryKey(searchParams.category) ? searchParams.category : undefined;
   const sort: QueueSort = searchParams.sort === "oldest" ? "oldest" : "newest";
   const page = Math.max(1, Number(searchParams.page) || 1);
@@ -108,7 +110,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
       ) : null}
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <section aria-labelledby="queue-heading">
+        <section aria-labelledby="queue-heading" className="min-w-0">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <h2 id="queue-heading" className="font-display text-2xl font-bold text-parchment">
               {role === "DEFENSE" ? "Defendants awaiting counsel" : "Defenses awaiting rebuttal"}{" "}
@@ -201,9 +203,9 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
           <div className="velvet p-5 text-sm text-parchment/75">
             <p className="eyebrow mb-2">How it works</p>
             <ol className="list-decimal space-y-1.5 pl-4">
-              <li>Claim a case. It&apos;s yours for 30 minutes.</li>
+              <li>Claim a case. It&apos;s yours for {cfg.claimMinutes} minutes.</li>
               <li>Write one {role === "DEFENSE" ? "defense" : "rebuttal"}, up to 750 characters.</li>
-              <li>{role === "DEFENSE" ? "A prosecutor responds, then the jury votes." : "The jury deliberates for 24 hours."}</li>
+              <li>{role === "DEFENSE" ? "A prosecutor responds, then the jury votes." : `The jury deliberates for ${cfg.deliberationHours} hours.`}</li>
               <li>{role === "DEFENSE" ? "A Not Guilty verdict means you win." : "A Guilty verdict means you win."}</li>
             </ol>
             <p className="mt-3 text-parchment/55">If your claim runs out, the case returns to the docket for someone else.</p>
