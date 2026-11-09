@@ -153,14 +153,20 @@ test("reactions toggle and report dialog works", async ({ browser }) => {
   const hilarious = p.getByRole("button", { name: /Hilarious/ });
   const before = Number((await hilarious.innerText()).match(/(\d+)\s*$/)![1]);
   const wasPressed = (await hilarious.getAttribute("aria-pressed")) === "true";
+  // The button updates optimistically, so wait for the server action to answer before
+  // reloading; otherwise the reload can abort the request mid-flight.
+  const saved = p.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/cases/1-"));
   await hilarious.click();
   await expect(hilarious).toHaveAttribute("aria-pressed", String(!wasPressed));
   await expect(hilarious).toContainText(String(wasPressed ? before - 1 : before + 1));
+  await saved;
   // Persisted on the server: survives a reload.
   await p.reload();
   await expect(p.getByRole("button", { name: /Hilarious/ })).toHaveAttribute("aria-pressed", String(!wasPressed));
+  const restored = p.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/cases/1-"));
   await p.getByRole("button", { name: /Hilarious/ }).click();
   await expect(p.getByRole("button", { name: /Hilarious/ })).toHaveAttribute("aria-pressed", String(wasPressed));
+  await restored; // leave the seeded state as we found it for the next project's run
 
   await p.getByRole("button", { name: "Report to the clerks" }).click();
   await p.getByLabel("Spam").check();
