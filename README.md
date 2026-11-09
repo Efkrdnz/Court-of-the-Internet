@@ -155,7 +155,7 @@ npm run build
 npm run test:e2e
 ```
 
-**End-to-end tests** (61, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
+**End-to-end tests** (62, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
 - role restrictions, the reaction and report flows
 - the rendered leaderboards (thresholds, Wilson order, agreement with profiles)
 - **axe accessibility** on 13 pages
@@ -227,7 +227,9 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 
 ## Known limitations
 
-- **Client IPs need a proxy.** IP-based rate limits (signup, login, confessions) use the right-most `X-Forwarded-For` entries, as configured by `TRUST_PROXY_HOPS`. Behind a reverse proxy (nginx, Vercel, Fly…) the client can't spoof them. If `next start` is exposed directly to the internet with no proxy, the client controls that header, because Next doesn't expose the socket address to server actions. Per-account limits still apply: 8 attempts per account per IP, plus a 100-per-15-minutes ceiling per account so one attacker can't lock the owner out. Always deploy behind a proxy.
+- **Client IPs need a proxy.** IP-based limits use the right-most `X-Forwarded-For` entries (`TRUST_PROXY_HOPS`).
+  - **Behind a reverse proxy** (nginx, Vercel, Fly…) clients can't spoof them. Login is limited to 8 attempts per account per client IP, which stops brute force without letting an attacker lock the owner out from elsewhere.
+  - **With `next start` exposed directly**, the client controls that header, because Next doesn't expose the socket address to server actions. The per-IP limits on signup, login and confession can then be bypassed by rotating the header. The only fixed protection left is the per-account ceiling of 100 login attempts per 15 minutes, plus scrypt's cost per guess. Always deploy behind a proxy.
 - **Private courtrooms** for friend groups and **paid memberships** are designed (see `docs/MONETIZATION.md`) but not built. The Patron perks section is explicitly labelled "not on sale yet"; admins can grant cosmetics for testing.
 - **No email:** there's no password reset by email. Admins can't reset passwords from the console yet; players can change their own in Settings.
 - **Search:** archive search uses case-insensitive `ILIKE`. For very large archives, add a Postgres full-text or trigram index.

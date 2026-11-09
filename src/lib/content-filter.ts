@@ -91,8 +91,11 @@ const SERIOUS = [
   /\bmurder(?:ed)?\s+(?:a|my|the|someone|somebody)\b/i,
 ];
 
+const LONG_WORD = /[^\s]{36,}/;
+
 function looksLikeSpam(text: string): boolean {
   if (/(.)\1{9,}/.test(text)) return true; // aaaaaaaaaa
+  if (LONG_WORD.test(text)) return true; // a 36+ character "word" is keyboard-mash, not a crime
   const letters = text.replace(/[^A-Za-z]/g, "");
   if (letters.length >= 30) {
     const upper = letters.replace(/[^A-Z]/g, "").length;
@@ -133,7 +136,9 @@ export function screenText(text: string, { allowSpamCheck = true }: { allowSpamC
 export function screenFields(fields: Record<string, string | undefined | null>): (FilterResult & { field?: string }) {
   for (const [field, value] of Object.entries(fields)) {
     if (!value) continue;
-    const result = screenText(value, { allowSpamCheck: field !== "title" });
+    // Titles skip the caps/repetition heuristics but still may not contain giant unbroken words.
+    const result: FilterResult =
+      field === "title" && LONG_WORD.test(value) ? { ok: false, issue: "spam", message: MESSAGES.spam } : screenText(value, { allowSpamCheck: field !== "title" });
     if (!result.ok) return { ...result, field };
   }
   return { ok: true };

@@ -70,7 +70,7 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
         <Scales tilt={vc.GUILTY > vc.NOT_GUILTY ? "left" : vc.GUILTY < vc.NOT_GUILTY ? "right" : "level"} className="mx-auto h-24 w-32 text-gold" />
         <div>
           <p className="font-display text-2xl font-bold text-parchment">
-            {decided} cases closed · {vc.GUILTY + vc.NOT_GUILTY ? Math.round((vc.GUILTY / (vc.GUILTY + vc.NOT_GUILTY)) * 100) : 0}% conviction rate
+            {decided} cases closed · {vc.GUILTY + vc.NOT_GUILTY ? Math.round((vc.GUILTY / (vc.GUILTY + vc.NOT_GUILTY)) * 100) : 0}% conviction rate (guilty vs. not guilty)
           </p>
           <div className="mt-3 flex h-4 overflow-hidden rounded-full ring-1 ring-gold/30" aria-hidden>
             <div className="bg-crimson" style={{ width: `${decided ? (vc.GUILTY / decided) * 100 : 0}%` }} />

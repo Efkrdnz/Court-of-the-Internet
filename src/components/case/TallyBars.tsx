@@ -27,7 +27,7 @@ export function TallyBars({
     <div className="space-y-2" role="group" aria-label={`Tally: ${guilty} guilty, ${notGuilty} not guilty`}>
       {rows.map((r, i) => (
         <div key={r.label} className="flex items-center gap-3">
-          <span className={`w-24 shrink-0 text-sm font-bold ${light ? "text-ink" : "text-parchment"}`}>{r.label}</span>
+          <span className={`w-[4.5rem] shrink-0 text-xs font-bold sm:w-24 sm:text-sm ${light ? "text-ink" : "text-parchment"}`}>{r.label}</span>
           <div className={`relative h-6 flex-1 overflow-hidden rounded-full ${light ? "bg-ink/10" : "bg-night/60"} ring-1 ring-gold/25`}>
             <motion.div
               className={`h-full rounded-full bg-gradient-to-r ${r.color}`}
@@ -36,7 +36,7 @@ export function TallyBars({
               transition={{ duration: 0.9, delay: delay + 0.15 * i, ease: [0.2, 0.8, 0.2, 1] }}
             />
           </div>
-          <span className={`w-20 shrink-0 text-right font-type text-sm tabular-nums ${light ? "text-ink" : "text-parchment"}`}>
+          <span className={`w-14 shrink-0 text-right font-type text-xs tabular-nums sm:w-20 sm:text-sm ${light ? "text-ink" : "text-parchment"}`}>
             {r.value} · {Math.round(r.pct * 100)}%
           </span>
         </div>

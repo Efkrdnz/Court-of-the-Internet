@@ -22,7 +22,7 @@ export async function toggleReaction(userId: string, caseId: string, type: React
         throw new CourtError("INVALID_STATE", "Reactions open once both sides have argued.");
       }
       if ([c.accusedId, c.attorneyId, c.prosecutorId].includes(userId)) {
-        throw new CourtError("INELIGIBLE", "You can't react to your own case. Let the public decide how funny you are.");
+        throw new CourtError("INELIGIBLE", "You can't react to a case you took part in. Let the public decide how funny it is.");
       }
       const field = REACTION_COUNTER_FIELD[type];
       const weight = reactionWeight(type);

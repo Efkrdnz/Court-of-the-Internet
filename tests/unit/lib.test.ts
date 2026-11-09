@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { screenText, similarity } from "@/lib/content-filter";
+import { screenFields, screenText, similarity } from "@/lib/content-filter";
+import { shareCardStatus } from "@/lib/share-card";
 import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/progression";
 import { casePath, normalizeText, parseCaseParam, slugify } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
@@ -19,6 +20,7 @@ describe("content filter", () => {
     ["i'm going to hurt him", "violence"],
     ["AAAAAAAAAAAAAAAAAAAAAAAA", "spam"],
     ["I ATE ALL OF THE PIZZA AND I REGRET NOTHING AT ALL", "spam"],
+    ["I microwaved Supercalifragilisticexpialidociouslyhorrendousfish at work", "spam"],
   ])("flags %j as %s", (text, issue) => {
     expect(screenText(text)).toMatchObject({ ok: false, issue });
   });
@@ -47,6 +49,13 @@ describe("content filter", () => {
     const a = "I ate my roommate's pizza and blamed his girlfriend for it";
     expect(similarity(a, a)).toBe(1);
     expect(similarity(a, "I unplugged the controller to win at smash bros tonight")).toBeLessThan(0.2);
+  });
+});
+
+describe("long-word titles", () => {
+  it("rejects a title that is one giant unbroken word", () => {
+    expect(screenFields({ title: "Supercalifragilisticexpialidociouslyunbreakablemicrowave" }).ok).toBe(false);
+    expect(screenFields({ title: "I stole the office microwave" }).ok).toBe(true);
   });
 });
 
@@ -157,5 +166,15 @@ describe("cosmetic unlocks", () => {
     expect(isUnlocked("achievement:certified-menace", ctx)).toBe(true);
     expect(isUnlocked("premium", ctx)).toBe(false);
     expect(isUnlocked("premium", ctx, "theme:velvet-rope")).toBe(true);
+  });
+});
+
+describe("share card status", () => {
+  it("never says the jury is out before the jury stage", () => {
+    expect(shareCardStatus("AWAITING_DEFENSE", null).stamp).toBe("NEEDS COUNSEL");
+    expect(shareCardStatus("DEFENSE_CLAIMED", null).stamp).toBe("NEEDS COUNSEL");
+    expect(shareCardStatus("AWAITING_PROSECUTION", null).stamp).toBe("ON TRIAL");
+    expect(shareCardStatus("DELIBERATION", null).stamp).toBe("JURY OUT");
+    expect(shareCardStatus("CLOSED", "NOT_GUILTY").stamp).toBe("NOT GUILTY");
   });
 });

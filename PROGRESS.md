@@ -57,7 +57,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 - [x] Monetization architecture (`PaymentProvider`, entitlements, fairness test)
 
 ## Phase 9: Integration testing, accessibility, responsive polish
-- [x] Playwright e2e (61 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
+- [x] Playwright e2e (62 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
 - [x] axe accessibility checks on 13 pages (no serious/critical violations)
 - [x] Mobile (Pixel 7): 13 pages fit the *device* width (checker fixed to compare against the device, not the layout viewport), plus touch flows for confess, claim/defend, vote, react, settings and menu with ≥36px tap targets
 - [x] Bugs found & fixed by e2e: Zod 4 optional checkbox keys, React 19 form reset wiping inputs, grid overflow on mobile, streaming redirects
@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **61/61 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **62/62 Playwright** and **70/70 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -139,6 +139,26 @@ A new agent, with no knowledge of the first audit or the fixes, re-audited all 1
 | 6 | Conviction rate counted mistrials and dismissals | guilty / (guilty + not guilty) | archives test asserts the new formula |
 | 7 | `NEXT_PUBLIC_SITE_URL` was inlined at build time | runtime `SITE_URL` (old var kept as a fallback) | `§12 share links use the runtime site URL` |
 | 8 | `prisma:error` log noise; "verdict summary" label during deliberation; unlabeled conviction count | Prisma logs warnings only (the action layer logs unexpected errors); "Copy case summary" while open; labeled board detail | visual / log check |
+
+## Third independent audit (fresh agent, build of the second fix round)
+
+**15 PASS, 2 CONCERN, 0 FAIL.** It confirmed the earlier fixes:
+- statistics match a whole-database recomputation (twice)
+- juror percentages match SQL on decided cases
+- no anonymous-identity leaks anywhere, including the sitemap, OG images and queues
+- 320–412px layouts fit with good tap targets
+- failed submits don't use up rate limits
+
+New edge cases, all fixed:
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | A title that is one huge word widened phone pages to 949px | `overflow-wrap: anywhere` on body; 36+ character "words" rejected as spam (titles included); OG text wraps | `narrow phones: long unbroken words never widen the page`; unit tests |
+| 2 | Share card said "JURY OUT" before deliberation | `shareCardStatus()`: NEEDS COUNSEL / ON TRIAL / JURY OUT / verdict | unit test; cards for cases #40 and #28 reviewed |
+| 3 | Share-card stamp overlapped text | narrower text column, scaled stamp | visual review |
+| 4 | README overstated the per-account login limit without a proxy | README states exactly what holds with and without a proxy | n/a (doc) |
+| 5 | Attorney/prosecutor told "can't react to your own case" | "a case you took part in" | n/a |
+| 6 | Cosmetic: duplicate password error, 404/moderation titles, tally bars at 320px, conviction-rate wording, long toast queue | fixed (field-level errors only; neutral titles; compact bars; "(guilty vs. not guilty)"; toasts 5s/4s) | archives test updated |
 
 ## Per-phase evidence
 

@@ -44,7 +44,7 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
 
   useEffect(() => {
     if (!current) return;
-    const t = setTimeout(dismiss, current.type === "ACHIEVEMENT" ? 6500 : 5500);
+    const t = setTimeout(dismiss, current.type === "ACHIEVEMENT" ? 5000 : 4000);
     return () => clearTimeout(t);
   }, [current, dismiss]);
 

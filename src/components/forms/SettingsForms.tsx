@@ -15,6 +15,8 @@ import { FieldError, FormAlert } from "@/components/ui/FormAlert";
 
 function Result({ state }: { state: ActionResult | null }) {
   if (!state) return null;
+  // Field-level errors are already shown next to their inputs.
+  if (!state.ok && state.fieldErrors && Object.keys(state.fieldErrors).length) return null;
   return state.ok ? (
     <FormAlert kind="success" className="!text-teal">
       {state.message}

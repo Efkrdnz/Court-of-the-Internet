@@ -77,7 +77,7 @@ test("§12 archives display real persisted data", async ({ page }) => {
   await expect(page.getByText(`${total} ${total === 1 ? "case" : "cases"} found`)).toBeVisible();
   const notGuilty = await prisma.case.count({ where: { status: "CLOSED", moderationState: "VISIBLE", verdict: "NOT_GUILTY" } });
   // Conviction rate = guilty / (guilty + not guilty); mistrials and dismissals are neither (audit #6).
-  await expect(page.getByText(`${total} cases closed · ${Math.round((guilty / (guilty + notGuilty)) * 100)}% conviction rate`)).toBeVisible();
+  await expect(page.getByText(`${total} cases closed · ${Math.round((guilty / (guilty + notGuilty)) * 100)}% conviction rate (guilty vs. not guilty)`)).toBeVisible();
   // Skip the featured-case card (ring-2) at the top; the grid is ordered by most recent verdict.
   const firstCard = page.locator("article.folder:not(.ring-2)").first();
   await expect(firstCard).toContainText(newest.title);

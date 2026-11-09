@@ -10,7 +10,8 @@ import { REPORT_REASONS } from "@/lib/validation";
 import { ModForm } from "@/components/forms/ModForm";
 import { JudgeOwl } from "@/components/art/characters";
 
-export const metadata: Metadata = { title: "Moderation console", robots: { index: false } };
+// Neutral title: non-staff get a 404 here, and the tab shouldn't reveal what the page is.
+export const metadata: Metadata = { title: "Officers only", robots: { index: false } };
 
 const reasonLabel = (r: string) => REPORT_REASONS.find((x) => x.value === r)?.label ?? r;
 

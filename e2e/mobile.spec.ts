@@ -171,3 +171,31 @@ test("mobile: a server-side rejection is brought into view (audit #4)", async ({
   await expect(field).toBeInViewport();
   await expect(page.locator("p[role=alert]", { hasText: /personal information/ })).toBeInViewport();
 });
+
+test("narrow phones: long unbroken words never widen the page (audit 3 #1)", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 740 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.locator(`form:has(input[name="username"][value="fresh_intern"]) button`).tap();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  await page.goto("/confess");
+  await page.locator(`label:has(input[value="miscellaneous-mischief"])`).tap();
+  // 36+ character words are rejected as keyboard-mash…
+  await page.getByLabel("Case title").fill("Supercalifragilisticexpialidociouslyx microwave");
+  await page.getByLabel("The confession").fill("I microwaved fish in the office kitchen and then blamed the new intern, who does not exist.");
+  await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).tap();
+  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  await expect(page.getByRole("alert").filter({ hasText: /spam/ }).first()).toBeVisible();
+  // …and the longest allowed word (35 chars) still wraps everywhere it appears.
+  const word = `Antidisestablishmentarianismwaffle${Date.now().toString(36).slice(-1)}`;
+  expect(word.length).toBe(35);
+  await page.getByLabel("Case title").fill(`I hid the ${word}`);
+  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
+  await expectNoHorizontalScroll(page);
+  for (const path of ["/defend", "/u/fresh_intern", "/court"]) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    await expectNoHorizontalScroll(page);
+  }
+});
