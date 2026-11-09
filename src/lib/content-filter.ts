@@ -61,12 +61,23 @@ const SLURS_COLLAPSED = new Set(Array.from(SLURS).map(collapseRepeats));
 
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // 7+ digits possibly separated by spaces, dots, dashes, parentheses: phone-ish.
-const PHONE = /(?:\+?\d[\s().-]*){7,}\d/;
-const URL = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]{2,}\.(?:com|net|org|io|gg|tv|co|me|ly|xyz|app|dev|info|biz|us|uk|ca)\b/i;
-const HANDLE = /(?:^|[\s(])@[A-Za-z0-9_.]{3,}/;
+// Any script's digits (Arabic-Indic too), with the separators people use to dodge filters.
+const PHONE = /(?:\+?\p{Nd}[\s()./_\-\u2013\u2014\u00b7]*){7,}\p{Nd}/u;
+// Explicit URLs, or a domain with any two-letter country TLD or a common generic TLD.
+const URL =
+  /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]{2,}\.(?:[a-z]{2}|com|net|org|info|biz|xyz|app|dev|online|site|shop|store|blog|live|link|club|fun|top|page|social|lol|wtf|tech|space|world|news)\b/i;
+// A handle is "@name" not glued to a word on its left (that would be an email, checked first).
+const HANDLE = /(?:^|[^\p{L}\p{N}_.%+-])@[\p{L}\p{N}_.]{3,}/u;
 // Number + Capitalised Name(s) + street suffix, e.g. "42 Wallaby Way".
 const STREET =
   /\b\d{1,5}\s+(?:[A-Z][a-z]+\s){1,3}(?:[Ss]treet|St|[Aa]venue|Ave|[Rr]oad|Rd|[Bb]oulevard|Blvd|[Ll]ane|Ln|[Dd]rive|Dr|[Cc]ourt|Ct|[Ww]ay|[Pp]lace|Pl|[Tt]errace)\b\.?/;
+// Lower-case addresses ("42 wallaby way"): one or two name words that aren't everyday filler,
+// so "3 slices on the way" or "2 blocks down the road" stay fine.
+const FILLER = "(?:the|a|an|my|his|her|our|their|your|down|up|on|to|of|in|at|by|from|for|and|all|way|whole|entire|long|other)";
+const STREET_LOWER = new RegExp(
+  `\\b\\d{1,5}\\s+(?!${FILLER}\\b)[a-z]+(?:\\s+(?!${FILLER}\\b)[a-z]+)?\\s+(?:street|avenue|road|boulevard|lane|drive|terrace|way)\\b`,
+  "i",
+);
 const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
 
 const VIOLENCE = [
@@ -122,9 +133,10 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   // Cyrillic/Greek look-alikes folded to Latin. The spam heuristics still use the raw text.
   const text = skeleton(raw);
 
-  if (EMAIL.test(text) || SSN.test(text) || STREET.test(text)) return fail("personal-info");
+  if (EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text)) return fail("personal-info");
   if (PHONE.test(text)) return fail("personal-info");
-  if (URL.test(text)) return fail("link");
+  // Links spelled out with spaces ("h t t p s : / /") are links too.
+  if (URL.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
   if (HANDLE.test(text)) return fail("handle");
 
   for (const word of normaliseForWords(text)) {

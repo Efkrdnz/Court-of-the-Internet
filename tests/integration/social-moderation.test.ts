@@ -11,6 +11,7 @@ import {
   dismissReports,
   fileReport,
   grantEntitlement,
+  pinFeaturedCase,
   removeCase,
   restoreCase,
   setBan,
@@ -18,6 +19,7 @@ import {
 } from "@/server/services/moderation";
 import { hitRateLimit } from "@/server/rate-limit";
 import { auditStats } from "@/server/services/stats";
+import { getFeaturedCase, utcDay } from "@/server/queries/community";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
@@ -284,7 +286,7 @@ describe("moderation", () => {
     await expect(
       updateProfile(player, { displayName: "judge realname", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
-    for (const sneaky of ["Judge Realname.", "Judge\u200bRealname", "JUDGE  REALNAME", "Judge Réalname", "Judge Rea1name", "Judge Rеalname" /* Cyrillic е */]) {
+    for (const sneaky of ["Judge Realname Jr", "The Real Judge Realname", "Former Citizen", "Judge Realname.", "Judge\u200bRealname", "JUDGE  REALNAME", "Judge Réalname", "Judge Rea1name", "Judge Rеalname" /* Cyrillic е */]) {
       await expect(
         updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
       ).rejects.toMatchObject({ code: "VALIDATION" });
@@ -337,6 +339,21 @@ describe("moderation", () => {
     const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
     expect(row.openReports).toBe(5);
     expect(row.moderationState).toBe("UNDER_REVIEW");
+  });
+
+  it("respects the featuring opt-out, even for a case already pinned today (audit 13 #3)", async () => {
+    process.env.COURT_QUORUM = "3";
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const mod = await makeUser("feature_clerk", "MODERATOR");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await voteAll(c.id, await makeUsers(3, "feat"), 2);
+    await closeNow(c.id);
+    await pinFeaturedCase(mod, c.id, utcDay());
+    expect((await getFeaturedCase(null))?.id).toBe(c.id);
+    await db.user.update({ where: { id: accused }, data: { allowFeaturing: false } });
+    expect((await getFeaturedCase(null))?.id).not.toBe(c.id);
+    await expect(pinFeaturedCase(mod, c.id, utcDay())).rejects.toMatchObject({ code: "INELIGIBLE" });
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {

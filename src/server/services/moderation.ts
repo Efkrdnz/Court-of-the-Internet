@@ -281,10 +281,14 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
 export async function pinFeaturedCase(moderatorId: string, caseId: string, day: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    const c = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, moderationState: true, number: true, slug: true } });
+    const c = await tx.case.findUnique({
+      where: { id: caseId },
+      select: { status: true, moderationState: true, number: true, slug: true, accused: { select: { allowFeaturing: true } } },
+    });
     if (!c || c.status !== "CLOSED" || c.moderationState !== "VISIBLE") {
       throw new CourtError("INVALID_STATE", "Only visible, closed cases can be featured.");
     }
+    if (!c.accused.allowFeaturing) throw new CourtError("INELIGIBLE", "The confessor has opted out of being featured.");
     await tx.featuredCase.upsert({
       where: { day },
       create: { day, caseId, pinnedBy: moderatorId },

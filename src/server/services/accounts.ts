@@ -36,7 +36,13 @@ export async function assertNotStaffName(displayName: string, selfId?: string) {
     take: 200,
   });
   const key = nameKey(displayName);
-  if (key && staff.some((u) => nameKey(u.displayName) === key)) {
+  // "Former Citizen" is what deleted accounts show as, so a live player can't wear it either.
+  if (key && key === nameKey("Former Citizen")) {
+    throw new CourtError("VALIDATION", "That name is reserved for retired accounts. Pick your own.", "displayName");
+  }
+  // Exact matches, and names that contain a (reasonably long) officer's name: "Judge Wigsworth Jr".
+  const clashes = (staffKey: string) => staffKey === key || (staffKey.length >= 8 && key.includes(staffKey));
+  if (key && staff.some((u) => clashes(nameKey(u.displayName)))) {
     throw new CourtError("VALIDATION", "That name belongs to an officer of the court. Pick your own.", "displayName");
   }
 }

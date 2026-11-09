@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **67/67 Playwright** and **98/98 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **67/67 Playwright** and **114/114 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **67/67 Playwright** and **98/98 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 98 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 114 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -363,6 +363,32 @@ It confirmed the eleventh round:
 | D10 | Players can copy another player's display name | documented (display names aren't unique; `@username` shown on leaderboards ≥ 400px) | — |
 
 D11 (spoofable IPs without a proxy) and D12 (sealed pages return 200) are unchanged; both are documented above.
+
+## Thirteenth independent audit (fresh agent, build of commit d7dd456)
+
+**Result: 13 PASS, 4 CONCERN (10, 13 minor, 16/17 docs), 0 FAIL.**
+
+It confirmed the twelfth round:
+- fuzzed URLs return 404/308/307 with no 500s
+- all `next` redirect tricks stay on-site
+- 18-way claim races are safe
+- its SQL recompute matched all 36 users
+- an anonymous confessor's profile was byte-identical before and after filing
+- 56 concurrent reaction toggles left exact counts
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Personal-info, link and handle filter evasions: `555/867/5309`, `555_867_5309`, Arabic-Indic digits, `.de`/`.ru` domains, `h t t p s : / /`, `,@handle`, lower-case "42 wallaby way" | phone numbers match any script's digits and `/` `_` separators; any two-letter country TLD and more generic TLDs; URLs checked with spaces removed; a handle only needs no word glued to its left; a lower-case street pattern that skips everyday filler words | unit: 9 evasions rejected and 6 everyday sentences ("3 slices on the way", "e.g.", "7.30", "3-2") still accepted; all seed content still passes |
+| 2 | Error alerts were unreadable on parchment (pale text on paper, 1.34:1) | alerts carry `data-alert` and switch to ink colours inside any `.doc` surface | visual |
+| 3 | The "allow featuring" opt-out was ignored by moderator pins and by today's existing pin | pinning refuses opted-out confessors, and today's pin is replaced once its confessor opts out | integration `respects the featuring opt-out…` |
+| 4 | `/jury?case=<a case awaiting counsel>` said "deliberation has closed" | only deliberating or closed cases can be pinned on the jury page | — |
+| 6 | "Former Citizen" and "Judge Wigsworth Jr" were allowed as display names | the retired-account name is reserved; names containing an officer's name (8+ letters) are refused | integration (variants rejected) |
+| 7 | A tampered avatar value showed a raw Zod message | friendly enum messages | — |
+| 8 | Tally percentages could add up to 101% | the two shares always sum to 100 | — |
+
+Not changed:
+- **Defect 5, stale countdown after a rejected filing.** This only happens when the claim's expiry is edited directly in the database. In normal use the countdown has already reached zero. Refreshing on failure would discard the player's draft.
+- **Defect 9 (sealed pages return 200) and defect 10 (spoofable IPs without a proxy).** Both are documented.
 
 ## Per-phase evidence
 

@@ -16,7 +16,11 @@ export function utcDay(d: Date = clock.now()): string {
 export async function getFeaturedCase(viewer: { id: string } | null) {
   const day = utcDay();
   let featured = await db.featuredCase.findUnique({ where: { day }, select: { case: { select: { ...caseCardSelect, moderationState: true } } } });
-  if (!featured || featured.case.moderationState !== "VISIBLE") {
+  // A confessor who has since opted out of featuring is respected even for today's pin.
+  const optedOut =
+    featured &&
+    (await db.case.findUnique({ where: { id: featured.case.id }, select: { accused: { select: { allowFeaturing: true } } } }))?.accused.allowFeaturing === false;
+  if (!featured || featured.case.moderationState !== "VISIBLE" || optedOut) {
     const weekAgo = new Date(clock.now().getTime() - 7 * 86_400_000);
     const candidates = await db.case.findMany({
       where: {

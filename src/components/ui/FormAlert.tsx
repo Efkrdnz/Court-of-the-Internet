@@ -4,6 +4,7 @@ export function FormAlert({ kind = "error", children, className }: { kind?: "err
   return (
     <div
       role={kind === "error" ? "alert" : "status"}
+      data-alert={kind}
       tabIndex={-1}
       className={clsx(
         "flex items-start gap-3 rounded-lg border px-4 py-3 text-sm font-semibold",

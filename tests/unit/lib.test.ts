@@ -249,3 +249,29 @@ describe("filter evasion with invisible or look-alike characters (audit 12 D1)",
     expect(screenText("Я съел пиццу соседа по комнате и свалил всё на кота.").ok).toBe(true);
   });
 });
+
+describe("personal-info / link / handle evasions (audit 13 #1)", () => {
+  it.each([
+    ["Text me at 555/867/5309 for the full story", "personal-info"],
+    ["call 555_867_5309 tonight", "personal-info"],
+    ["call ٥٥٥٨٦٧٥٣٠٩ tonight", "personal-info"],
+    ["they live at 42 wallaby way", "personal-info"],
+    ["all the receipts are on petty-crimes.de", "link"],
+    ["mirror at crimes.ru if it goes down", "link"],
+    ["h t t p s : / / evidence dot com", "link"],
+    ["insta:@sneaky_steve_42 has the video", "handle"],
+    ["ask him,@sneaky_steve_42", "handle"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it.each([
+    "I ate 3 slices on the way home and blamed the delivery driver",
+    "I walked 2 blocks down the road to avoid saying hi to my neighbour",
+    "The score was 3-2 and I told everyone it was 4-1 in my favour",
+    "I said I'd be there at 7.30 but arrived at 8.15 with no excuse",
+    "e.g. the time I hid the remote, i.e. every single weekend",
+    "I left a 5 star review for my own lemonade stand under a fake name",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok).toBe(true);
+  });
+});

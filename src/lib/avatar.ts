@@ -11,10 +11,10 @@ export type Accessory = (typeof ACCESSORIES)[number];
 export type Backdrop = (typeof BACKDROPS)[number];
 
 export const avatarSchema = z.object({
-  species: z.enum(SPECIES),
-  headwear: z.enum(HEADWEAR),
-  accessory: z.enum(ACCESSORIES),
-  backdrop: z.enum(BACKDROPS),
+  species: z.enum(SPECIES, { error: "Pick a species from the list." }),
+  headwear: z.enum(HEADWEAR, { error: "Pick headwear from the list." }),
+  accessory: z.enum(ACCESSORIES, { error: "Pick an accessory from the list." }),
+  backdrop: z.enum(BACKDROPS, { error: "Pick a backdrop from the list." }),
 });
 
 export type AvatarConfig = z.infer<typeof avatarSchema>;

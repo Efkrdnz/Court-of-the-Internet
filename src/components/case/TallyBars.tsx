@@ -20,8 +20,9 @@ export function TallyBars({
   const g = total ? guilty / total : 0;
   const ng = total ? notGuilty / total : 0;
   const rows = [
-    { label: "Not guilty", value: notGuilty, pct: ng, color: "from-teal-light to-teal" },
-    { label: "Guilty", value: guilty, pct: g, color: "from-[#e0474f] to-crimson" },
+    // Displayed percentages always add up to 100 (3–5 shows 38% / 62%, not 38% / 63%).
+    { label: "Not guilty", value: notGuilty, pct: ng, shown: total ? 100 - Math.round(g * 100) : 0, color: "from-teal-light to-teal" },
+    { label: "Guilty", value: guilty, pct: g, shown: total ? Math.round(g * 100) : 0, color: "from-[#e0474f] to-crimson" },
   ];
   return (
     <div className="space-y-2" role="group" aria-label={`Tally: ${guilty} guilty, ${notGuilty} not guilty`}>
@@ -37,7 +38,7 @@ export function TallyBars({
             />
           </div>
           <span className={`w-14 shrink-0 text-right font-type text-xs tabular-nums sm:w-20 sm:text-sm ${light ? "text-ink" : "text-parchment"}`}>
-            {r.value} · {Math.round(r.pct * 100)}%
+            {r.value} · {r.shown}%
           </span>
         </div>
       ))}
