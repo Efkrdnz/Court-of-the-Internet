@@ -235,11 +235,12 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
     - **Always deploy behind a proxy.** This is a deployment requirement, not something the app can fix: Next doesn't give server actions the socket address.
   - If a request has no address at all (no header and none set by the server), per-IP limits are skipped rather than lumping such clients into one shared bucket. Signups then fall under a site-wide 60/hour ceiling and logged-out views aren't counted.
 - **Bans and anonymity.** A ban puts the banned player's *public* open cases on hold. Their anonymous cases stay claimable, because holding them would reveal who confessed.
+- **Very long words break mid-word on narrow phones.** Words of up to 35 characters are allowed (longer ones are refused as keyboard-mash). On a 320px screen a heading can't fit that many letters on one line, so the word wraps instead of overflowing.
 - **Display names aren't unique; usernames are.** Two players can share a display name, except that officers' names are reserved. Profiles and links use the unique `@username`, which leaderboards also show on screens 400px and wider.
-- **The content filter is a first line of defence, not a guarantee.** It sees through invisible characters, look-alike letters, leetspeak and spelled-out addresses. Known gaps:
+- **The content filter is a first line of defence, not a guarantee.** It sees through invisible characters, look-alike letters, leetspeak, plurals, letters spaced out with symbols or emoji, phone numbers written with O for 0, and spelled-out addresses. Known gaps:
   - Bare 7-digit local phone numbers are allowed, so years and scores aren't flagged.
   - A platform name followed by a plain-word handle ("on discord as pettyking") isn't caught.
-  - Context-free sarcasm can't be judged automatically.
+  - Context-free sarcasm can't be judged automatically, and new coinages or misspellings it has never seen get through.
   - Reports and moderators cover the rest.
 - **Not a secret ballot.** Tallies are hidden until you vote (no anchoring), but anyone who has voted sees the live split. Public counters ("juries served", "with the majority") can therefore hint at how a specific player voted. Votes aren't sensitive in this game; a secret ballot would need hiding those counters until the verdict.
 - **Pages are fairly heavy.** All character art is inline SVG (no image requests, crisp at any size, works offline), so HTML is large: about 1.4 MB uncompressed for the leaderboards and 120–130 KB gzipped. On slow mobile connections a sprite sheet (`<use href>`) or static SVG files would cut that substantially.
@@ -251,7 +252,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 - **Moderation doesn't rewrite history.**
   - Sealing a *closed* case hides it from every public page and the archive totals, but the players' records (wins, convictions, XP) from that trial stand.
   - Striking an argument hides it from non-staff without pausing or annulling the trial; jurors who already voted keep their votes. Seal the case instead if the whole trial should stop.
-  - Banning a player removes their votes from trials still in deliberation (those votes no longer count); verdicts already reached stand. Jury XP is paid once per case, so unbanning and re-voting earns nothing extra. While banned, a player keeps their record (wins, verdicts) but earns no XP, and cases they confessed that still need counsel are on hold (not claimable).
+  - Banning a player removes their votes from trials still in deliberation (those votes no longer count) and all their reactions, and dismisses their open reports; verdicts already reached and achievements already earned stand. A case their report helped hide stays under review until a moderator decides. Jury XP is paid once per case, so unbanning and re-voting earns nothing extra. While banned, a player keeps their record (wins, verdicts) but earns no XP, and cases they confessed that still need counsel are on hold (not claimable).
   - Deleting your own account keeps your votes (they were cast legitimately) and retires your username so nobody can impersonate you through old links.
 - **Anonymity costs rewards.** Anonymous cases never expose the confessor's name, id or profile link: not in pages, page payloads, OG images, the sitemap or leaderboards.
   - Anonymous cases are also off the record. The confessor gets no XP, achievements, conviction or acquittal counts from them, at filing or at verdict. Otherwise a change on their public profile would reveal them.
@@ -262,7 +263,6 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 - **No email:** there's no password reset by email. Admins can't reset passwords from the console yet; players can change their own in Settings.
 - **Search:** archive search uses case-insensitive `ILIKE`. For very large archives, add a Postgres full-text or trigram index.
 - **Not real-time:** there are no websockets. Pages refresh after your own actions, countdowns refresh when they expire, and other players' activity appears on the next navigation.
-- **Content filter:** the automated filter is a first line of defense, not a moderation guarantee. Human review via reports is still required.
 
 ## Credits & licences
 

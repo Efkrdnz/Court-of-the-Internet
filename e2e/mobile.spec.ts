@@ -27,6 +27,25 @@ test("mobile navigation menu opens and navigates", async ({ page }) => {
   await expect(page.locator("#mobile-nav")).toHaveCount(0);
 });
 
+test("mobile menu closes on Back and on resize to desktop (audit 25 D3, D4)", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await page.locator("#mobile-nav").getByRole("link", { name: "Archives" }).click();
+  await page.waitForURL(/\/archives/);
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.locator("#mobile-nav")).toBeVisible();
+  await page.goBack();
+  await page.waitForURL((url) => url.pathname === "/");
+  await expect(page.locator("#mobile-nav")).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.locator("#mobile-nav")).toBeVisible();
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await expect(page.locator("#mobile-nav")).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+});
+
 /* ---------- Usability beyond layout: real flows on a phone ---------- */
 
 async function phoneLogin(browser: import("@playwright/test").Browser, username: string) {

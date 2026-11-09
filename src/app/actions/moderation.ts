@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { requireStaff } from "@/server/auth/current-user";
+import { VERDICT_LABEL } from "@/lib/format";
 import {
   adjournNow,
   dismissReports,
@@ -60,7 +61,7 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
         const outcome = await adjournNow(mod.id, caseId);
         message =
           outcome.kind === "closed"
-            ? `Deliberation closed: ${outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
+            ? `Deliberation closed: ${VERDICT_LABEL[outcome.verdict] ?? outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
             : outcome.kind === "extended"
               ? "Below quorum, so deliberation was extended (low-participation rule)."
               : "The case was sealed or put under review before it could close. It will close as soon as it is visible again.";

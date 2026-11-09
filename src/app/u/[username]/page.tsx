@@ -136,7 +136,7 @@ export default async function ProfilePage({ params }: Props) {
             title="Defendant"
             tone="gold"
             main={String(s.totalConfessions)}
-            mainLabel={profile.isSelf ? "confessions (incl. anonymous)" : "public confessions"}
+            mainLabel={profile.isSelf ? `${s.totalConfessions === 1 ? "confession" : "confessions"} (incl. anonymous)` : s.totalConfessions === 1 ? "public confession" : "public confessions"}
             rows={[
               ["Found guilty", s.timesConvicted],
               ["Acquitted", s.timesAcquitted],
@@ -146,7 +146,7 @@ export default async function ProfilePage({ params }: Props) {
             title="Juror"
             tone="plum"
             main={String(s.juryVotes)}
-            mainLabel="juries served"
+            mainLabel={s.juryVotes === 1 ? "jury served" : "juries served"}
             rows={[
               ["With majority", percent(s.juryAgreement)],
               ["This week", s.votesThisWeek],

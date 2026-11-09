@@ -512,3 +512,33 @@ describe("alias look-alikes and titles (audit 24 #2)", () => {
     expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
   });
 });
+
+describe("plurals, emoji separators and letter-digit phones (audit 25 D1, D2)", () => {
+  it.each([
+    ["you are all faggots", "hate"],
+    ["those f4gg0ts again", "hate"],
+    ["you fаggots", "hate"], // Cyrillic а
+    ["what a f🍕a🍕g🍕g🍕o🍕t", "hate"],
+    ["call me on O77OO 9OO 123", "personal-info"],
+    ["visit e v i l . c o m to see", "link"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it.each([
+    "I ate all the cookies and blamed my brothers again",
+    "I hid 5 Oreos in the office plant pot",
+    "I said I O U to my roommate 100 times",
+    "my boss classes are on Mondays",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+});
+
+describe("full-width display names (audit 25 D5)", () => {
+  it("folds full-width letters and spaces to ordinary ones", () => {
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    const parsed = signupSchema.safeParse({ ...base, displayName: "Ｗｉｄｅ　Ｆｕｌｌｗｉｄｔｈ　Ｐｒｏｓｅｃｕｔｏｒ" });
+    expect(parsed.success && parsed.data.displayName).toBe("Wide Fullwidth Prosecutor");
+    expect(signupSchema.safeParse({ ...base, displayName: "Ｐｒｅｓｉｄｉｎｇ Ｊｕｄｇｅ" }).success).toBe(false);
+  });
+});

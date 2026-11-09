@@ -58,7 +58,13 @@ export const reactionSchema = z.object({
  */
 // Latin letters mixed with letters of any other script (Cyrillic і, Armenian ս, Cherokee Ꮯ…).
 const mixesConfusableScripts = (s: string) => /\p{Script=Latin}/u.test(s) && /(?![\p{Script=Latin}])\p{L}/u.test(s);
+// Full-width letters and spaces ("Ｗｉｄｅ　Ｎａｍｅ") are folded to ordinary ones before any check, so
+// the stored name renders and wraps like normal text.
+const foldFullWidth = (s: string) =>
+  s.replace(/[\uFF01-\uFF5E]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\u3000/g, " ").replace(/ {2,}/g, " ").trim();
+
 const displayNameField = text({ ...LIMITS.displayName, label: "Display name", multiline: false })
+  .transform(foldFullWidth)
   .refine((s) => !mixesConfusableScripts(s), {
     message: "Display names can't mix Latin letters with letters from other alphabets.",
   })

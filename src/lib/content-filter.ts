@@ -116,7 +116,8 @@ function spelledPhone(text: string): boolean {
  */
 function spacedOutWords(text: string): string[] {
   const out: string[] = [];
-  for (const run of text.match(/\b(?:[a-z][\s.\-_*]+){3,}[a-z]\b/gi) ?? []) {
+  // Separated by spaces, punctuation or emoji ("f🍕a🍕g…").
+  for (const run of text.match(/\b(?:[a-z](?:[\s.\-_*]|[^\p{L}\p{N}\s]){1,4}){3,}[a-z]\b/giu) ?? []) {
     const letters = run.replace(/[^a-z]/gi, "").toLowerCase().slice(0, 40);
     for (let i = 0; i < letters.length; i++) for (let j = i + 3; j <= letters.length; j++) out.push(letters.slice(i, j));
   }
@@ -218,11 +219,22 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\s*[[({]\s*(?:\.|dot)\s*[\])}]\s*/gi, ".")
     .replace(/\s+\.\s+(?=(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|ninja)\b)/gi, ".");
   const leet = undotted.replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
-  const numbered = text.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
+  // Digit-like tokens read O as 0 and I/l as 1 ("O77OO 9OO 123").
+  const deLettered = text.replace(/\b[\dOoIl]*\d[\dOoIl]*\b/g, (tok) => tok.replace(/[Oo]/g, "0").replace(/[Il]/g, "1"));
+  const numbered = deLettered.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
   const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){3,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   if (EMAIL.test(undotted) || EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
-  const spacedRuns = (text.match(/(?:\S\s+){5,}\S/g) ?? []).map((run) => run.replace(/\s+/g, ""));
+  // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").
+  const spacedRuns: string[] = [];
+  let run: string[] = [];
+  for (const token of [...text.split(/\s+/), ""]) {
+    if ([...token].length === 1) run.push(token);
+    else {
+      if (run.length >= 5) spacedRuns.push(run.join(""));
+      run = [];
+    }
+  }
   const spacedEmail = spacedRuns.some((run) => EMAIL.test(run));
   if (spacedRuns.some((run) => URL.test(run))) return fail("link");
   if (PHONE.test(text) || PHONE.test(numbered) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
@@ -234,9 +246,11 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || detachedHandle) return fail("handle");
 
   const words = normaliseForWords(text);
+  // Plurals of listed words ("…s", "…es").
+  const stems = words.flatMap((w) => (w.endsWith("es") ? [w.slice(0, -1), w.slice(0, -2)] : w.endsWith("s") ? [w.slice(0, -1)] : []));
   // Adjacent pairs too, for slurs split by a space ("fa ggot").
   const pairs = words.slice(1).map((w, i) => words[i] + w);
-  for (const word of [...words, ...pairs, ...spacedOutWords(text)]) {
+  for (const word of [...words, ...stems, ...pairs, ...spacedOutWords(text)]) {
     if (SLURS.has(word)) return fail("hate");
     // Stretched spellings ("fooooo") are compared in collapsed form, but only when the word
     // actually has repeated letters, so ordinary words like "con" or "niger" never match.

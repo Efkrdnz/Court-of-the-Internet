@@ -67,3 +67,32 @@ export const VERDICT_LABEL: Record<string, string> = {
   MISTRIAL: "Mistrial",
   DISMISSED: "Dismissed",
 };
+
+export const MODERATION_STATE_LABEL: Record<string, string> = {
+  VISIBLE: "Visible",
+  UNDER_REVIEW: "Under review",
+  REMOVED: "Sealed",
+};
+
+const MOD_ACTION_LABEL: Record<string, string> = {
+  ADJOURN_NOW: "Adjourned",
+  DISMISS_REPORTS: "Dismissed reports",
+  GRANT_COSMETIC: "Granted cosmetic",
+  PIN_FEATURED: "Pinned as featured",
+  REMOVE_CASE: "Sealed case",
+  RESTORE_CASE: "Restored case",
+  BAN_USER: "Held in contempt",
+  UNBAN_USER: "Lifted contempt",
+  STRIKE_DEFENSE: "Struck defense",
+  STRIKE_PROSECUTION: "Struck prosecution",
+  UNSTRIKE_DEFENSE: "Reinstated defense",
+  UNSTRIKE_PROSECUTION: "Reinstated prosecution",
+};
+
+/** A readable name for a moderation log entry ("SET_ROLE_MODERATOR" → "Set role: moderator"). */
+export function moderationActionLabel(action: string): string {
+  if (MOD_ACTION_LABEL[action]) return MOD_ACTION_LABEL[action];
+  const role = /^SET_ROLE_(\w+)$/.exec(action);
+  if (role) return `Set role: ${role[1].toLowerCase()}`;
+  return action.replace(/_/g, " ").toLowerCase().replace(/^./, (c) => c.toUpperCase());
+}

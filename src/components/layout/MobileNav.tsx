@@ -12,15 +12,29 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
+  // Any navigation (a link, Back/Forward) closes the menu.
+  const [openedOn, setOpenedOn] = useState(pathname);
+  if (openedOn !== pathname) {
+    setOpenedOn(pathname);
+    if (open) setOpen(false);
+  }
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const close = () => setOpen(false);
+    // Rotating or resizing to the desktop layout hides the toggle, so the panel must go too.
+    const wide = window.matchMedia("(min-width: 1024px)");
+    const onWide = () => wide.matches && close();
     document.addEventListener("keydown", onKey);
+    window.addEventListener("popstate", close);
+    wide.addEventListener("change", onWide);
     document.body.style.overflow = "hidden";
     panelRef.current?.querySelector<HTMLElement>("a")?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", close);
+      wide.removeEventListener("change", onWide);
       document.body.style.overflow = "";
     };
   }, [open]);

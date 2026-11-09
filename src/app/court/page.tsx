@@ -274,7 +274,8 @@ function DocketDoor({ href, count, label, cta, tone, children }: { href: string;
         tone === "gold" && "bg-gradient-to-b from-gold/20",
       )}
     >
-      <div className="flex h-28 items-end">{children}</div>
+      {/* Art shrinks to fit narrow tiles (three across at tablet widths) instead of being cropped. */}
+      <div className="flex h-28 w-full items-end justify-center [&>svg]:max-w-full">{children}</div>
       <p className="mt-3 font-display text-4xl font-black text-parchment">{count}</p>
       <p className="text-sm font-semibold text-parchment/70">{label}</p>
       <span className="mt-3 text-sm font-bold text-gold-light group-hover:underline">{cta} →</span>

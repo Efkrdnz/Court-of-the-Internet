@@ -10,6 +10,7 @@ import { closeDeliberation } from "./verdict";
 import { releaseClaims, sealedCaseNotice } from "./claims";
 import { pauseDeliberation, resumeDeliberation } from "./pause";
 import { getAchievement } from "@/lib/achievements";
+import { REACTION_COUNTER_FIELD, reactionWeight } from "@/lib/reactions";
 import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from "@/lib/cosmetics";
 
 /**
@@ -237,31 +238,53 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     if (banned) {
       // Release anything they were holding so other players aren't blocked.
       await releaseClaims(tx, { userId: targetUserId });
-      // Their votes on trials still in deliberation stop counting; reached verdicts stand.
-      // Each case row is locked first (the same lock closeDeliberation takes, in a fixed order
-      // to avoid deadlocks) and re-checked, so a trial closing at the same moment either counts
-      // the vote or loses it, never half of each.
-      const candidates = await tx.vote.findMany({
-        where: { userId: targetUserId, case: { status: "DELIBERATION" } },
-        select: { id: true, caseId: true, choice: true },
-        orderBy: { caseId: "asc" },
-      });
+      // Their votes on trials still in deliberation stop counting; reached verdicts stand. Their
+      // reactions come off the counters and their open reports are dismissed, so a banned account
+      // no longer sways rankings or counts toward hiding a case.
+      // Every affected case row is locked first (the same lock closeDeliberation takes), in one
+      // ascending pass so concurrent bans can't deadlock, and re-checked, so a trial closing at
+      // the same moment either counts the vote or loses it, never half of each.
+      const votes = await tx.vote.findMany({ where: { userId: targetUserId, case: { status: "DELIBERATION" } }, select: { id: true, caseId: true, choice: true } });
+      const reactions = await tx.reaction.findMany({ where: { userId: targetUserId }, select: { id: true, caseId: true, type: true } });
+      const reports = await tx.report.findMany({ where: { reporterId: targetUserId, status: "OPEN" }, select: { caseId: true } });
+      const caseIds = [...new Set([...votes, ...reactions, ...reports].map((r) => r.caseId))].sort();
       let removed = 0;
-      for (const v of candidates) {
-        const [locked] = await tx.$queryRaw<{ status: string }[]>`SELECT "status"::text FROM "Case" WHERE "id" = ${v.caseId} FOR UPDATE`;
-        if (locked?.status !== "DELIBERATION") continue; // closed meanwhile: the verdict stands
-        await tx.vote.delete({ where: { id: v.id } });
-        // The jury XP for a vote that no longer counts goes too (re-voting after an unban pays it once).
-        const xp = await tx.xpEvent.findMany({ where: { userId: targetUserId, caseId: v.caseId, reason: "jury-vote" }, select: { id: true, amount: true } });
-        if (xp.length) {
-          await tx.xpEvent.deleteMany({ where: { id: { in: xp.map((e) => e.id) } } });
-          await tx.userStats.update({ where: { userId: targetUserId }, data: { xp: { decrement: xp.reduce((n, e) => n + e.amount, 0) } } });
+      for (const caseId of caseIds) {
+        const [locked] = await tx.$queryRaw<{ status: string }[]>`SELECT "status"::text FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
+        if (!locked) continue;
+        const v = votes.find((x) => x.caseId === caseId);
+        if (v && locked.status === "DELIBERATION") {
+          // closed meanwhile: the verdict stands
+          const gone = await tx.vote.deleteMany({ where: { id: v.id } });
+          if (gone.count) {
+            // The jury XP for a vote that no longer counts goes too (re-voting after an unban pays it once).
+            const xp = await tx.xpEvent.findMany({ where: { userId: targetUserId, caseId, reason: "jury-vote" }, select: { id: true, amount: true } });
+            if (xp.length) {
+              await tx.xpEvent.deleteMany({ where: { id: { in: xp.map((e) => e.id) } } });
+              await tx.userStats.update({ where: { userId: targetUserId }, data: { xp: { decrement: xp.reduce((n, e) => n + e.amount, 0) } } });
+            }
+            await tx.case.update({
+              where: { id: caseId },
+              data: v.choice === "GUILTY" ? { guiltyVotes: { decrement: 1 } } : { notGuiltyVotes: { decrement: 1 } },
+            });
+            removed++;
+          }
         }
-        await tx.case.update({
-          where: { id: v.caseId },
-          data: v.choice === "GUILTY" ? { guiltyVotes: { decrement: 1 } } : { notGuiltyVotes: { decrement: 1 } },
-        });
-        removed++;
+        for (const r of reactions.filter((x) => x.caseId === caseId)) {
+          const gone = await tx.reaction.deleteMany({ where: { id: r.id } });
+          if (!gone.count) continue;
+          const field = REACTION_COUNTER_FIELD[r.type];
+          await tx.$executeRawUnsafe(
+            `UPDATE "Case" SET "${field}" = GREATEST(0, "${field}" - 1), "reactionScore" = GREATEST(0, "reactionScore" - $1) WHERE "id" = $2`,
+            reactionWeight(r.type),
+            caseId,
+          );
+        }
+        if (reports.some((x) => x.caseId === caseId)) {
+          await tx.report.updateMany({ where: { caseId, reporterId: targetUserId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
+          const stillOpen = await tx.report.findMany({ where: { caseId, status: "OPEN" }, select: { reporterId: true }, distinct: ["reporterId"] });
+          await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length } });
+        }
       }
       if (removed) await tx.userStats.update({ where: { userId: targetUserId }, data: { juryVotes: { decrement: removed } } });
       await tx.session.deleteMany({ where: { userId: targetUserId } });

@@ -634,6 +634,30 @@ It confirmed the twenty-third round:
 
 Environment note from the audit: the checkout's untracked `.env` enables demo login. That file is local only (git-ignored); `.env.example` leaves the flag off, and production defaults to off.
 
+## Twenty-fifth independent audit (fresh agent, build of commit 728c7db)
+
+**Result: 13 PASS, 4 CONCERN (9, 10, 13, 17), 0 FAIL.**
+
+It confirmed the twenty-fourth round. Highlights:
+- a stats recount of 161 users had no mismatches
+- 12 stress rounds of moderation races kept every invariant
+- 254 internal links crawled, 0 dead; about 500 fuzzed URLs gave 0 server errors
+- nothing leaked the anonymous confessor or a hidden tally
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | Slur plurals and emoji-separated slurs passed the filter | plural stems are checked; spaced-out letters may be separated by symbols or emoji | unit (4 rejected, 4 benign sentences accepted); 341 seed texts still pass |
+| D2 | A phone written with O for 0, and "e v i l . c o m" mid-sentence, passed | digit-like tokens read O as 0 and I/l as 1; spaced runs are built from whole one-character tokens | unit |
+| D3 | The mobile menu stayed open (and the page scroll-locked) after Back | the menu closes on any route change and on `popstate` | e2e `mobile menu closes on Back and on resize to desktop` |
+| D4 | The menu got stuck after resizing or rotating to ≥1024px | it closes when the desktop layout takes over | same e2e |
+| D5 | Full-width display names were stored as-is and rendered letter-spaced | full-width letters and spaces are folded to ordinary ones before every name check | unit |
+| D6 | "Your draft is still here" was false after an expired claim | the draft is cleared on filing but restored if the filing is rejected | e2e `a filing rejected for an expired claim keeps the draft` |
+| D7 | `demoLoginAction` without a form body gave a 500 | non-form calls are refused like an unknown account | e2e `a crafted demo-login call … is refused cleanly` |
+| D8 | A ban left the player's reactions and open reports counting | the ban removes their reactions (counters adjusted) and dismisses their open reports, in the same locked, ordered pass as their votes | integration `a ban takes back the player's reactions and open reports` |
+| D9 | "1 juries served", "1 public confessions"; raw enum names in moderation; the /court Jury art cropped at 768–1024px; duplicate README bullet | singular labels; readable state and log labels ("Under review", "Held in contempt"); tile art scales to fit; README deduplicated. 35-character words breaking at 320px is documented as expected | e2e label update; measured tile art ≤ tile width at 768/900/1024/1100 |
+
+Also fixed: `instrumentation.ts` now imports a Node-only module, so dev builds no longer warn about `process.exit` in the Edge bundle.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { requireUserOrRedirect } from "@/server/auth/current-user";
 import { db } from "@/server/db";
 import { grantableItems } from "@/server/services/moderation";
-import { casePath, cleanQuery, formatCaseNumber, parseCaseParam } from "@/lib/text";
-import { formatDateTime, relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
+import { casePath, cleanQuery, formatCaseNumber, parseCaseParam, pluralize } from "@/lib/text";
+import { formatDateTime, MODERATION_STATE_LABEL, moderationActionLabel, relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
 import { REPORT_REASONS } from "@/lib/validation";
 import { ModFlashProvider } from "@/components/forms/ModFlash";
 import { ModForm } from "@/components/forms/ModForm";
@@ -122,7 +122,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             <div className="min-w-0 flex-[1_1_14rem] break-words">
               <p className="eyebrow">
                 Case No. {formatCaseNumber(focusCase.number)} · {STATUS_LABEL[focusCase.status]}
-                {focusCase.verdict ? ` · ${VERDICT_LABEL[focusCase.verdict]}` : ""} · {focusCase.moderationState}
+                {focusCase.verdict ? ` · ${VERDICT_LABEL[focusCase.verdict]}` : ""} · {MODERATION_STATE_LABEL[focusCase.moderationState]}
               </p>
               <h2 id="focus-case" className="font-display text-2xl font-bold text-parchment">
                 <Link href={casePath(focusCase)} className="hover:underline">
@@ -228,7 +228,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="eyebrow">
-                      No. {formatCaseNumber(c.number)} · {c.moderationState} · {c.openReports} reporter(s)
+                      No. {formatCaseNumber(c.number)} · {MODERATION_STATE_LABEL[c.moderationState]} · {pluralize(c.openReports, "reporter")}
                     </p>
                     <p className="font-display text-lg font-bold text-parchment">{c.title}</p>
                     <p className="text-sm text-parchment/60">by @{c.accused.username}</p>
@@ -266,7 +266,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           <ul className="divide-y divide-gold/15 rounded-xl border border-gold/20 bg-night/30 text-sm">
             {log.map((l) => (
               <li key={l.id} className="flex flex-wrap items-center gap-x-3 px-4 py-1 text-parchment/80">
-                <span className="font-bold text-gold-light">{l.action}</span>
+                <span className="font-bold text-gold-light">{moderationActionLabel(l.action)}</span>
                 <span>by @{l.moderator.username}</span>
                 {l.targetUserId ? <span>→ @{targetNames.get(l.targetUserId) ?? "unknown"}</span> : null}
                 {l.case ? <Link href={casePath(l.case)} className="inline-flex min-h-9 items-center underline">case {formatCaseNumber(l.case.number)}</Link> : null}

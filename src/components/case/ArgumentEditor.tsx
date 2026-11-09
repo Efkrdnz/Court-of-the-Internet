@@ -58,6 +58,17 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
     }
   }, [body, storageKey]);
 
+  // The draft is cleared when filing; a rejected filing (an expired claim, say) puts it back,
+  // so it's still here after claiming the case again.
+  useEffect(() => {
+    if (!state || state.ok || !body) return;
+    try {
+      localStorage.setItem(storageKey, body);
+    } catch {
+      /* ignore */
+    }
+  }, [state, body, storageKey]);
+
   const count = charCount(body.trim());
   const tooShort = count < LIMITS.argument.min;
   const tooLong = count > LIMITS.argument.max;

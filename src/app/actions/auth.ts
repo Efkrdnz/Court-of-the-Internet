@@ -88,6 +88,8 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
 /** One-click login for seeded demo accounts (development / demo deployments only). */
 export async function demoLoginAction(formData: FormData): Promise<void> {
   if (!appConfig.demoLoginEnabled) redirect("/login");
+  // A crafted call without a form body gets the same answer as an unknown account, not a 500.
+  if (!(formData instanceof FormData)) redirect("/login?demo=missing");
   const username = String(formData.get("username") ?? "");
   // Only the advertised demo accounts, not every seeded player that shares the demo password.
   if (!DEMO_ACCOUNTS.some((a) => a.username === username)) redirect("/login?demo=missing");

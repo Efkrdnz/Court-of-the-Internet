@@ -128,7 +128,7 @@ export default async function LeaderboardsPage() {
           rows={lb.convicts}
           stat={(r) => r.convictions}
           tieKey={(r) => r.convictions}
-          detail={(r) => `${r.convictions}× guilty · ${r.acquittals}× acquitted · ${r.confessed} public confessions`}
+          detail={(r) => `${r.convictions}× guilty · ${r.acquittals}× acquitted · ${r.confessed} public ${r.confessed === 1 ? "confession" : "confessions"}`}
           empty="Nobody has been convicted yet. Suspicious."
           tone="gold"
         />

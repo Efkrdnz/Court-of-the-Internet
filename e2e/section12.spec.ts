@@ -650,3 +650,47 @@ test("§12 mobile: a long-word title in the 'you're on' banner doesn't widen the
     await prisma.case.update({ where: { id: c.id }, data: { title: c.title, status: "AWAITING_DEFENSE", claimedById: null, claimExpiresAt: null } });
   }
 });
+
+test("§12 a filing rejected for an expired claim keeps the draft on the device (audit 25 D6)", async ({ browser }) => {
+  const whiskers = await prisma.user.findUniqueOrThrow({ where: { username: "juror_whiskers" }, select: { id: true } });
+  const held = await prisma.case.count({ where: { claimedById: whiskers.id } });
+  test.skip(held > 0, "juror_whiskers already holds a claim in this run");
+  const c = await prisma.case.findFirstOrThrow({
+    where: { status: "AWAITING_DEFENSE", moderationState: "VISIBLE", accusedId: { not: whiskers.id }, arguments: { none: {} } },
+    select: { id: true, number: true, slug: true },
+  });
+  await prisma.case.update({ where: { id: c.id }, data: { status: "DEFENSE_CLAIMED", claimedById: whiskers.id, claimExpiresAt: new Date(Date.now() + 20 * 60_000) } });
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await page.goto("/login");
+    await page.locator(`form:has(input[name="username"][value="juror_whiskers"]) button`).click();
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+    await page.goto(`/cases/${c.number}-${c.slug}`);
+    const draft = "Members of the jury, my client only borrowed the stapler for a very long, very sincere time of reflection.";
+    await page.locator('textarea[name="body"]').fill(draft);
+    // The claim (and its grace period) runs out while they're still writing.
+    await prisma.case.update({ where: { id: c.id }, data: { claimExpiresAt: new Date(Date.now() - 24 * 60 * 60_000) } });
+    await page.getByRole("button", { name: "File the defense" }).click();
+    await expect(page.getByText(/Your claim expired before you filed/)).toBeVisible();
+    const key = `coti-draft-DEFENSE-${c.id}`;
+    expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBe(draft);
+  } finally {
+    await context.close();
+    await prisma.case.update({ where: { id: c.id }, data: { status: "AWAITING_DEFENSE", claimedById: null, claimExpiresAt: null } });
+  }
+});
+
+test("§12 a crafted demo-login call without a form body is refused cleanly, not a 500 (audit 25 D7)", async ({ request }) => {
+  const html = await (await request.get("/login")).text();
+  const id = /\$ACTION_ID_([0-9a-f]+)/.exec(html)?.[1];
+  test.skip(!id, "demo login is disabled in this build");
+  for (const body of ["[]", "[null]", '["x"]', "[{}]"]) {
+    const res = await request.post("/login", {
+      headers: { "Next-Action": id!, "Content-Type": "text/plain;charset=UTF-8" },
+      data: body,
+      maxRedirects: 0,
+    });
+    expect(res.status(), body).toBeLessThan(500);
+  }
+});

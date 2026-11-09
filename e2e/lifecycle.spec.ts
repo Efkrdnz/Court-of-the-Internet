@@ -105,7 +105,7 @@ test("a full trial: confess → defend → prosecute → jury → verdict → ar
   judge.once("dialog", (d) => d.accept());
   await judge.getByRole("button", { name: /Adjourn now/ }).click();
   // The button disappears with the deliberation, so the result is confirmed separately (audit #4).
-  await expect(judge.getByRole("status").filter({ hasText: "Deliberation closed: GUILTY (2–1)." })).toBeVisible();
+  await expect(judge.getByRole("status").filter({ hasText: "Deliberation closed: Guilty (2–1)." })).toBeVisible();
   // The console re-renders with the closed case (the adjourn button is gone).
   await expect(judge.getByText(/Closed · Guilty/)).toBeVisible();
   await expect(judge.getByText(/Votes: 2 guilty · 1 not guilty/)).toBeVisible();

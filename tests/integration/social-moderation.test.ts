@@ -287,6 +287,26 @@ describe("moderation", () => {
     expect((await auditStats(rogue)).ok).toBe(true);
   });
 
+  it("a ban takes back the player's reactions and open reports (audit 25 D8)", async () => {
+    const [accused, attorney, prosecutor, rogue, fan, witness] = [await makeUser(), await makeUser(), await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("react_ban_admin", "ADMIN");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await toggleReaction(rogue, c.id, "LEGENDARY");
+    await toggleReaction(rogue, c.id, "HILARIOUS");
+    await toggleReaction(fan, c.id, "HILARIOUS");
+    await fileReport(rogue, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    await fileReport(witness, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).openReports).toBe(2);
+
+    await setBan(admin, rogue, true, "Brigading");
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ legendaryCount: 0, hilariousCount: 1, reactionScore: 2, openReports: 1 });
+    expect(await db.reaction.count({ where: { userId: rogue } })).toBe(0);
+    expect(await db.report.findFirstOrThrow({ where: { reporterId: rogue } })).toMatchObject({ status: "DISMISSED" });
+    expect(await db.report.findFirstOrThrow({ where: { reporterId: witness } })).toMatchObject({ status: "OPEN" });
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });
