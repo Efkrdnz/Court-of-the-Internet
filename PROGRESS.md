@@ -762,6 +762,21 @@ Environment note from the audit: the checkout's untracked local `.env` enables d
 | 5 | A case sealed mid-draft answered "That case could not be found." on filing | the writer is told a moderator sealed it and that the draft is saved | — |
 | 6 | A pin is replaced if the confessor opts out of featuring, and not restored on opting back in | documented (opt-out wins) | — |
 
+## Thirty-second independent audit (fresh agent, build of commit 7f5db05)
+
+**Result: 15 PASS, 2 CONCERN (14, 17), 0 FAIL.** All 48 new everyday confessions it wrote were accepted; 27 of 34 plain evasions were blocked.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **Deadlock**: banning a juror while their trial closed. The ban (since round 30) took `FOR UPDATE` on the player's row, which conflicts with the key-share locks the close's notification/XP inserts need while it holds the case row | the ban takes `FOR NO KEY UPDATE`: it still serialises concurrent bans and waits for in-flight actions, but lets foreign-key checks through | the existing ban-vs-close race test now writes a notification for the juror inside the close (as the real close does); it failed with 40P01 before the fix and passes after |
+| D2 | Filter misses in covered categories: poisoning a coworker's coffee, posting or sharing nude/intimate images, filming someone in the shower without their knowledge, groping, "punched my brother in the face", "pushed my sister down the stairs", smashing an ex's car, "I'll find you and make you pay", "I know where you live … with a bat", "deserves to die" / "should die", "break my roommate's nose" | patterns for each, with near-misses kept ("poisoned my own houseplants", "shared pictures of my ex's cat", "filmed my roommate singing in the shower", "punched my brother's arm", "pushed my sister off the couch", "broke my dad's car window with a frisbee", "my plants deserve to die", "break my roommate's record"); README coverage updated | corpus: 105 everyday sentences, 81 evasions; 341 seed texts pass |
+| D3 | On phones the account menu opened hidden under the open nav panel | header menus close each other when one opens | e2e (mobile) |
+| D4 | Concurrent "Assign me a random case" clicks each used claim budget | clicks that land on the claim another click made give their attempt back | — |
+| D5 | `markToastedAction(["\u0000"])` gave a 500 | notification ids are validated before the query | — |
+| D6 | "Dismiss reports" with nothing open still logged; the console showed only the latest 20 log entries; an auto-pick kept the moderator's `pinnedBy` | no-op dismissals are refused; the audit log pages (30 per page, Older/Newer); auto-picks clear `pinnedBy` | integration suite |
+
+Not changed: a concurrent confession burst exactly at the daily cap can tell one request "Slow down" instead of naming the cap (both refuse it).
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

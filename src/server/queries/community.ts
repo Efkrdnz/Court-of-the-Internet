@@ -39,7 +39,7 @@ export async function getFeaturedCase(viewer: { id: string; mutedCategories?: st
     const score = (c: (typeof candidates)[number]) =>
       c.reactionScore * 2 + (c.guiltyVotes + c.notGuiltyVotes) + c.controversy * 10 + (c.closedAt && c.closedAt >= weekAgo ? 25 : 0);
     const best = candidates.sort((a, b) => score(b) - score(a))[0];
-    await db.featuredCase.upsert({ where: { day }, create: { day, caseId: best.id }, update: { caseId: best.id } });
+    await db.featuredCase.upsert({ where: { day }, create: { day, caseId: best.id }, update: { caseId: best.id, pinnedBy: null } }); // an automatic pick, not the moderator's
     featured = await db.featuredCase.findUnique({ where: { day }, select: { case: { select: { ...caseCardSelect, moderationState: true } } } });
     if (!featured) return null;
   }

@@ -206,9 +206,13 @@ export async function dismissReports(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await lockCase(tx, caseId);
-    await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
+    const dismissed = await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
     const c = await tx.case.findUnique({ where: { id: caseId }, select: { moderationState: true } });
     if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    // Nothing to do (e.g. a second moderator's click): say so instead of filling the log.
+    if (dismissed.count === 0 && c.moderationState !== "UNDER_REVIEW") {
+      throw new CourtError("INVALID_STATE", "There are no open reports on that case.");
+    }
     // Only an *under review* case is made visible again; a sealed one stays sealed.
     const madeVisible = c.moderationState === "UNDER_REVIEW";
     await tx.case.update({ where: { id: caseId }, data: { openReports: 0, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
@@ -258,8 +262,13 @@ export async function strikeArgument(moderatorId: string, caseId: string, role: 
 export async function setBan(moderatorId: string, targetUserId: string, banned: boolean, reason?: string) {
   return db.$transaction(async (tx) => {
     const mod = await assertStaff(tx, moderatorId);
-    // Lock the player's row first, so simultaneous bans (or unbans) see each other: one acts, the rest are no-ops.
-    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${targetUserId} FOR UPDATE`;
+    // Lock the player's row first, so simultaneous bans (or unbans) see each other: one acts, the
+    // rest are no-ops. FOR NO KEY UPDATE, not FOR UPDATE: a trial closing at the same moment holds
+    // its case row while inserting notifications and XP for this player, and those foreign-key
+    // checks take a key-share lock on this row. FOR UPDATE would block them while we wait for the
+    // case row: a deadlock (audit 32 D1). NO KEY UPDATE still excludes other bans and in-flight
+    // actions (FOR SHARE), but lets key-share through.
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${targetUserId} FOR NO KEY UPDATE`;
     const target = await liveTarget(tx, targetUserId);
     if (banned === !!target.bannedAt) {
       throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");

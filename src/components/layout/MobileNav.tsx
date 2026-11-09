@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { NAV_ITEMS } from "./nav-items";
+import { announceMenuOpened, onOtherMenuOpened } from "./menu-events";
 import { IconMenu, IconX } from "@/components/art/props";
 
 export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boolean }) {
@@ -18,6 +19,8 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
     setOpenedOn(pathname);
     if (open) setOpen(false);
   }
+
+  useEffect(() => onOtherMenuOpened("nav", () => setOpen(false)), []);
 
   useEffect(() => {
     if (!open) return;
@@ -43,7 +46,10 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
     <div className="lg:hidden">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open) announceMenuOpened("nav");
+          setOpen(!open);
+        }}
         className="grid h-11 w-11 place-items-center rounded-lg border border-gold/40 text-gold-light"
         aria-expanded={open}
         aria-controls="mobile-nav"

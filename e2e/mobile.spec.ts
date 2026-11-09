@@ -118,6 +118,18 @@ test("mobile: serve on a jury and react on a phone", async ({ browser }) => {
   await expectNoHorizontalScroll(page);
 });
 
+test("mobile: only one header menu is open at a time (audit 32 D3)", async ({ browser }) => {
+  const page = await phoneLogin(browser, "counselor_coo");
+  await page.goto("/court");
+  await page.getByRole("button", { name: "Open menu" }).tap();
+  await expect(page.locator("#mobile-nav")).toBeVisible();
+  await page.getByRole("button", { name: /account menu/i }).tap();
+  await expect(page.locator("#mobile-nav")).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: "Settings" })).toBeInViewport();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+  await page.context().close();
+});
+
 test("mobile: dashboard, queues and settings are usable on a phone", async ({ browser }) => {
   const page = await phoneLogin(browser, "counselor_coo");
   for (const path of ["/court", "/defend", "/prosecute", "/settings", "/notifications", "/u/counselor_coo", "/archives", "/cases/1", "/cases/27", "/leaderboards", "/jury", "/"]) {

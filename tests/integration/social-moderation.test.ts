@@ -401,6 +401,10 @@ describe("moderation", () => {
     const closing = db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${c.id} FOR UPDATE`;
       await tx.$executeRaw`SELECT pg_sleep(0.5)`;
+      // Like the real close, it writes rows that reference the juror (a verdict notification),
+      // which takes a key-share lock on their User row while the ban is waiting for this case
+      // row. The ban must not hold a lock that conflicts with that (audit 32 D1: deadlock).
+      await tx.notification.create({ data: { userId: juror, type: "VERDICT", title: "The verdict is in", body: "Guilty." } });
       await tx.case.update({ where: { id: c.id }, data: { status: "CLOSED", verdict: "GUILTY", closedAt: new Date() } });
     });
     await new Promise((r) => setTimeout(r, 120));

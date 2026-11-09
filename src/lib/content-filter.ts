@@ -183,7 +183,13 @@ const VIOLENCE = [
   new RegExp(`\\b(?:someone|somebody|they|you|people)\\s+(?:should|needs?\\s+to|ought\\s+to)\\s+(?:kill|shoot|stab|murder|hurt|beat\\s+up|poison)\\s+${TARGET}\\b`, "i"),
   // "I will find you and break your legs", "put my neighbour in the hospital", "make sure he never wakes up".
   /\b(?:find|hunt\s+down|track\s+down)\s+(?:you|u|him|her|them)\s+and\s+(?:kill|hurt|break|beat|end|stab|shoot)\b/i,
-  /\bbreak\s+(?:your|his|her|their|ur)\s+(?:legs?|arms?|neck|face|jaw|kneecaps?|skull|ribs?)\b/i,
+  /\bbreak\s+(?:your|his|her|their|ur|(?:my|the|a|our)\s+[\w-]+(?:'s|’s|s'))\s+(?:legs?|arms?|neck|face|jaw|kneecaps?|skull|ribs?|nose|teeth|fingers?)\b/i,
+  /\b(?:find|hunt\s+down|track\s+down)\s+(?:you|u|him|her|them)\s+and\s+make\s+(?:you|u|him|her|them)\s+(?:pay|suffer|bleed|regret)\b/i,
+  // "I know where you live", "coming for you … with a bat".
+  /\bi\s+know\s+where\s+(?:you|u|he|she|they)\s+lives?\b(?!\s+is\s+what)/i,
+  /\bcoming\s+for\s+(?:you|u|him|her|them)\b.{0,30}\bwith\s+(?:a|my)\s+(?:bat|baseball\s+bat|knife|gun|crowbar|hammer|machete|axe)\b/i,
+  // "My boss deserves to die", "my landlord should die".
+  new RegExp(`\\b${TARGET}\\s+(?:deserves?\\s+to|should(?:\\s+just)?|needs?\\s+to|ought\\s+to)\\s+(?:die|be\\s+killed|be\\s+shot|rot\\s+in\\s+hell)\\b`, "i"),
   new RegExp(`\\bput\\s+${TARGET}\\s+in\\s+(?:the\\s+|a\\s+)?(?:hospital|icu|coma|ground|grave|morgue)\\b`, "i"),
   new RegExp(`\\b(?:make\\s+sure|so\\s+that)\\s+${TARGET}\\s+(?:never|doesn'?t|won'?t)\\s+wakes?\\s+up\\b`, "i"),
   /\bshoot\s+up\b/i,
@@ -240,6 +246,17 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps5|xbox|switch|jewel\w*|watch|watches|bikes?|tools?)\b/i,
   /\bembezzl/i,
+  // Poisoning someone's food or drink ("poisoned my coworker's coffee").
+  /\b(?:poisoned|drugged|laced)\s+(?:(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:coffee|tea|drink|food|lunch|water|meal|dinner|breakfast|soup|smoothie|juice|beer|wine|snack|sandwich)\b/i,
+  // Image-based abuse and voyeurism, groping.
+  /\b(?:posted|shared|leaked|sent|uploaded|spread|sold)\s+(?:\w+\s+){0,2}(?:nudes?|nude\s+(?:photos?|pics?|pictures?|images?|videos?)|intimate\s+(?:photos?|pics?|pictures?|images?|videos?)|naked\s+(?:photos?|pics?|pictures?|videos?)|sex\s+tape)\b|\brevenge\s+porn\b|\bupskirt/i,
+  /\b(?:filmed|recorded|photographed|watched|spied\s+on)\s+(?:\w+\s+){1,3}(?:in\s+the\s+shower|showering|undressing|changing|naked)\b(?=.{0,40}\b(?:without|secretly|didn'?t\s+know|not\s+knowing|hidden|spy\s+cam)\b)|\b(?:hidden|spy)\s+cam(?:era)?\s+in\s+(?:the|my|her|his|their)\s+(?:bathroom|shower|bedroom|changing\s+room)\b/i,
+  /\bgrop(?:ed|ing|e|es)\b/i,
+  // Assault: a blow to the face or head, a push down the stairs.
+  new RegExp(`\\bi\\s+(?:punched|kicked|slapped|headbutted|elbowed|kneed|hit)\\s+${VICTIM}\\s+in\\s+the\\s+(?:face|head|nose|mouth|jaw|eye|teeth|throat|stomach|gut|balls|groin)\\b`, "i"),
+  new RegExp(`\\b(?:pushed|shoved|threw|kicked)\\s+${VICTIM}\\s+(?:down|off|out\\s+of)\\s+(?:the|a)\\s+(?:stairs|staircase|balcony|roof|cliff|bridge|window|moving\\s+car)\\b`, "i"),
+  // Smashing someone's car.
+  /\b(?:smashed|shattered|bashed|keyed|vandali[sz]ed|trashed)\s+(?:(?:my|his|her|their|the|a|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:car|truck|van|motorbike|motorcycle)(?:'s)?(?:\s+(?:windscreen|windshield|windows?|headlights?|mirrors?|lights?))?\b/i,
   // Spiking someone's drink (even without naming what): "spiked my friend's drink". ("Spiked the punch" isn't aimed at anyone.)
   /\bspiked\s+(?:(?:my|our|the|a)\s+[\w-]+(?:'s|s'|’s)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:drink|coffee|tea|beer|cocktail|soda|food|lunch|meal|water|juice|smoothie|wine)\b/i,
   /\bburgl(?:ed|ing|es|e)\b/i,

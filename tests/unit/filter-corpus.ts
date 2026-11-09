@@ -105,6 +105,16 @@ export const BENIGN = [
   "I took money from my piggy bank for the vending machine",
   "I hit a pothole with my car and kept driving",
   "I used my mom's credit card number to order one pizza and told her",
+  // Near-misses of the audit 32 patterns
+  "I poisoned my own houseplants with too much coffee",
+  "I shared pictures of my ex's cat on the group chat",
+  "I filmed my roommate singing in the shower and played it at her birthday",
+  "I punched my brother's arm when he spoiled the movie",
+  "I pushed my little sister off the couch to get the remote",
+  "I accidentally broke my dad's car window with a frisbee",
+  "I know where you live is what I texted the pizza guy who forgot my order",
+  "My plants deserve to die after what they did to my carpet",
+  "I'm going to break my roommate's record for most donuts eaten",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -179,4 +189,18 @@ export const EVASIONS: [string, string][] = [
   ["I hit a cyclist with my car and just kept driving", "serious-crime"],
   ["I stole money from the till at work every shift for a year", "serious-crime"],
   ["I took cash out of the cash register at work", "serious-crime"],
+  // Audit 32
+  ["I poisoned my coworker's coffee because he stole my lunch", "serious-crime"],
+  ["I posted nude photos of my ex online to get back at her", "serious-crime"],
+  ["I shared intimate pictures of my ex", "serious-crime"],
+  ["I filmed my roommate in the shower without her knowing", "serious-crime"],
+  ["I groped a stranger on the train", "serious-crime"],
+  ["I punched my brother in the face", "serious-crime"],
+  ["I pushed my little sister down the stairs", "serious-crime"],
+  ["I smashed my ex's car windscreen with a baseball bat", "serious-crime"],
+  ["I'll find you and make you pay", "violence"],
+  ["I know where you live and I'm coming for you tonight with a bat", "violence"],
+  ["My boss deserves to die", "violence"],
+  ["My landlord should die", "violence"],
+  ["I'm going to break my roommate's nose", "violence"],
 ];

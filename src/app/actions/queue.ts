@@ -12,7 +12,7 @@ import { toFailure, type ActionResult } from "./_util";
 export async function claimRandomAction(role: "DEFENSE" | "PROSECUTION"): Promise<ActionResult> {
   let target: string | null = null;
   // Only successful claims count toward the claim budget (see claimAction).
-  let refundClaim: (() => Promise<void>) | undefined;
+  let refundClaim: () => Promise<void> = async () => {};
   try {
     const user = await requireActiveUser();
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
@@ -26,6 +26,7 @@ export async function claimRandomAction(role: "DEFENSE" | "PROSECUTION"): Promis
         const held = (await currentClaim(user.id)).find((c) => c.status === (role === "DEFENSE" ? "DEFENSE_CLAIMED" : "PROSECUTION_CLAIMED"));
         if (held) {
           target = role === "DEFENSE" ? `/defend/${held.id}` : `/prosecute/${held.id}`;
+          await refundClaim(); // the other click's claim already counted
           break;
         }
         throw new CourtError("NOT_FOUND", "The docket is empty! Every case has a lawyer. Check back soon, or confess something yourself.");
@@ -37,13 +38,15 @@ export async function claimRandomAction(role: "DEFENSE" | "PROSECUTION"): Promis
         if (!(isCourtError(e) && (e.code === "CONFLICT" || e.code === "INELIGIBLE"))) throw e;
         // "You already hold a case" may be our own double-click's claim: go to it.
         const held = (await currentClaim(user.id)).find((c) => c.status === (role === "DEFENSE" ? "DEFENSE_CLAIMED" : "PROSECUTION_CLAIMED"));
-        if (held) target = role === "DEFENSE" ? `/defend/${held.id}` : `/prosecute/${held.id}`;
-        else if (e.code === "INELIGIBLE") throw e;
+        if (held) {
+          target = role === "DEFENSE" ? `/defend/${held.id}` : `/prosecute/${held.id}`;
+          await refundClaim(); // the other click's claim already counted
+        } else if (e.code === "INELIGIBLE") throw e;
       }
     }
     if (!target) throw new CourtError("CONFLICT", "Everyone is grabbing cases right now. Try again in a moment.");
   } catch (e) {
-    await refundClaim?.();
+    await refundClaim();
     return toFailure(e);
   }
   redirect(target);

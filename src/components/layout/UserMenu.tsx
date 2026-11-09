@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { announceMenuOpened, onOtherMenuOpened } from "./menu-events";
 import Link from "next/link";
 import { Avatar } from "@/components/art/avatar";
 import type { AvatarConfig } from "@/lib/avatar";
@@ -25,6 +26,9 @@ export function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  // Only one header menu at a time: opening the phone nav closes this, and vice versa
+  // (otherwise this dropdown opens hidden under the full-screen nav panel).
+  useEffect(() => onOtherMenuOpened("account", () => setOpen(false)), []);
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
@@ -43,7 +47,10 @@ export function UserMenu({
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open) announceMenuOpened("account");
+          setOpen(!open);
+        }}
         className="flex items-center gap-2 rounded-full border border-gold/40 bg-night/40 py-1 pl-1 pr-3 transition hover:border-gold-light"
         aria-expanded={open}
         aria-haspopup="menu"

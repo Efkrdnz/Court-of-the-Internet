@@ -7,7 +7,7 @@ import { grantableItems } from "@/server/services/moderation";
 import { cosmeticLabel } from "@/lib/cosmetics";
 
 const ROLE_LABEL: Record<string, string> = { PLAYER: "Player", MODERATOR: "Moderator", ADMIN: "Admin" };
-import { casePath, cleanQuery, formatCaseNumber, parseCaseParam, pluralize } from "@/lib/text";
+import { casePath, cleanQuery, formatCaseNumber, pageParam, parseCaseParam, pluralize } from "@/lib/text";
 import { formatDateTime, MODERATION_STATE_LABEL, moderationActionLabel, relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
 import { REPORT_REASONS } from "@/lib/validation";
 import { ModFlashProvider } from "@/components/forms/ModFlash";
@@ -19,6 +19,8 @@ export const metadata: Metadata = { title: "Officers only", robots: { index: fal
 
 const reasonLabel = (r: string) => REPORT_REASONS.find((x) => x.value === r)?.label ?? r;
 
+const LOG_PAGE = 30;
+
 export default async function ModerationPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUserOrRedirect("/moderation");
   if (user.role !== "ADMIN" && user.role !== "MODERATOR") notFound();
@@ -26,6 +28,15 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   const sp = await searchParams;
   const caseNumber = sp.case ? parseCaseParam(String(sp.case)) : null;
   const lookupUser = cleanQuery(sp.user, 40).toLowerCase() || undefined;
+  const logPage = pageParam(sp.log, 500);
+  const logHref = (page: number) => {
+    const q = new URLSearchParams();
+    if (sp.case) q.set("case", String(sp.case));
+    if (sp.user) q.set("user", String(sp.user));
+    if (page > 1) q.set("log", String(page));
+    const qs = q.toString();
+    return `/moderation${qs ? `?${qs}` : ""}#log-heading`;
+  };
 
   const [queue, log, focusCase, focusUser, totals] = await Promise.all([
     db.case.findMany({
@@ -48,7 +59,9 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
     }),
     db.moderationAction.findMany({
       orderBy: { createdAt: "desc" },
-      take: 20,
+      // One extra row tells us whether there's an older page.
+      skip: (logPage - 1) * LOG_PAGE,
+      take: LOG_PAGE + 1,
       select: { id: true, action: true, note: true, createdAt: true, moderator: { select: { username: true } }, case: { select: { number: true, slug: true } }, targetUserId: true },
     }),
     caseNumber && Number.isSafeInteger(caseNumber)
@@ -257,6 +270,18 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             ))}
           </ul>
         )}
+        <nav aria-label="Audit log pages" className="mt-3 flex gap-4 text-sm">
+          {logPage > 1 ? (
+            <Link href={logHref(logPage - 1)} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              ← Newer
+            </Link>
+          ) : null}
+          {log.length > LOG_PAGE ? (
+            <Link href={logHref(logPage + 1)} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              Older →
+            </Link>
+          ) : null}
+        </nav>
       </section>
 
       <section aria-labelledby="log-heading" className="mt-10">
@@ -264,10 +289,10 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           Audit log
         </h2>
         {log.length === 0 ? (
-          <p className="text-parchment/60">No moderation actions yet.</p>
+          <p className="text-parchment/60">{logPage > 1 ? "No older entries." : "No moderation actions yet."}</p>
         ) : (
           <ul className="divide-y divide-gold/15 rounded-xl border border-gold/20 bg-night/30 text-sm">
-            {log.map((l) => (
+            {log.slice(0, LOG_PAGE).map((l) => (
               <li key={l.id} className="flex flex-wrap items-center gap-x-3 px-4 py-1 text-parchment/80">
                 <span className="font-bold text-gold-light">{moderationActionLabel(l.action)}</span>
                 <span>by @{l.moderator.username}</span>
