@@ -262,10 +262,10 @@ export function grantableItems(): string[] {
 }
 
 export async function grantEntitlement(moderatorId: string, targetUserId: string, itemKey: string) {
-  if (!GRANTABLE.has(itemKey)) throw new CourtError("VALIDATION", "Unknown cosmetic item.");
   return db.$transaction(async (tx) => {
     const mod = await assertStaff(tx, moderatorId);
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can grant cosmetics.");
+    if (!GRANTABLE.has(itemKey)) throw new CourtError("VALIDATION", "Unknown cosmetic item.");
     await tx.entitlement.upsert({
       where: { userId_itemKey: { userId: targetUserId, itemKey } },
       create: { userId: targetUserId, itemKey, source: "GRANTED" },

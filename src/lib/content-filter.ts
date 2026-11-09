@@ -62,7 +62,9 @@ const SLURS_COLLAPSED = new Set(Array.from(SLURS).map(collapseRepeats));
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // 7+ digits possibly separated by spaces, dots, dashes, parentheses: phone-ish.
 // Any script's digits (Arabic-Indic too), with the separators people use to dodge filters.
-const PHONE = /(?:\+?\p{Nd}[\s()./_\-\u2013\u2014\u00b7]*){7,}\p{Nd}/u;
+// 9+ digits: real numbers (with area code) are caught, while years ("2019-2020"), scores and
+// counting ("1 2 3 4 5 6 7 8") are not. Bare 7-digit local numbers are a known gap (see README).
+const PHONE = /(?:\+?\p{Nd}[\s()./_\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
 // Explicit URLs, or a domain with any two-letter country TLD or a common generic TLD.
 const URL =
   /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]{2,}\.(?:[a-z]{2}|com|net|org|info|biz|xyz|app|dev|online|site|shop|store|blog|live|link|club|fun|top|page|social|lol|wtf|tech|space|world|news)\b/i;
@@ -80,6 +82,8 @@ const STREET_LOWER = new RegExp(
 );
 const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
 // "bob [at] example [dot] com", "bob (at) example dot com".
+// "court-of-pettiness dot com"
+const DOMAIN_SPELLED = /\b[a-z0-9-]{2,}\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info)\b/i;
 const EMAIL_SPELLED =
   /\b[\w.+-]+\s*(?:[[({]\s*at\s*[\])}]|\sat\s)\s*[\w-]+\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*[a-z]{2,}\b/i;
 // "find him on insta as john_smith_1990": a platform name followed shortly by a handle-like token
@@ -92,7 +96,7 @@ function spelledPhone(text: string): boolean {
   let run = 0;
   for (const w of text.toLowerCase().split(/[^a-z]+/).filter(Boolean)) {
     run = w in NUMBER_WORDS ? run + 1 : 0;
-    if (run >= 7) return true;
+    if (run >= 9) return true;
   }
   return false;
 }
@@ -179,7 +183,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const spacedEmail = (text.match(/(?:\S\s+){5,}\S/g) ?? []).some((run) => EMAIL.test(run.replace(/\s+/g, "")));
   if (PHONE.test(text) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
-  if (URL.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
+  if (URL.test(text) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
   if (HANDLE.test(text) || PLATFORM_HANDLE.test(text)) return fail("handle");
 
   for (const word of [...normaliseForWords(text), ...spacedOutWords(text)]) {
@@ -189,8 +193,10 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     const collapsed = collapseRepeats(word);
     if (collapsed !== word && SLURS_COLLAPSED.has(collapsed)) return fail("hate");
   }
-  if (VIOLENCE.some((re) => re.test(text))) return fail("violence");
-  if (SERIOUS.some((re) => re.test(text))) return fail("serious-crime");
+  // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
+  const decoded = text.replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
+  if (VIOLENCE.some((re) => re.test(text) || re.test(decoded))) return fail("violence");
+  if (SERIOUS.some((re) => re.test(text) || re.test(decoded))) return fail("serious-crime");
   if (allowSpamCheck && looksLikeSpam(raw)) return fail("spam");
   return { ok: true };
 }

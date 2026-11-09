@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { screenFields, screenText, similarity } from "@/lib/content-filter";
 import { shareCardStatus } from "@/lib/share-card";
 import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/progression";
-import { casePath, normalizeText, parseCaseParam, slugify } from "@/lib/text";
+import { casePath, charCount, normalizeText, parseCaseParam, slugify } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
 import { confessionSchema, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
@@ -321,5 +321,32 @@ describe("serious harm (audit 15 #3)", () => {
   });
   it("catches a spaced-out email address", () => {
     expect(screenText("my email is j o h n @ g m a i l . c o m if you want it").ok).toBe(false);
+  });
+});
+
+describe("zalgo and combining marks (audit 16 #1)", () => {
+  it("counts what readers see and caps stacked marks", () => {
+    const zalgoE = "e" + "́".repeat(15);
+    expect(charCount(zalgoE)).toBe(1);
+    expect(normalizeText(zalgoE).length).toBeLessThanOrEqual(3);
+    const r = confessionSchema.safeParse({ category: "food-crimes", title: "Pen" + "́".repeat(28), confession: "I ate my roommate's pizza and blamed his girlfriend for it.", acceptRules: "on" });
+    expect(r.success).toBe(false);
+    expect(charCount("café")).toBe(4);
+  });
+});
+
+describe("filter precision (audit 16 #3)", () => {
+  it.each([
+    "I binge watched the whole 2019-2020 season in one weekend and called in sick",
+    "I scored 12345678 points and told everyone the leaderboard was broken",
+    "I took 1 2 3 4 5 6 7 8 steps backwards out of the meeting and nobody noticed",
+  ])("accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+  it.each([
+    ["i want to k1ll my neighbour", "violence"],
+    ["visit court-of-pettiness dot com for the receipts", "link"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
   });
 });

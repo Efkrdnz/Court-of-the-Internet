@@ -101,6 +101,11 @@ export default async function CasePage({ params, searchParams }: Props) {
   }
 
   const c = detail.case;
+  // A banned player's public open cases are on hold (anonymous ones aren't, to protect anonymity).
+  const onHold =
+    !c.anonymous &&
+    ["AWAITING_DEFENSE", "AWAITING_PROSECUTION", "DEFENSE_CLAIMED", "PROSECUTION_CLAIMED"].includes(c.status) &&
+    !!(await db.case.findUnique({ where: { id: c.id }, select: { accused: { select: { bannedAt: true } } } }))?.accused.bannedAt;
   // Logged-out views count once per IP; without a known IP they aren't counted at all.
   const viewer = user ? `u:${user.id}` : await clientIp().then((ip) => (ip ? `ip:${ip}` : null));
   if (viewer) void bumpViewCount(c.id, viewer);
@@ -210,6 +215,7 @@ export default async function CasePage({ params, searchParams }: Props) {
               viewerRole={viewerRole}
               signedIn={!!user}
               loginHref={loginHref}
+              onHold={onHold}
             />
           ) : null}
           {(c.status === "DEFENSE_CLAIMED" || c.status === "PROSECUTION_CLAIMED") && c.claimedBySomeone ? (
@@ -330,14 +336,25 @@ function StageCallout({
   viewerRole,
   signedIn,
   loginHref,
+  onHold = false,
 }: {
   role: "DEFENSE" | "PROSECUTION";
   caseId: string;
   viewerRole: string | null;
   signedIn: boolean;
   loginHref: string;
+  /** The (public) accused is banned, so nobody can take the case right now. */
+  onHold?: boolean;
 }) {
   const isDefense = role === "DEFENSE";
+  if (onHold) {
+    return (
+      <div className="velvet p-6">
+        <p className="eyebrow">Case on hold</p>
+        <p className="mt-1 font-display text-xl font-bold text-parchment">The accused has been held in contempt of court, so this case can&apos;t be taken right now.</p>
+      </div>
+    );
+  }
   const reason =
     viewerRole === "ACCUSED"
       ? isDefense

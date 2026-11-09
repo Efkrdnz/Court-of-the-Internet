@@ -9,6 +9,8 @@ export function normalizeText(input: string, { multiline = true }: { multiline?:
   let s = input.normalize("NFC");
   // Invisible characters: zero-width, bidi controls, soft hyphens, fillers (spoofing / filter evasion).
   s = s.replace(INVISIBLE, "");
+  // "Zalgo" text: at most two combining marks per character (real languages rarely need more).
+  s = s.replace(/(\p{M}{2})\p{M}+/gu, "$1");
   // ASCII control chars except tab/newline.
   s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
   s = s.replace(/\r\n?/g, "\n").replace(/\t/g, " ");
@@ -22,9 +24,17 @@ export function normalizeText(input: string, { multiline = true }: { multiline?:
   return s.trim();
 }
 
-/** Character count as users perceive it (grapheme-ish: code points). */
+const graphemes = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+
+/**
+ * Character count as readers perceive it: grapheme clusters, so "é" plus fifteen stacked accents
+ * is one character, not sixteen (which used to slip short titles past the minimum).
+ */
 export function charCount(s: string): number {
-  return Array.from(s).length;
+  if (graphemes) {
+    return Array.from(graphemes.segment(s)).length;
+  }
+  return Array.from(s.replace(/\p{M}/gu, "")).length;
 }
 
 export function slugify(input: string, maxLength = 60): string {

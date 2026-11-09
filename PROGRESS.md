@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **67/67 Playwright** and **138/138 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **67/67 Playwright** and **144/144 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **67/67 Playwright** and **138/138 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 138 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 144 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -433,6 +433,30 @@ Unchanged and documented: issue 2 (lockout and spoofable IPs without a proxy) an
 Not changed: sealed pages return 200 (with `noindex`), and inline text links follow the WCAG inline exception.
 
 Verification note: the first full run on `36770c2` had one mobile e2e failure. The `long unbroken words` test timed out waiting for navigation while the machine was heavily loaded (that run took 3.4 min against the usual 1.8). It passed in three back-to-back reruns of the same Phase 9 command. The test now waits for the page to settle before re-submitting and fails fast with a clear message.
+
+## Sixteenth independent audit (fresh agent, build of commit 6d49ae2)
+
+**Result: 16 PASS, 1 CONCERN (10 forms), 0 FAIL.** Every gameplay, race, statistics and anonymity check passed. Specifically:
+- 20 concurrent votes produced a single vote.
+- Claim races (12-way, expiry boundary, ban vs claim ×8) held.
+- A seal pause restored exactly the time paused.
+- Ban → below quorum → extension → dismissal worked.
+- Every case's tally equals its Vote rows.
+- All README statements it checked are accurate.
+
+Its low-severity findings, all fixed:
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | The title minimum could be met with stacked combining marks ("é" + 15 accents counted as 16 characters) | `charCount` counts grapheme clusters; normalisation keeps at most 2 combining marks per character (no zalgo) | unit: zalgo "é" counts as 1; a 3-letter zalgo title is rejected; "café" = 4 |
+| 2 | Case pages offered "Take this case" on a case held because its (public) accused is banned | the stage callout shows "Case on hold" instead | — |
+| 3 | Filter precision: "2019-2020 season", "12345678 points" and "1 2 3 4 5 6 7 8 steps" were rejected; "k1ll", "x dot com" passed | phones need 9+ digits; leetspeak-decoded copy checked for threats; spelled-out domains caught; remaining gaps documented in README | unit: 3 accepted, 2 rejected |
+| 7 | A moderator's invalid cosmetic grant said "Unknown item" before "admins only" | permission checked first | — |
+
+Unchanged:
+- Next.js answers a forged cross-origin server action with a 500 after aborting it; nothing is stored. This is framework behaviour.
+- Sealed pages return 200 with `noindex`.
+- `X-Forwarded-For` can be spoofed without a proxy (documented).
 
 ## Per-phase evidence
 
