@@ -13,7 +13,6 @@ import { toFailure, type ActionResult } from "./_util";
 export async function updateProfileAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
     const user = await requireActiveUser();
-    await enforceRateLimit(`profile:${user.id}`, 20, 600);
     const input = profileSchema.parse({
       displayName: formData.get("displayName"),
       bio: formData.get("bio") ?? "",
@@ -33,6 +32,8 @@ export async function updateProfileAction(_prev: ActionResult | null, formData: 
       const screened = screenText(value, { allowSpamCheck: false });
       if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, field);
     }
+    // Validated first: rejected saves don't use up the budget.
+    await enforceRateLimit(`profile:${user.id}`, 20, 600);
     await updateProfile(user.id, input);
     refresh();
     return { ok: true, message: "Profile updated. Looking sharp, counselor." };
@@ -61,8 +62,9 @@ export async function changePasswordAction(_prev: ActionResult | null, formData:
   try {
     const user = await getCurrentUser();
     if (!user) throw new CourtError("UNAUTHENTICATED", "Please sign in again.");
-    await enforceRateLimit(`password:${user.id}`, 5, 900);
     const input = changePasswordSchema.parse(Object.fromEntries(formData.entries()));
+    // After validation (a mistyped confirmation shouldn't count), before the password check.
+    await enforceRateLimit(`password:${user.id}`, 5, 900);
     await changePassword(user.id, input.currentPassword, input.newPassword, await getSessionToken());
     return { ok: true, message: "Password changed. Other devices have been signed out." };
   } catch (e) {

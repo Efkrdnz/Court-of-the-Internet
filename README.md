@@ -155,7 +155,7 @@ npm run build
 npm run test:e2e
 ```
 
-**End-to-end tests** (67, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
+**End-to-end tests** (68, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
 - role restrictions, the reaction and report flows
 - the rendered leaderboards (thresholds, Wilson order, agreement with profiles)
 - **axe accessibility** on 13 pages

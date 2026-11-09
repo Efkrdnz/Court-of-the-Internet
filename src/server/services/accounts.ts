@@ -29,6 +29,29 @@ const nameKey = (name: string) =>
     .join("")
     .replace(/[^\p{L}\p{N}]+/gu, "");
 
+/** True when a and b differ by at most one insertion, deletion or substitution. */
+function withinOneEdit(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      i++;
+      j++;
+      continue;
+    }
+    if (++edits > 1) return false;
+    if (a.length > b.length) i++;
+    else if (b.length > a.length) j++;
+    else {
+      i++;
+      j++;
+    }
+  }
+  return edits + (a.length - i) + (b.length - j) <= 1;
+}
+
 /** Players can't take an officer of the court's display name ("Judge Wigsworth" is the real one). */
 export async function assertNotStaffName(displayName: string, selfId?: string) {
   const staff = await db.user.findMany({
@@ -42,7 +65,9 @@ export async function assertNotStaffName(displayName: string, selfId?: string) {
     throw new CourtError("VALIDATION", "That name is reserved for retired accounts. Pick your own.", "displayName");
   }
   // Exact matches, and names that contain a (reasonably long) officer's name: "Judge Wigsworth Jr".
-  const clashes = (staffKey: string) => staffKey === key || (staffKey.length >= 8 && key.includes(staffKey));
+  // …and near-misses one typo away ("Judge Wiggsworth").
+  const clashes = (staffKey: string) =>
+    staffKey === key || (staffKey.length >= 8 && (key.includes(staffKey) || withinOneEdit(staffKey, key)));
   if (key && staff.some((u) => clashes(nameKey(u.displayName)))) {
     throw new CourtError("VALIDATION", "That name belongs to an officer of the court. Pick your own.", "displayName");
   }
@@ -175,8 +200,8 @@ export async function deleteAccount(userId: string, password: string) {
     throw new CourtError("VALIDATION", "Password is incorrect.", "password");
   }
   await db.$transaction(async (tx) => {
-    // Free any case they were drafting so other players aren't blocked until it expires.
-    await releaseClaims(tx, { userId });
+    // Write the user row first: in-flight actions hold a share lock on it (assertActiveUser),
+    // so this waits for them, and the claim sweep below then sees everything they did.
     await tx.user.update({
       where: { id: userId },
       data: {
@@ -189,6 +214,8 @@ export async function deleteAccount(userId: string, password: string) {
         featuredBadge: null,
       },
     });
+    // Free any case they were drafting so other players aren't blocked until it expires.
+    await releaseClaims(tx, { userId });
     await tx.session.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
   });

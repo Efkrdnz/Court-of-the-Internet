@@ -130,7 +130,11 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 </Link>
               </h2>
               <p className="text-sm text-parchment/60">
-                Votes: {focusCase.guiltyVotes} guilty · {focusCase.notGuiltyVotes} not guilty · Accused: @{focusCase.accused.username}
+                {/* Staff can also sit on juries, so the split stays hidden until the verdict, as for everyone. */}
+                {focusCase.status === "CLOSED"
+                  ? `Votes: ${focusCase.guiltyVotes} guilty · ${focusCase.notGuiltyVotes} not guilty`
+                  : `Votes: ${focusCase.guiltyVotes + focusCase.notGuiltyVotes} cast (split hidden until the verdict)`}{" "}
+                · Accused: @{focusCase.accused.username}
                 {focusCase.anonymous ? " (anonymous publicly)" : ""}
               </p>
               {focusCase.deliberationPausedAt ? (

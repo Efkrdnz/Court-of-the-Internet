@@ -294,7 +294,7 @@ describe("moderation", () => {
     // Multi-letter look-alikes: "vv" for "w", "rn" for "m" (audit 15 #4).
     await makeUser("real_marshal", "MODERATOR");
     await db.user.update({ where: { username: "real_marshal" }, data: { displayName: "Marshal Wigsworth Mumford" } });
-    for (const sneaky of ["Marshal Wigsvvorth Mumford", "Marshal Wigsworth Murnford"]) {
+    for (const sneaky of ["Marshal Wigsvvorth Mumford", "Marshal Wigsworth Murnford", "Marshal Wiggsworth Mumford", "Marshal Wigsworth Mumfrd"]) {
       await expect(
         updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
       ).rejects.toMatchObject({ code: "VALIDATION" });
@@ -407,6 +407,33 @@ describe("moderation", () => {
     expect(row).toMatchObject({ status: "AWAITING_PROSECUTION", attorneyId: attorney, moderationState: "REMOVED" });
     await restoreCase(admin, c.id);
     expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("AWAITING_PROSECUTION");
+  });
+
+  it("a ban racing the player's own in-flight votes and claims always wins (audit 17 #1)", async () => {
+    const [attorney, prosecutor] = [await makeUser(), await makeUser()];
+    const admin = await makeUser("inflight_admin", "ADMIN");
+    for (let round = 0; round < 6; round++) {
+      const rogue = await makeUser();
+      const trials = [];
+      for (let i = 0; i < 3; i++) {
+        const t = await makeCase(await makeUser()); // fresh accused: stay under the daily cap
+        await toDeliberation(t.id, attorney, prosecutor);
+        trials.push(t);
+      }
+      const open = await makeCase(await makeUser());
+      await Promise.allSettled([
+        ...trials.map((t) => castVote(rogue, t.id, "GUILTY")),
+        claimCase(rogue, open.id, "DEFENSE"),
+        setBan(admin, rogue, true, "Brigading"),
+      ]);
+      // Whatever the interleaving, a banned player has no votes in open trials and holds no claims.
+      expect(await db.vote.count({ where: { userId: rogue, case: { status: "DELIBERATION" } } })).toBe(0);
+      expect(await db.case.count({ where: { claimedById: rogue } })).toBe(0);
+      for (const t of trials) {
+        const row = await db.case.findUniqueOrThrow({ where: { id: t.id } });
+        expect(row.guiltyVotes + row.notGuiltyVotes).toBe(await db.vote.count({ where: { caseId: t.id } }));
+      }
+    }
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {

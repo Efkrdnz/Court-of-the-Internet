@@ -401,7 +401,7 @@ export async function bumpViewCount(caseId: string, viewerKey: string) {
 }
 
 export async function getCaseIdByNumber(number: number) {
-  return db.case.findUnique({ where: { number }, select: { id: true, status: true, number: true, slug: true } });
+  return db.case.findUnique({ where: { number }, select: { id: true, status: true, number: true, slug: true, moderationState: true } });
 }
 
 export async function relatedCases(caseId: string, category: string, viewer: { id: string; mutedCategories?: string[] } | null) {

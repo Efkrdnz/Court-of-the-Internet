@@ -76,6 +76,12 @@ const STREET =
 // Lower-case addresses ("42 wallaby way"): one or two name words that aren't everyday filler,
 // so "3 slices on the way" or "2 blocks down the road" stay fine.
 const FILLER = "(?:the|a|an|my|his|her|our|their|your|down|up|on|to|of|in|at|by|from|for|and|all|way|whole|entire|long|other)";
+// Spelled-out house numbers: "seven forty two evergreen terrace".
+const NUM_WORD = "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)";
+const STREET_SPELLED = new RegExp(
+  `\\b${NUM_WORD}(?:[\\s-]+${NUM_WORD})*\\s+(?!${"(?:the|a|an|my|his|her|our|their|your|down|up|on|to|of|in|at|by|from|for|and|all|way|whole|entire|long|other|blocks?|miles?|minutes?|hours?|days?|times?|steps?)"}\\b)[a-z]+(?:\\s+[a-z]+)?\\s+(?:street|avenue|road|boulevard|lane|drive|terrace)\\b`,
+  "i",
+);
 const STREET_LOWER = new RegExp(
   `\\b\\d{1,5}\\s+(?!${FILLER}\\b)[a-z]+(?:\\s+(?!${FILLER}\\b)[a-z]+)?\\s+(?:street|avenue|road|boulevard|lane|drive|terrace|way)\\b`,
   "i",
@@ -138,6 +144,16 @@ const SERIOUS = [
   // Poisoning food or drink with something dangerous.
   /\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b.{0,50}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b/i,
   /\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b.{0,50}\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b/i,
+  // Theft of vehicles, robbery, arson.
+  /\bi\s+(?:stole|hot-?wired|jacked|carjacked)\s+(?:a|an|someone'?s|somebody'?s|his|her|their|the\s+neighbou?r'?s)\s+(?:\w+\s+)?(?:car|truck|van|motorcycle|motorbike|scooter|bike)\b/i,
+  /\b(?:robbed|held\s+up|stuck\s+up)\s+(?:a|the|an)\s+(?:\w+\s+)?(?:bank|store|shop|gas\s+station|liquor\s+store|pharmacy|house|home|person|man|woman)\b|\bbank\s+robbery\b/i,
+  /\barson\b|\bburn(?:ed|t)\s+down\s+(?:a|the|my|his|her|their|our)\b|\bset\s+fire\s+to\s+(?:a|the|my|his|her|their|our)\s+(?:\w+\s+)?(?:house|home|car|building|school|shop|store|apartment|flat|office|garage)\b/i,
+  // Domestic violence (siblings' pillow fights stay petty).
+  /\bi\s+(?:hit|punched|slapped|kicked|choked|beat)\s+(?:my|his|her)\s+(?:wife|husband|girlfriend|boyfriend|partner|kid|kids|child|children|son|daughter|baby|mom|mum|mother|dad|father|grandma|grandpa)\b/i,
+  // Drink- or drug-driving.
+  /\b(?:drove|driving|drive)\s+(?:home\s+|there\s+|back\s+)?(?:drunk|wasted|hammered|high|blackout)\b|\bdrunk[\s-]driving\b|\bDUI\b/i,
+  // Anything sold to minors.
+  /\b(?:sold|sell|selling|gave|supplied)\s+(?:\w+\s+){0,3}(?:weed|cannabis|marijuana|pot|vapes?|alcohol|booze|pills|drugs)\s+to\s+(?:kids|children|minors|teens|teenagers|students|underage)\b/i,
   // Dealing hard drugs.
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:\w+\s+){0,2}(?:cocaine|coke|heroin|meth|fentanyl|crack|mdma|ecstasy|hard\s+drugs|drugs)\b/i,
   /\brap(?:e|ed|ing|ist)\b/i,
@@ -178,7 +194,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   // Cyrillic/Greek look-alikes folded to Latin. The spam heuristics still use the raw text.
   const text = skeleton(raw);
 
-  if (EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text)) return fail("personal-info");
+  if (EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m": runs of single characters, squashed back together.
   const spacedEmail = (text.match(/(?:\S\s+){5,}\S/g) ?? []).some((run) => EMAIL.test(run.replace(/\s+/g, "")));
   if (PHONE.test(text) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");

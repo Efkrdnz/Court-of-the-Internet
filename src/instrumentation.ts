@@ -6,8 +6,10 @@ export function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs" || process.env.NODE_ENV !== "production") return;
   const secret = process.env.SESSION_SECRET ?? "";
   if (secret.length < 32 || secret.startsWith("dev-only-")) {
-    throw new Error(
-      "SESSION_SECRET must be set to at least 32 random characters in production (not the .env.example placeholder). Refusing to start.",
+    // Exit rather than throw: a thrown error leaves Next running and answering 500s.
+    console.error(
+      "[court] SESSION_SECRET must be set to at least 32 random characters in production (not the .env.example placeholder). Refusing to start.",
     );
+    process.exit(1);
   }
 }

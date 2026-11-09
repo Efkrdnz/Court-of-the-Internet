@@ -56,9 +56,10 @@ export const reactionSchema = z.object({
  * impersonation works ("Judge Wіgsworth" with a Cyrillic і). Single-script names in any
  * alphabet are fine.
  */
-const mixesConfusableScripts = (s: string) => /\p{Script=Latin}/u.test(s) && /[\p{Script=Cyrillic}\p{Script=Greek}]/u.test(s);
+// Latin letters mixed with letters of any other script (Cyrillic і, Armenian ս, Cherokee Ꮯ…).
+const mixesConfusableScripts = (s: string) => /\p{Script=Latin}/u.test(s) && /(?![\p{Script=Latin}])\p{L}/u.test(s);
 const displayNameField = text({ ...LIMITS.displayName, label: "Display name", multiline: false }).refine((s) => !mixesConfusableScripts(s), {
-  message: "Display names can't mix Latin letters with look-alike Cyrillic or Greek ones.",
+  message: "Display names can't mix Latin letters with letters from other alphabets.",
 });
 
 export const usernameSchema = z

@@ -7,10 +7,12 @@ import { levelForXp, levelTitle } from "@/lib/progression";
 import { clock } from "../clock";
 
 export async function assertActiveUser(tx: Tx, userId: string) {
-  const user = await tx.user.findUnique({
-    where: { id: userId },
-    select: { id: true, bannedAt: true, deletedAt: true },
-  });
+  // FOR SHARE: a ban or deletion (which writes this row first) waits for the player's in-flight
+  // actions to commit, and any action that starts after it sees the ban. Without the lock, a vote
+  // or claim racing a ban could commit after the ban had already swept the player's votes and
+  // claims, and survive it.
+  const [user] = await tx.$queryRaw<{ id: string; bannedAt: Date | null; deletedAt: Date | null }[]>`
+    SELECT "id", "bannedAt", "deletedAt" FROM "User" WHERE "id" = ${userId} FOR SHARE`;
   if (!user || user.deletedAt) throw new CourtError("UNAUTHENTICATED", "Your account could not be found.");
   if (user.bannedAt) {
     throw new CourtError("BANNED", "You have been held in contempt of court (banned) and cannot take part.");
@@ -23,6 +25,9 @@ export async function notify(
   userId: string,
   n: { type: NotificationType; title: string; body: string; href?: string; data?: Prisma.InputJsonValue },
 ) {
+  // Deleted accounts get nothing (their inbox was cleared on deletion).
+  const who = await tx.user.findUnique({ where: { id: userId }, select: { deletedAt: true } });
+  if (!who || who.deletedAt) return;
   await tx.notification.create({ data: { userId, ...n, createdAt: clock.now() } });
 }
 

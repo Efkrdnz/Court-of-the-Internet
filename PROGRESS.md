@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **67/67 Playwright** and **144/144 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **68/68 Playwright** and **159/159 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **67/67 Playwright** and **144/144 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 144 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 159 Vitest + 68 Playwright tests (43 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -457,6 +457,22 @@ Unchanged:
 - Next.js answers a forged cross-origin server action with a 500 after aborting it; nothing is stored. This is framework behaviour.
 - Sealed pages return 200 with `noindex`.
 - `X-Forwarded-For` can be spoofed without a proxy (documented).
+
+## Seventeenth independent audit (fresh agent, build of commit cc7a66b)
+
+**Result: 14 PASS, 3 CONCERN (5*, 10, 17), 0 FAIL.**
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **A ban racing the player's own in-flight votes and claims**: the votes kept counting and the claims stayed held (3 of 6 runs) | `assertActiveUser` takes `FOR SHARE` on the user row. A ban (or account deletion, now reordered to write the user row first) waits for in-flight actions to commit before sweeping votes and claims, and later actions see the ban | integration `a ban racing the player's own in-flight votes and claims always wins` (6 rounds): **fails on the old code 3/3**, passes 3/3 |
+| 2 | The canonical-slug 308 revealed a sealed case's title to anyone guessing its number | only visible cases are canonicalised | e2e: no slug redirect for a sealed case |
+| 3 | Serious crime passed the filter (car theft, bank robbery, arson, domestic violence, drunk driving, selling weed to teenagers), as did a spelled-out house number | patterns for each, with everyday phrases still allowed | unit: 8 rejected, 5 accepted ("hit my brother with a pillow", "stole my sister's car keys"…) |
+| 4 | Impersonation with Armenian ս or Cherokee Ꮯ, or one extra letter ("Wiggsworth") | Latin can't be mixed with *any* other script; names within one edit of an officer's (8+ letters) are refused | unit + integration |
+| 5 | A bad `SESSION_SECRET` left the server up and serving 500s, not "refusing to start" as the README says | the startup hook logs and exits with code 1 | manual: `SESSION_SECRET=short next start` → exit 1 |
+| 6 | Invalid profile and password saves used up those rate limits | validation first | — |
+| 7 | Malformed percent-encoding (`/cases/%E0%A4%A`) gave a bare-text 500 | `src/proxy.ts` answers 400 | e2e |
+| 8 | The moderation console showed the live guilty/not-guilty split (staff can also be jurors) | total only until the verdict | — |
+| 9 | Deleted accounts still received notifications | `notify` skips them | — |
 
 ## Per-phase evidence
 

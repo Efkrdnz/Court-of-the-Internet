@@ -350,3 +350,36 @@ describe("filter precision (audit 16 #3)", () => {
     expect(screenText(text)).toMatchObject({ ok: false, issue });
   });
 });
+
+describe("serious crime and spelled addresses (audit 17 #3)", () => {
+  it.each([
+    "I stole a car outside the mall and sold it for parts",
+    "I robbed a bank with a water pistol",
+    "I committed arson for the insurance money",
+    "I burned down the shed behind my ex's house",
+    "I hit my girlfriend during an argument",
+    "I drove home drunk after the office party",
+    "I sold weed to teenagers behind the gym",
+    "my address is seven forty two evergreen terrace springfield",
+  ])("rejects %j", (text) => {
+    expect(screenText(text).ok, text).toBe(false);
+  });
+  it.each([
+    "I hit my brother with a pillow during movie night and blamed the dog",
+    "I stole my sister's car keys and hid them in the freezer",
+    "I set the toaster on fire making a bagel and blamed the toaster",
+    "I walked two blocks down the road to avoid my neighbour",
+    "I drove home singing loudly with the windows down",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+});
+
+describe("display names mixing alphabets (audit 17 #4)", () => {
+  it("rejects Latin mixed with any other script", () => {
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    expect(signupSchema.safeParse({ ...base, displayName: "J\u057Ddge Wigsworth" }).success).toBe(false); // Armenian ս
+    expect(signupSchema.safeParse({ ...base, displayName: "\u13DFlerk Pemberton" }).success).toBe(false); // Cherokee Ꮯ
+    expect(signupSchema.safeParse({ ...base, displayName: "山田 太郎" }).success).toBe(true);
+  });
+});

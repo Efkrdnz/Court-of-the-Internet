@@ -560,3 +560,15 @@ test("§12 security: the post-login redirect never leaves the site (audit 10 #1)
     expect(res.headers()["location"], next).toMatch(/^\/court$|^http:\/\/localhost:\d+\/court$/);
   }
 });
+
+test("§12 navigation: malformed URLs and sealed cases don't leak or crash (audit 17 #2, #7)", async ({ request }) => {
+  expect((await request.get("/cases/%E0%A4%A")).status()).toBe(400);
+  expect((await request.get("/u/%E0%A4%A")).status()).toBe(400);
+  const sealed = await prisma.case.findFirst({ where: { moderationState: "REMOVED" }, select: { number: true, slug: true } });
+  if (sealed) {
+    // No canonical-slug redirect for a sealed case: it would reveal the title.
+    const res = await request.get(`/cases/${sealed.number}`, { maxRedirects: 0 });
+    expect(res.status()).not.toBe(308);
+    expect(res.headers()["location"] ?? "").not.toContain(sealed.slug);
+  }
+});
