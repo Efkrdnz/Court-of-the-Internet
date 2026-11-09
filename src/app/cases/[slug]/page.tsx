@@ -188,7 +188,7 @@ export default async function CasePage({ params, searchParams }: Props) {
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-sepia">
           <CategoryIcon category={c.category} className="h-7 w-7" />
           <span className="font-bold">{cat.label}</span>
-          <span className="font-type">{cat.statute}</span>
+          <span className="whitespace-nowrap font-type">{cat.statute}</span>
         </div>
       </header>
 

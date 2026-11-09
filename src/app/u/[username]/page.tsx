@@ -17,7 +17,7 @@ type Props = { params: Promise<{ username: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
-  if (username === "me") return { title: "Your profile" };
+  if (username.toLowerCase() === "me") return { title: "Your profile" };
   const handle = username.toLowerCase();
   const exists = isPlausibleUsername(handle) && await db.user.findFirst({ where: { username: handle, deletedAt: null }, select: { id: true } });
   if (!exists) return { title: "Player not found", robots: { index: false } };
@@ -35,7 +35,7 @@ const PATTERNS: Record<string, string> = {
 export default async function ProfilePage({ params }: Props) {
   const { username } = await params;
   const viewer = await getCurrentUser();
-  if (username === "me") redirect(viewer ? `/u/${viewer.username}` : "/login?next=/u/me");
+  if (username.toLowerCase() === "me") redirect(viewer ? `/u/${viewer.username}` : "/login?next=/u/me");
   const profile = await getProfile(username, viewer);
   if (!profile) notFound();
   const { user, stats: s, level } = profile;

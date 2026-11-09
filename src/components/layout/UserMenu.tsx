@@ -51,7 +51,7 @@ export function UserMenu({
         aria-label={`${displayName} Lv ${level}, account menu`}
       >
         <Avatar config={avatar} className="h-9 w-9" title={displayName} />
-        <span className="hidden text-left leading-tight sm:block">
+        <span className="hidden text-left leading-tight sm:block lg:hidden xl:block">
           <span className="block max-w-[9rem] truncate text-sm font-bold text-parchment">{displayName}</span>
           <span className="block text-[11px] font-semibold text-gold-light">Lv {level}</span>
         </span>

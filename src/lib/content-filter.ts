@@ -223,7 +223,8 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const spacedEmail = (text.match(/(?:\S\s+){5,}\S/g) ?? []).some((run) => EMAIL.test(run.replace(/\s+/g, "")));
   if (PHONE.test(text) || PHONE.test(numbered) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
-  if (URL.test(text) || URL.test(undotted) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
+  // Bare IPv4 addresses and the reserved .example/.test/.invalid names are links too.
+  if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(text) || URL.test(undotted) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
   if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text)) return fail("handle");
 
   const words = normaliseForWords(text);

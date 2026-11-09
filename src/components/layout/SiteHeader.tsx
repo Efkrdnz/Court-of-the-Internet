@@ -17,8 +17,8 @@ export async function SiteHeader({ user }: { user: SessionUser | null }) {
         <Link href="/" className="group flex min-w-0 items-center gap-2.5" aria-label="Court of the Internet: home">
           <Crest className="h-11 w-11 shrink-0 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105" />
           <span className="hidden min-w-0 leading-none min-[340px]:block">
-            <span className="block max-w-[8.5rem] font-blackletter text-lg leading-[1.05] text-gold-light min-[420px]:max-w-none min-[420px]:truncate min-[420px]:text-xl sm:text-2xl">Court of the Internet</span>
-            <span aria-hidden className="hidden text-[11px] font-bold uppercase tracking-[0.3em] text-parchment/50 sm:block">All rise · Est. 2026</span>
+            <span className="block max-w-[8.5rem] font-blackletter text-lg leading-[1.05] text-gold-light min-[420px]:max-w-none min-[420px]:truncate min-[420px]:text-xl sm:text-2xl lg:text-xl xl:text-2xl">Court of the Internet</span>
+            <span aria-hidden className="hidden whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.3em] text-parchment/50 sm:block lg:hidden xl:block">All rise · Est. 2026</span>
           </span>
         </Link>
 

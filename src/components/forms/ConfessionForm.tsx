@@ -64,7 +64,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
                   <CategoryIcon category={c.key} className={clsx("h-10 w-10 shrink-0 transition-transform", on ? "scale-110 rotate-[-6deg]" : "group-hover:rotate-[-6deg]")} />
                   <span className="min-w-0">
                     <span className="block text-sm font-bold leading-tight text-parchment">{c.label}</span>
-                    <span className="block font-type text-[11px] text-parchment/50">{c.statute}</span>
+                    <span className="block whitespace-nowrap font-type text-[11px] text-parchment/50">{c.statute}</span>
                   </span>
                 </label>
               );
@@ -190,7 +190,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
           <h2 className="mt-3 text-balance text-center font-display text-2xl font-black leading-tight">{title.trim() || "Your case title appears here"}</h2>
           {cat ? (
             <p className="mt-2 flex items-center justify-center gap-2 text-sm text-sepia">
-              <CategoryIcon category={cat.key} className="h-6 w-6" /> {cat.label} <span className="font-type">{cat.statute}</span>
+              <CategoryIcon category={cat.key} className="h-6 w-6" /> {cat.label} <span className="whitespace-nowrap font-type">{cat.statute}</span>
             </p>
           ) : null}
           <div className="argument argument-confession mt-5">

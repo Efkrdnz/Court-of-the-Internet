@@ -463,3 +463,12 @@ describe("more evasions (audit 20 #1, #5)", () => {
     expect(screenText(text).ok, text).toBe(true);
   });
 });
+
+describe("addresses that are links (audit 21 #8)", () => {
+  it.each(["the receipts are at 203.0.113.42 if you want them", "see pettycrimes.example for the full story"])("flags %j", (text) => {
+    expect(screenText(text).ok).toBe(false); // as a link (or, for the IP, as a phone-like number)
+  });
+  it("still accepts version numbers and scores", () => {
+    expect(screenText("I installed version 2.0 of the office coffee machine firmware without asking").ok).toBe(true);
+  });
+});

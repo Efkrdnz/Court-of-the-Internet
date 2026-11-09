@@ -295,6 +295,10 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
 
   return db.$transaction(async (tx) => {
     await assertActiveUser(tx, userId);
+    // Lock the case row before reading its moderation state: a report or a moderator acting at the
+    // same moment then runs strictly before or after this filing, so the trial is paused if and
+    // only if the case is under review when deliberation starts.
+    await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
     const now = clock.now();
     const claimedStatus = CLAIMED_STATUS[role];
     const c = await tx.case.findUnique({

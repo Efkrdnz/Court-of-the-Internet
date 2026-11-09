@@ -264,7 +264,14 @@ export async function adjournNow(moderatorId: string, caseId: string) {
     }
     await log(tx, moderatorId, "ADJOURN_NOW", { caseId });
   });
-  return closeDeliberation(caseId);
+  const outcome = await closeDeliberation(caseId);
+  if (outcome.kind !== "not-due") return outcome;
+  // Someone else's close may have won the race: report what actually happened.
+  const now = await db.case.findUnique({ where: { id: caseId }, select: { status: true, verdict: true, guiltyVotes: true, notGuiltyVotes: true } });
+  if (now?.status === "CLOSED" && now.verdict) {
+    return { kind: "closed" as const, verdict: now.verdict, guilty: now.guiltyVotes, notGuilty: now.notGuiltyVotes };
+  }
+  return outcome;
 }
 
 const GRANTABLE = new Set<string>([

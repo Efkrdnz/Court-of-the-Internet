@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **69/69 Playwright** and **194/194 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **70/70 Playwright** and **198/198 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **69/69 Playwright** and **194/194 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 194 Vitest + 69 Playwright tests (44 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 198 Vitest + 70 Playwright tests (45 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -539,6 +539,28 @@ Unchanged and documented: issues 2 and 3 (lockout and IP spoofing without a prox
 | 7 | Card title links are 24–27px tall | each card's title link stretches over the whole card, so the tap target is the card (WCAG 2.5.8 is satisfied) | — |
 
 Unchanged and documented: lockout and IP spoofing without a proxy.
+
+## Twenty-first independent audit (fresh agent, build of commit 34c6191)
+
+**Result: 15 PASS, 2 CONCERN (13 mobile, 17 docs), 0 FAIL.**
+
+It confirmed the twentieth round:
+- 220-page crawls (logged out and in) found no broken links
+- 12-way claim races and every vote, seal and close race kept tallies equal to the rows
+- 60 concurrent reaction toggles left exact counts
+- a seal and restore of a closed case moved the archive totals correctly
+- no anonymity leaks
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **A prosecution filed while the third report landed** left a trial UNDER_REVIEW with its clock still running (2 of 6 runs), so it could later be extended or closed instantly | `submitArgument` locks the case row before reading its moderation state, so it serialises with reports (`fileReport` locks the same row) and moderator actions (`lockCase`) | integration `a prosecution filed while reports put the case under review starts paused`: a deterministic in-flight report. **Fails on the old code** |
+| 2 | A filing racing "Dismiss reports" left a live trial with a stale pause, so a later seal and restore added hours to its deadline | same lock: the dismissal now runs strictly before or after the filing | covered by the same ordering |
+| 3 | Signed-in desktop header broke between 1024 and ~1180px (truncated wordmark, a 3px-wide tagline column, "Jury Duty" on two lines) | short nav labels, a smaller wordmark and no tagline or account name between 1024 and 1279px | e2e `the signed-in header fits on one line on small desktops`; screenshots at 1024/1180/1280 |
+| 4 | 35-character words break mid-word at 320px | expected: a word that long can't fit a phone heading, and breaking it beats overflowing. The statute labels ("§ 8-CC") no longer split | — |
+| 5 | A concurrent second "Adjourn now" said "sealed or under review" although the trial had closed | reports the verdict that was actually reached | — |
+| 6 | The per-IP confession limit said "too fast, try again in a moment" (it is an hourly limit) | specific message | — |
+| 7 | The "filed" notice scrolled under the sticky header on phones | `scroll-padding-top` | — |
+| 8 | `/u/ME` gave 404 (`/u/me` redirects); the 404 page always said "Case not found"; bare IPs and `.example` domains passed the filter | case-insensitive `me`; "Page not found"; IPs and reserved TLDs caught | unit |
 
 ## Per-phase evidence
 

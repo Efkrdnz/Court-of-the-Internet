@@ -587,3 +587,21 @@ test("§12 mobile: a maximum-length display name doesn't widen a case page (audi
     await prisma.user.update({ where: { id: coo.id }, data: { displayName: coo.displayName } });
   }
 });
+
+test("§12 layout: the signed-in header fits on one line on small desktops (audit 21 #3)", async ({ browser }) => {
+  for (const width of [1024, 1180]) {
+    const context = await browser.newContext({ viewport: { width, height: 700 } });
+    const page = await context.newPage();
+    await page.goto("/login");
+    await page.locator(`form:has(input[name="username"][value="juror_whiskers"]) button`).click();
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+    await page.goto("/archives");
+    const header = await page.locator("header").first().boundingBox();
+    expect(header!.height, `header height at ${width}px`).toBeLessThanOrEqual(72);
+    for (const link of await page.getByRole("navigation", { name: "Main" }).getByRole("link").all()) {
+      expect((await link.boundingBox())!.height, `nav link height at ${width}px`).toBeLessThanOrEqual(44);
+    }
+    await expectNoHorizontalScroll(page);
+    await context.close();
+  }
+});

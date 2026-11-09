@@ -480,3 +480,6 @@ html[data-motion="reduce"] *::after {
   .doc [data-alert="success"] { color: var(--color-teal); }
   .doc [data-alert="info"] { color: #6b4e12; }
 }
+
+/* Anchors and focus scrolling land below the sticky header (e.g. the "filed" notice on phones). */
+html { scroll-padding-top: 5rem; }

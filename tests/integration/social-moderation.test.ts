@@ -23,7 +23,7 @@ import { getFeaturedCase, utcDay } from "@/server/queries/community";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
-import { DEFENSE_TEXT, advance, closeNow, achievementKeys, hours, stats, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
+import { DEFENSE_TEXT, PROSECUTION_TEXT, advance, closeNow, achievementKeys, hours, stats, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
 
 beforeEach(async () => {
   await resetDb();
@@ -452,6 +452,27 @@ describe("moderation", () => {
       await Promise.allSettled([removeCase(modA, c.id, "doxxing removed"), dismissReports(modB, c.id)]);
       expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("REMOVED");
     }
+  });
+
+  it("a prosecution filed while reports put the case under review starts paused (audit 21 #1)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await claimCase(attorney, c.id, "DEFENSE");
+    await submitArgument(attorney, c.id, "DEFENSE", DEFENSE_TEXT);
+    await claimCase(prosecutor, c.id, "PROSECUTION");
+
+    // The third established report is mid-commit: it holds the case row and has flipped it to UNDER_REVIEW.
+    const reporting = db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${c.id} FOR UPDATE`;
+      await tx.case.update({ where: { id: c.id }, data: { moderationState: "UNDER_REVIEW" } });
+      await tx.$executeRaw`SELECT pg_sleep(0.5)`;
+    });
+    await new Promise((r) => setTimeout(r, 120));
+    await Promise.all([reporting, submitArgument(prosecutor, c.id, "PROSECUTION", PROSECUTION_TEXT)]);
+
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ status: "DELIBERATION", moderationState: "UNDER_REVIEW" });
+    expect(row.deliberationPausedAt).not.toBeNull(); // the clock is stopped while voting is
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {
