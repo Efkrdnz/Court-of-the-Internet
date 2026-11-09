@@ -82,7 +82,7 @@ export default async function LeaderboardsPage() {
   const lb = await getLeaderboards();
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <header className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
+      <header className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
         <div className="animate-in">
           <p className="eyebrow">Hall of fame (and shame)</p>
           <h1 className="mt-2 font-display text-4xl font-black text-parchment sm:text-6xl">
@@ -96,7 +96,7 @@ export default async function LeaderboardsPage() {
         <BailiffBulldog className="chr-hover chr-sticker mx-auto w-48" />
       </header>
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Board
           title="Best defense attorneys"
           subtitle={`Min. ${lb.thresholds.decided} decided cases · ranked by confidence-adjusted win rate`}
@@ -120,7 +120,7 @@ export default async function LeaderboardsPage() {
           subtitle="Public confessions only · the court's most wanted"
           rows={lb.convicts}
           stat={(r) => r.convictions}
-          detail={(r) => `${r.confessed} confessions · ${r.acquittals} acquittals`}
+          detail={(r) => `${r.convictions}× guilty · ${r.acquittals}× acquitted · ${r.confessed} public confessions`}
           empty="Nobody has been convicted yet. Suspicious."
           tone="gold"
         />
@@ -138,7 +138,7 @@ export default async function LeaderboardsPage() {
           subtitle={`Min. ${lb.thresholds.juryVotes} votes · the backbone of justice`}
           rows={lb.jurors}
           stat={(r) => r.votes}
-          detail={(r) => `${percent(r.agreement)} with the majority`}
+          detail={(r) => `${percent(r.agreement)} with the majority (decided cases)`}
           empty="The jury box is empty. Report for duty!"
           tone="gold"
         />
@@ -161,7 +161,7 @@ export default async function LeaderboardsPage() {
         {lb.entertaining.length === 0 ? (
           <p className="velvet p-6 text-center text-parchment/70">No reactions yet. Tough crowd.</p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {lb.entertaining.map((c, i) => (
               <CaseFileCard key={c.id} c={c} footer={<p className="text-xs font-bold uppercase tracking-widest text-sepia">#{i + 1} · {c.reactionScore} reaction points</p>} />
             ))}

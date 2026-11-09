@@ -39,7 +39,10 @@ export const gameConfig = {
 export const appConfig = {
   isProduction,
   get siteUrl() {
-    return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+    // SITE_URL is read at runtime. NEXT_PUBLIC_SITE_URL is only a fallback, because Next
+    // inlines NEXT_PUBLIC_* values at build time, so changing it would need a rebuild.
+    const env = process.env;
+    return (env["SITE_URL"] || env["NEXT_PUBLIC_SITE_URL"] || "http://localhost:3000").replace(/\/$/, "");
   },
   get demoLoginEnabled() {
     const flag = process.env.ENABLE_DEMO_LOGIN;

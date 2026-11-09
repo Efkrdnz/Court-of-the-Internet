@@ -57,7 +57,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 - [x] Monetization architecture (`PaymentProvider`, entitlements, fairness test)
 
 ## Phase 9: Integration testing, accessibility, responsive polish
-- [x] Playwright e2e (54 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
+- [x] Playwright e2e (61 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
 - [x] axe accessibility checks on 13 pages (no serious/critical violations)
 - [x] Mobile (Pixel 7): 13 pages fit the *device* width (checker fixed to compare against the device, not the layout viewport), plus touch flows for confess, claim/defend, vote, react, settings and menu with ≥36px tap targets
 - [x] Bugs found & fixed by e2e: Zod 4 optional checkbox keys, React 19 form reset wiping inputs, grid overflow on mobile, streaming redirects
@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **54/54 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **61/61 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -124,6 +124,21 @@ A separate agent, which saw neither these documents nor the test results, audite
 | H | Cramped vote-booth heading on phones | jury art hidden below `sm` | visual |
 
 Logs also show `prisma:error` lines for unique-constraint hits that the app handles correctly. This is noise and was left as is.
+
+## Second independent audit (fresh agent, final build of the first fix round)
+
+A new agent, with no knowledge of the first audit or the fixes, re-audited all 17 items against a freshly seeded database: **14 PASS, 3 CONCERN, 0 FAIL.** It confirmed that the first round's fixes hold (forms keep input, repeated failures followed by a valid submit work, the stale tab seals, the phone menu works). It reported these issues, all now fixed with regression tests:
+
+| # | Issue | Fix | Regression test |
+| --- | --- | --- | --- |
+| 1 | IP rate limits trusted a client-supplied `X-Forwarded-For`; 8 bad passwords from spoofed IPs locked the owner out | client IP = proxy-appended entry (`TRUST_PROXY_HOPS`); strict per-account limit is per (account, IP) with a looser per-account ceiling; README documents the no-proxy limitation | `§12 security: wrong passwords from one IP don't lock the owner out elsewhere` |
+| 2 | Juror "with majority" % counted undecided cases and mistrials | denominator is votes on GUILTY / NOT_GUILTY cases (profile, jury page, leaderboard) | `§12 stats: jury agreement uses decided cases only` + integration test |
+| 3 | Overflow at 360px and 320px | root cause: responsive grids with no base column (`grid-cols-1` added to all 27); 1-column category tiles below 360px; wordmark hidden below 340px; toast clipped horizontally | `narrow phones (360px / 320px): every page fits` (13 pages each) |
+| 4 | Server-side errors off-screen on phones | after a rejection, focus and scroll go to the invalid field (or the alert) | `mobile: a server-side rejection is brought into view` |
+| 5 | Jurors told "You won/lost this case" | jurors see "sided with the majority" / "outvoted" | `§12 jurors see majority/minority…` |
+| 6 | Conviction rate counted mistrials and dismissals | guilty / (guilty + not guilty) | archives test asserts the new formula |
+| 7 | `NEXT_PUBLIC_SITE_URL` was inlined at build time | runtime `SITE_URL` (old var kept as a fallback) | `§12 share links use the runtime site URL` |
+| 8 | `prisma:error` log noise; "verdict summary" label during deliberation; unlabeled conviction count | Prisma logs warnings only (the action layer logs unexpected errors); "Copy case summary" while open; labeled board detail | visual / log check |
 
 ## Per-phase evidence
 

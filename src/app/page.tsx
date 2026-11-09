@@ -63,7 +63,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
       {/* ---------- Hero: the courtroom ---------- */}
       <section className="relative overflow-hidden">
         <div className="spotlight pointer-events-none absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgba(255,230,160,0.22),transparent_65%)]" aria-hidden />
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pb-6 pt-10 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-16">
+        <div className="mx-auto grid grid-cols-1 max-w-7xl items-center gap-10 px-4 pb-6 pt-10 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-16">
           <div className="relative z-10 text-center lg:text-left">
             <p className="eyebrow animate-in">The internet&apos;s most prestigious court for its least important crimes</p>
             <h1 className="animate-in-delay-1 mt-4 text-balance font-display text-5xl font-black leading-[1.02] text-parchment sm:text-7xl">
@@ -152,7 +152,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
           Pick your <span className="gilded-text italic">role</span>
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-parchment/70">Every case needs all four. There&apos;s always something to do.</p>
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {modes.map((m) => (
             <Link key={m.href} href={m.href} className={`velvet velvet-hover chr-hover group flex flex-col items-center bg-gradient-to-b ${m.tone} p-6 text-center`}>
               <div className="chr-sticker flex h-40 items-end transition-transform duration-300 group-hover:-translate-y-1">{m.art}</div>
@@ -167,7 +167,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
       {/* ---------- Featured case ---------- */}
       {featured ? (
         <section aria-labelledby="featured-heading" className="mx-auto mt-24 max-w-6xl px-4 sm:px-6">
-          <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.4fr]">
+          <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_1.4fr]">
             <div>
               <p className="eyebrow">Featured case of the day</p>
               <h2 id="featured-heading" className="mt-2 font-display text-4xl font-black text-parchment">
@@ -189,7 +189,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
         <h2 id="how-heading" className="text-center font-display text-4xl font-black text-parchment sm:text-5xl">
           How a trial works
         </h2>
-        <ol className="mt-10 grid gap-6 md:grid-cols-5">
+        <ol className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-5">
           {[
             ["I", "Confession", "A player confesses a ridiculous, harmless crime, publicly or anonymously."],
             ["II", "Defense", "Another player claims the case and writes one defense (750 characters max)."],
@@ -204,7 +204,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
             </li>
           ))}
         </ol>
-        <div className="mt-6 grid gap-4 text-sm text-parchment/70 md:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 text-sm text-parchment/70 md:grid-cols-3">
           <p className="velvet p-4">
             <strong className="text-gold-light">Too few jurors?</strong> Deliberation is extended once. If quorum still isn&apos;t reached, the case is dismissed and
             nobody wins or loses.
@@ -230,7 +230,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
               Browse all verdicts →
             </Link>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {recent.map((c) => (
               <CaseFileCard key={c.id} c={c} />
             ))}
@@ -244,7 +244,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
           <h2 id="highlights-heading" className="text-center font-display text-4xl font-black text-parchment">
             Community highlights
           </h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
             {highlights.closest ? (
               <Highlight label="Closest call" title={highlights.closest.title} href={casePath(highlights.closest)} detail={highlights.closest.tallies ? `${highlights.closest.tallies.guilty}–${highlights.closest.tallies.notGuilty}` : ""} art={<CatJury count={3} mood="shocked" className="h-24 w-auto" />} />
             ) : null}

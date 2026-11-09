@@ -99,7 +99,7 @@ export function ProfileForm({
 
   return (
     <form {...formProps} className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-[180px_1fr]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[180px_1fr]">
         <div className="text-center">
           <Avatar config={avatar} className="mx-auto h-40 w-40" />
           <p className="muted mt-2 text-xs">Live preview</p>
@@ -114,7 +114,7 @@ export function ProfileForm({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="pf-name" className="field-label">
             Display name
@@ -147,7 +147,7 @@ export function ProfileForm({
 
       <fieldset>
         <legend className="field-label">Profile theme</legend>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {themes.map((t) => {
             const on = theme === t.key;
             return (
@@ -207,7 +207,7 @@ export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean
       <fieldset>
         <legend className="field-label">Muted categories</legend>
         <p className="mb-2 text-sm text-sepia">Hide these categories from your queues, jury duty, and the archives (unless you filter for them directly).</p>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CATEGORIES.map((c) => (
             <label key={c.key} className="flex items-center gap-2 rounded-lg border border-sepia/25 bg-white/30 px-3 py-2 text-sm">
               <input type="checkbox" name="mutedCategories" value={c.key} defaultChecked={initial.mutedCategories.includes(c.key)} className="h-4 w-4 accent-burgundy" />
@@ -231,7 +231,7 @@ export function PasswordForm() {
   const [state, formProps, pending] = useFormAction(changePasswordAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
   return (
-    <form {...formProps} className="grid gap-4 sm:grid-cols-3">
+    <form {...formProps} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <div>
         <label htmlFor="pw-current" className="field-label">
           Current password
@@ -269,7 +269,7 @@ export function DeleteAccountForm() {
   const [state, formProps, pending] = useFormAction(deleteAccountAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
   return (
-    <form {...formProps} className="grid gap-4 sm:grid-cols-2">
+    <form {...formProps} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <p className="text-sm sm:col-span-2">
         Your username and profile are scrubbed and you are signed out everywhere. Cases you took part in stay in the public record, credited to &ldquo;Former
         Citizen&rdquo;. This cannot be undone.

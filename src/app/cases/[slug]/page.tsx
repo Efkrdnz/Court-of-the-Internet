@@ -96,7 +96,7 @@ export default async function CasePage({ params, searchParams }: Props) {
   const loginHref = `/login?next=${encodeURIComponent(casePath(c))}`;
   const related = c.status === "CLOSED" ? await relatedCases(c.id, c.category, user) : [];
 
-  const outcome: "won" | "lost" | null =
+  const outcome: "won" | "lost" | "majority" | "minority" | null =
     c.status !== "CLOSED" || !c.verdict || c.verdict === "MISTRIAL" || c.verdict === "DISMISSED"
       ? null
       : viewerRole === "DEFENSE" || viewerRole === "ACCUSED"
@@ -109,8 +109,8 @@ export default async function CasePage({ params, searchParams }: Props) {
             : "lost"
           : c.viewer.vote
             ? c.viewer.vote === c.verdict
-              ? "won"
-              : "lost"
+              ? "majority"
+              : "minority"
             : null;
 
   const summary =
@@ -249,7 +249,7 @@ export default async function CasePage({ params, searchParams }: Props) {
               </div>
               <div>
                 <h2 className="mb-3 font-display text-xl font-bold text-parchment">{c.status === "CLOSED" ? "Spread the verdict" : "Summon more jurors"}</h2>
-                <ShareBar url={url} summary={summary} title={c.title} cardHref={`${casePath(c)}/opengraph-image`} />
+                <ShareBar url={url} summary={summary} title={c.title} cardHref={`${casePath(c)}/opengraph-image`} closed={c.status === "CLOSED"} />
               </div>
             </section>
           ) : null}
@@ -299,7 +299,7 @@ export default async function CasePage({ params, searchParams }: Props) {
           <h2 id="related-heading" className="rule-ornate mb-6 font-display text-2xl font-bold">
             <span className="text-parchment">Related precedent</span>
           </h2>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {related.map((r) => (
               <CaseFileCard key={r.id} c={r} />
             ))}

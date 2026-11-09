@@ -141,3 +141,33 @@ test("mobile: claim a case and file a defense on a phone", async ({ browser }) =
   await page.waitForURL(/\?filed=defense/);
   await expect(page.getByText("Defense filed!")).toBeVisible();
 });
+
+for (const width of [360, 320]) {
+  test(`narrow phones (${width}px): every page fits`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height: 740 }, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    await page.goto("/login");
+    await page.locator(`form:has(input[name="username"][value="counselor_coo"]) button`).tap();
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+    for (const path of ["/", "/court", "/confess", "/defend", "/prosecute", "/jury", "/cases/1", "/archives", "/leaderboards", "/u/counselor_coo", "/settings", "/notifications", "/rules"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      await expectNoHorizontalScroll(page);
+    }
+  });
+}
+
+test("mobile: a server-side rejection is brought into view (audit #4)", async ({ browser }) => {
+  const page = await phoneLogin(browser, "hammy_the_accused");
+  await page.goto("/confess");
+  await page.locator(`label:has(input[value="social-misconduct"])`).tap();
+  await page.getByLabel("Case title").fill("I gave out a fake number at the party");
+  await page.getByLabel("The confession").fill("Someone asked for my number so I gave them 555 123 4567 and then hid behind the snack table for an hour.");
+  await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).tap();
+  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  // Focus moves to the offending field, and its own error message is on screen next to it.
+  const field = page.getByLabel("The confession");
+  await expect(field).toBeFocused();
+  await expect(field).toBeInViewport();
+  await expect(page.locator("p[role=alert]", { hasText: /personal information/ })).toBeInViewport();
+});

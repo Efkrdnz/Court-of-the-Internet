@@ -15,7 +15,7 @@ export default async function ConfessPage() {
   const user = await getCurrentUser();
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <header className="mb-10 grid items-center gap-6 md:grid-cols-[1fr_auto]">
+      <header className="mb-10 grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
         <div className="animate-in">
           <p className="eyebrow">Game mode · The Accused</p>
           <h1 className="mt-2 font-display text-4xl font-black leading-tight text-parchment sm:text-6xl">

@@ -46,7 +46,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             One click to sign in as a seeded player. Use different accounts in different browsers to play every role.
           </p>
           {sp.demo === "missing" ? <FormAlert className="mt-3">That demo account doesn&apos;t exist. Run the seed script first.</FormAlert> : null}
-          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {DEMO_ACCOUNTS.map((d) => {
               const u = demo.find((x) => x.username === d.username);
               if (!u) return null;

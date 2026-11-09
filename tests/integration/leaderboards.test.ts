@@ -71,7 +71,9 @@ describe("leaderboards", () => {
     }
     expect(names(lb.jurors)).toEqual([busyName, goodName]); // sorted by votes; casual juror below threshold
     expect(names(lb.jurors)).not.toContain(casualName);
-    expect(lb.jurors[0].agreement).toBeCloseTo(12 / 30);
+    // Agreement is measured over decided cases only; these synthetic stats have no real votes,
+    // so it is unknown (null) rather than a misleading 12/30.
+    expect(lb.jurors[0].agreement).toBeNull();
   });
 
   it("builds every board from real games, keeping anonymous convictions off the public board", async () => {

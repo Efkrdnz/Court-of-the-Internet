@@ -45,12 +45,13 @@ export async function getFeaturedCase(viewer: { id: string } | null) {
 export async function getCommunityStats() {
   const now = clock.now();
   const dayAgo = new Date(now.getTime() - 86_400_000);
-  const [players, cases, closed, votes, guilty, todayVotes, inDeliberation, awaiting] = await Promise.all([
+  const [players, cases, closed, votes, guilty, notGuilty, todayVotes, inDeliberation, awaiting] = await Promise.all([
     db.user.count({ where: { deletedAt: null } }),
     db.case.count({ where: { moderationState: { not: "REMOVED" } } }),
     db.case.count({ where: { status: "CLOSED", moderationState: "VISIBLE" } }),
     db.vote.count(),
     db.case.count({ where: { status: "CLOSED", verdict: "GUILTY", moderationState: "VISIBLE" } }),
+    db.case.count({ where: { status: "CLOSED", verdict: "NOT_GUILTY", moderationState: "VISIBLE" } }),
     db.vote.count({ where: { createdAt: { gte: dayAgo } } }),
     db.case.count({ where: { status: "DELIBERATION", moderationState: "VISIBLE" } }),
     db.case.count({ where: { status: { in: ["AWAITING_DEFENSE", "AWAITING_PROSECUTION"] }, moderationState: "VISIBLE" } }),
@@ -60,7 +61,8 @@ export async function getCommunityStats() {
     cases,
     closed,
     votes,
-    convictionRate: closed ? guilty / closed : 0,
+    // Mistrials and dismissals are neither convictions nor acquittals.
+    convictionRate: guilty + notGuilty ? guilty / (guilty + notGuilty) : 0,
     todayVotes,
     inDeliberation,
     awaiting,

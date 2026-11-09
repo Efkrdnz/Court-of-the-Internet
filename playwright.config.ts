@@ -39,7 +39,7 @@ export default defineConfig({
       COURT_DELIBERATION_HOURS: "24",
       ENABLE_DEMO_LOGIN: "true",
       SESSION_SECRET: "e2e-session-secret-e2e-session-secret-1234",
-      NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,
+      SITE_URL: `http://localhost:${PORT}`,
     },
   },
 });

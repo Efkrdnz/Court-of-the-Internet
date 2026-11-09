@@ -254,4 +254,5 @@ animated toast.
 | `COURT_MAX_EXTENSIONS` | 1 | Low-participation extensions |
 | `COURT_CLAIM_MINUTES` | 30 | Claim lifetime |
 | `ENABLE_DEMO_LOGIN` | true outside production | Shows one-click demo accounts on `/login` |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Absolute URLs for OG/share |
+| `SITE_URL` | `http://localhost:3000` | Absolute URLs for OG/share/sitemap (runtime; `NEXT_PUBLIC_SITE_URL` is a build-time fallback) |
+| `TRUST_PROXY_HOPS` | 1 | Reverse proxies in front of the app; the client IP is the N-th `X-Forwarded-For` entry from the right |

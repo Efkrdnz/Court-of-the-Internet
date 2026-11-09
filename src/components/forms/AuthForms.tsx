@@ -54,7 +54,7 @@ export function SignupForm({ next }: { next: string }) {
         </label>
       </div>
       {state && !state.ok && !fe ? <FormAlert className="!text-crimson">{state.error}</FormAlert> : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="su-username" className="field-label">
             Username
@@ -84,7 +84,7 @@ export function SignupForm({ next }: { next: string }) {
           <FieldError errors={fe?.displayName} />
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="su-password" className="field-label">
             Password

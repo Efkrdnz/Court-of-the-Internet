@@ -155,7 +155,7 @@ npm run build
 npm run test:e2e
 ```
 
-**End-to-end tests** (54, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
+**End-to-end tests** (61, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
 - role restrictions, the reaction and report flows
 - the rendered leaderboards (thresholds, Wilson order, agreement with profiles)
 - **axe accessibility** on 13 pages
@@ -175,7 +175,8 @@ The app is a standard Node.js Next.js server and needs one PostgreSQL database.
 2. Set environment variables (see `.env.example`):
    - `DATABASE_URL`: production database
    - `SESSION_SECRET`: **required**, ≥ 32 random characters
-   - `NEXT_PUBLIC_SITE_URL`: e.g. `https://court.example.com` (used for share links and OG URLs)
+   - `SITE_URL`: e.g. `https://court.example.com` (share links, OG URLs, sitemap). Read at runtime, so no rebuild is needed to change it. `NEXT_PUBLIC_SITE_URL` still works as a build-time fallback.
+   - `TRUST_PROXY_HOPS`: the number of reverse proxies in front of the app (default `1`). Rate limits use the client IP that your own proxy appended to `X-Forwarded-For` (counted from the right), so spoofed left-most entries are ignored.
    - `CRON_SECRET`: enables the maintenance endpoint
    - `ENABLE_DEMO_LOGIN=false`: unless you want the demo buttons
    - Optional tuning: `COURT_QUORUM`, `COURT_DELIBERATION_HOURS`, `COURT_MAX_EXTENSIONS`, `COURT_CLAIM_MINUTES`
@@ -226,6 +227,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 
 ## Known limitations
 
+- **Client IPs need a proxy.** IP-based rate limits (signup, login, confessions) use the right-most `X-Forwarded-For` entries, as configured by `TRUST_PROXY_HOPS`. Behind a reverse proxy (nginx, Vercel, Fly…) the client can't spoof them. If `next start` is exposed directly to the internet with no proxy, the client controls that header, because Next doesn't expose the socket address to server actions. Per-account limits still apply: 8 attempts per account per IP, plus a 100-per-15-minutes ceiling per account so one attacker can't lock the owner out. Always deploy behind a proxy.
 - **Private courtrooms** for friend groups and **paid memberships** are designed (see `docs/MONETIZATION.md`) but not built. The Patron perks section is explicitly labelled "not on sale yet"; admins can grant cosmetics for testing.
 - **No email:** there's no password reset by email. Admins can't reset passwords from the console yet; players can change their own in Settings.
 - **Search:** archive search uses case-insensitive `ILIKE`. For very large archives, add a Postgres full-text or trigram index.

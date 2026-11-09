@@ -68,7 +68,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <header className={clsx("velvet relative overflow-hidden p-6 sm:p-10", role === "DEFENSE" ? "bg-gradient-to-br from-teal/30" : "bg-gradient-to-br from-crimson/30")}>
-        <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
+        <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
           <div className="animate-in">
             <p className="eyebrow">{copy.eyebrow}</p>
             <h1 className="mt-2 font-display text-4xl font-black leading-tight text-parchment sm:text-6xl">
@@ -152,7 +152,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
               </div>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {queue.cards.map((c) => (
                 <CaseFileCard
                   key={c.id}

@@ -115,7 +115,7 @@ export function VoteBooth({
           </div>
         ) : (
           <div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {(["NOT_GUILTY", "GUILTY"] as Choice[]).map((choice) => (
                 <button
                   key={choice}

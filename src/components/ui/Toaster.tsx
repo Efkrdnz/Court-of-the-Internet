@@ -52,7 +52,7 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
   const celebratory = current && (current.type === "ACHIEVEMENT" || current.type === "LEVEL_UP" || (current.data as { won?: boolean } | null)?.won);
 
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4 sm:bottom-6 sm:justify-end sm:px-6">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex justify-center overflow-x-clip px-4 sm:bottom-6 sm:justify-end sm:px-6">
       <AnimatePresence mode="wait">
         {current ? (
           <motion.div

@@ -6,7 +6,7 @@ export function SiteFooter() {
     <footer className="relative z-10 mt-24 border-t border-gold/20 bg-night/60">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <FlourishDivider className="mx-auto mb-8 h-6 w-full max-w-md text-gold/70" />
-        <div className="grid gap-8 text-sm text-parchment/70 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 text-sm text-parchment/70 sm:grid-cols-3">
           <div>
             <p className="font-blackletter text-2xl text-gold-light">Court of the Internet</p>
             <p className="mt-2 max-w-xs">

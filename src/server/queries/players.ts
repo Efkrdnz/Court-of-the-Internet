@@ -6,6 +6,16 @@ import { parseAvatar } from "@/lib/avatar";
 import { LEADERBOARD_MIN_DECIDED, LEADERBOARD_MIN_JURY_VOTES, levelProgress, wilsonLowerBound, winRate } from "@/lib/progression";
 import { caseCardSelect, toCaseCards } from "./cases";
 
+/** Votes cast on cases that ended GUILTY / NOT_GUILTY: the denominator for "sided with the majority". */
+export async function decidedJuryVotes(userIds: string[]): Promise<Map<string, number>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db.$queryRaw<{ userId: string; n: bigint }[]>`
+    SELECT v."userId", COUNT(*)::bigint AS n FROM "Vote" v JOIN "Case" c ON c.id = v."caseId"
+    WHERE c.status = 'CLOSED' AND c.verdict IN ('GUILTY', 'NOT_GUILTY') AND v."userId" = ANY(${userIds})
+    GROUP BY v."userId"`;
+  return new Map(rows.map((r) => [r.userId, Number(r.n)]));
+}
+
 export async function getProfile(username: string, viewer: { id: string } | null) {
   const user = await db.user.findUnique({
     where: { username: username.toLowerCase() },
@@ -45,6 +55,7 @@ export async function getProfile(username: string, viewer: { id: string } | null
     db.vote.count({ where: { userId: user.id, createdAt: { gte: new Date(clock.now().getTime() - 7 * 86_400_000) } } }),
   ]);
 
+  const decided = (await decidedJuryVotes([user.id])).get(user.id) ?? 0;
   const defenseRate = winRate(s.defenseWins, s.defenseLosses);
   const prosecutionRate = winRate(s.prosecutionWins, s.prosecutionLosses);
   return {
@@ -69,7 +80,7 @@ export async function getProfile(username: string, viewer: { id: string } | null
       totalConfessions: isSelf ? s.totalConfessions : s.casesConfessed,
       defenseRate,
       prosecutionRate,
-      juryAgreement: s.juryVotes ? s.juryMajorityVotes / s.juryVotes : null,
+      juryAgreement: decided ? s.juryMajorityVotes / decided : null,
       votesThisWeek: recentVotes,
     },
     achievements: user.achievements.map((a) => ({ key: a.key, unlockedAt: a.unlockedAt.toISOString() })),
@@ -124,7 +135,7 @@ export async function getLeaderboards() {
     db.userStats.findMany({
       where: { user: activeUser, juryVotes: { gte: LEADERBOARD_MIN_JURY_VOTES } },
       orderBy: [{ juryVotes: "desc" }],
-      select: { juryVotes: true, juryMajorityVotes: true, user: { select: lbUser } },
+      select: { userId: true, juryVotes: true, juryMajorityVotes: true, user: { select: lbUser } },
       take: 10,
     }),
     db.userStats.findMany({
@@ -178,7 +189,13 @@ export async function getLeaderboards() {
       }))
       .sort((a, b) => b.streak - a.streak)
       .slice(0, 10),
-    jurors: jurors.map((r) => ({ ...lbPerson(r.user), votes: r.juryVotes, agreement: r.juryVotes ? r.juryMajorityVotes / r.juryVotes : 0 })),
+    jurors: await (async () => {
+      const decided = await decidedJuryVotes(jurors.map((r) => r.userId));
+      return jurors.map((r) => {
+        const d = decided.get(r.userId) ?? 0;
+        return { ...lbPerson(r.user), votes: r.juryVotes, agreement: d ? r.juryMajorityVotes / d : null };
+      });
+    })(),
     reputation: xpLeaders.map((r) => ({ ...lbPerson(r.user), xp: r.xp, reputation: r.reputation, level: levelProgress(r.xp).level })),
     entertaining: await toCaseCards(entertaining, null),
     thresholds: { decided: LEADERBOARD_MIN_DECIDED, juryVotes: LEADERBOARD_MIN_JURY_VOTES },

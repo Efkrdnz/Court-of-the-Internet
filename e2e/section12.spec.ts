@@ -75,7 +75,9 @@ test("§12 archives display real persisted data", async ({ page }) => {
 
   await page.goto("/archives");
   await expect(page.getByText(`${total} ${total === 1 ? "case" : "cases"} found`)).toBeVisible();
-  await expect(page.getByText(`${total} cases decided · ${Math.round((guilty / total) * 100)}% conviction rate`)).toBeVisible();
+  const notGuilty = await prisma.case.count({ where: { status: "CLOSED", moderationState: "VISIBLE", verdict: "NOT_GUILTY" } });
+  // Conviction rate = guilty / (guilty + not guilty); mistrials and dismissals are neither (audit #6).
+  await expect(page.getByText(`${total} cases closed · ${Math.round((guilty / (guilty + notGuilty)) * 100)}% conviction rate`)).toBeVisible();
   // Skip the featured-case card (ring-2) at the top; the grid is ordered by most recent verdict.
   const firstCard = page.locator("article.folder:not(.ring-2)").first();
   await expect(firstCard).toContainText(newest.title);
@@ -362,4 +364,55 @@ test("§12 claim buttons explain why they're disabled without overflowing (audit
   await expect(btn).toBeDisabled();
   const fits = await btn.evaluate((b) => b.scrollWidth <= b.clientWidth + 1);
   expect(fits).toBe(true);
+});
+
+test("§12 stats: jury agreement uses decided cases only (audit #2)", async ({ page }) => {
+  const u = await prisma.user.findUniqueOrThrow({ where: { username: "counselor_coo" }, select: { id: true, stats: true } });
+  const decided = await prisma.vote.count({ where: { userId: u.id, case: { status: "CLOSED", verdict: { in: ["GUILTY", "NOT_GUILTY"] } } } });
+  const expected = decided ? `${Math.round((u.stats!.juryMajorityVotes / decided) * 100)}%` : "—";
+  await page.goto("/u/counselor_coo");
+  const card = page.locator("div.velvet", { has: page.getByText("Juror", { exact: true }) });
+  await expect(card.locator("dl div", { has: page.locator("dt", { hasText: "With majority" }) })).toContainText(expected);
+});
+
+test("§12 security: wrong passwords from one IP don't lock the owner out elsewhere (audit #1)", async ({ browser }) => {
+  const attacker = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": "203.0.113.7" } });
+  const a = await attacker.newPage();
+  await a.goto("/login");
+  for (let i = 0; i < 9; i++) {
+    await a.getByLabel("Username").fill("juror_whiskers");
+    await a.getByLabel("Password").fill(`wrong-guess-${i}`);
+    await a.getByRole("button", { name: "Enter the courtroom" }).click();
+    await expect(a.getByRole("alert").filter({ hasText: /wrong password|Too many attempts/ })).toBeVisible();
+  }
+  await expect(a.getByRole("alert").filter({ hasText: /Too many attempts/ })).toBeVisible(); // attacker is throttled
+  const owner = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": "198.51.100.42" } });
+  const o = await owner.newPage();
+  await o.goto("/login");
+  await o.getByLabel("Username").fill("juror_whiskers");
+  await o.getByLabel("Password").fill("objection-sustained");
+  await o.getByRole("button", { name: "Enter the courtroom" }).click();
+  await o.waitForURL(/\/court/);
+});
+
+test("§12 share links use the runtime site URL (audit #7)", async ({ page, baseURL }) => {
+  await page.goto("/cases/1");
+  await page.waitForURL(/\/cases\/1-/);
+  const og = await page.locator('meta[property="og:url"]').getAttribute("content");
+  expect(og).toContain(baseURL!);
+  const sitemap = await (await page.request.get("/sitemap.xml")).text();
+  expect(sitemap).toContain(`${baseURL}/cases/`);
+});
+
+test("§12 jurors see majority/minority, not win/loss, on verdicts (audit #5)", async ({ browser }) => {
+  const juror = await prisma.user.findUniqueOrThrow({ where: { username: "juror_whiskers" }, select: { id: true } });
+  const vote = await prisma.vote.findFirstOrThrow({
+    where: { userId: juror.id, case: { status: "CLOSED", verdict: { in: ["GUILTY", "NOT_GUILTY"] } } },
+    select: { choice: true, case: { select: { number: true, slug: true, verdict: true } } },
+  });
+  const page = await demoPage(browser, "juror_whiskers");
+  await page.goto(`/cases/${vote.case.number}-${vote.case.slug}`);
+  const expected = vote.choice === vote.case.verdict ? "Your vote sided with the majority." : "You were outvoted. Dissent noted.";
+  await expect(page.getByText(expected)).toBeVisible();
+  await expect(page.getByText(/You won this case|You lost this one/)).toHaveCount(0);
 });

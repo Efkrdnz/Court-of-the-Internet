@@ -43,7 +43,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
       ) : null}
 
       {/* Bench header */}
-      <header className="velvet grid gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr_auto] md:items-center">
+      <header className="velvet grid grid-cols-1 gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr_auto] md:items-center">
         <Avatar config={parseAvatar(user.avatar)} className="h-20 w-20 sm:h-24 sm:w-24" />
         <div className="min-w-0">
           <p className="eyebrow">Your courtroom</p>
@@ -117,7 +117,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
             <h2 id="docket-heading" className="mb-4 font-display text-2xl font-bold text-parchment">
               Today&apos;s docket
             </h2>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <DocketDoor href="/defend" count={d.stages.awaitingDefense} label="Awaiting defense" cta="Defend someone" tone="teal">
                 <PigeonAttorney className="chr-hover chr-sticker h-28 w-auto" />
               </DocketDoor>
@@ -174,7 +174,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
             {d.closed.length ? (
               <>
                 <h3 className="mb-3 mt-8 font-display text-lg font-bold text-parchment/90">Recently decided</h3>
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   {d.closed.slice(0, 4).map((c) => (
                     <CaseFileCard key={c.id} c={c} />
                   ))}
@@ -194,7 +194,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                 <p className="mt-3 text-parchment/70">Every case has counsel. Remarkable.</p>
               </div>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {d.recommended.defense.map((c) => (
                   <CaseFileCard key={c.id} c={c} footer={<Link className="btn btn-teal btn-sm w-full" href={casePath(c)}>Needs a defense attorney</Link>} />
                 ))}

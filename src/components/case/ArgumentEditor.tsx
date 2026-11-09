@@ -90,7 +90,7 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
       {releaseError ? <FormAlert>{releaseError}</FormAlert> : null}
 
       <form
-        action={formProps.action}
+        {...formProps}
         onSubmit={(e) => {
           try {
             localStorage.removeItem(storageKey);

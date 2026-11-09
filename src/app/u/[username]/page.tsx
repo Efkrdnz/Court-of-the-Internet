@@ -48,7 +48,7 @@ export default async function ProfilePage({ params }: Props) {
         style={{ background: v.bg, color: v.ink, borderColor: v.accent, backgroundImage: PATTERNS[v.pattern], backgroundSize: "28px 28px" }}
       >
         <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(ellipse at 20% 0%, ${v.accent}33, transparent 60%)` }} />
-        <div className="relative grid gap-6 md:grid-cols-[auto_1fr_auto] md:items-center">
+        <div className="relative grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr_auto] md:items-center">
           <div className="relative mx-auto">
             <Laurel side="left" className="absolute -left-8 top-2 h-36 w-12" />
             <Avatar config={user.avatar} className="h-36 w-36" title={user.displayName} />
@@ -103,7 +103,7 @@ export default async function ProfilePage({ params }: Props) {
         <h2 id="records-heading" className="sr-only">
           Legal record
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <RecordCard
             title="Defense attorney"
             tone="teal"
@@ -184,7 +184,7 @@ export default async function ProfilePage({ params }: Props) {
         {profile.history.length === 0 ? (
           <p className="velvet p-6 text-center text-parchment/70">A spotless record. Suspicious.</p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {profile.history.map((c) => (
               <CaseFileCard
                 key={c.id}

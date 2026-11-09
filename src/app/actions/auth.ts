@@ -42,7 +42,10 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
     const ip = await clientIp();
     const input = loginSchema.parse(formObject(formData));
     await enforceRateLimit(`login:${ip}`, 20, 900, "Too many attempts. The court is in recess for 15 minutes.");
-    await enforceRateLimit(`login-user:${input.username}`, 8, 900, "Too many attempts for that account. Try again in 15 minutes.");
+    // Strict per (account, IP) so one attacker can't lock the real owner out; a looser
+    // per-account ceiling still slows distributed guessing (scrypt makes each guess costly).
+    await enforceRateLimit(`login-user-ip:${input.username}:${ip}`, 8, 900, "Too many attempts for that account. Try again in 15 minutes.");
+    await enforceRateLimit(`login-user:${input.username}`, 100, 900, "Too many attempts for that account. Try again in 15 minutes.");
     next = safeNext(formData.get("next"));
     const user = await authenticate(input.username, input.password);
     const ua = (await headers()).get("user-agent");

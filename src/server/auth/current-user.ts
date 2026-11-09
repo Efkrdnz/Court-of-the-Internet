@@ -58,11 +58,20 @@ export async function clearSessionCookie() {
   (await cookies()).delete(SESSION_COOKIE);
 }
 
+/**
+ * Client IP for rate limiting. The left-most X-Forwarded-For entries are whatever the client
+ * claims, so only entries appended by our own proxies are trusted: with TRUST_PROXY_HOPS=N
+ * (default 1, a single reverse proxy such as nginx / Vercel / Fly) we take the N-th entry
+ * from the right. When the app is exposed directly (no proxy) this cannot be made spoof-proof
+ * without the socket address, which Next does not expose to server actions (see README).
+ */
 export async function clientIp(): Promise<string> {
   const h = await headers();
-  return (
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    h.get("x-real-ip") ||
-    "local"
-  ).slice(0, 64);
+  const hops = Math.max(1, Number(process.env.TRUST_PROXY_HOPS ?? 1) || 1);
+  const chain = (h.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const ip = chain.length ? chain[Math.max(0, chain.length - hops)] : h.get("x-real-ip") || "local";
+  return ip.slice(0, 64);
 }

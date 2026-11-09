@@ -78,7 +78,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <header className="mb-8 grid items-center gap-6 md:grid-cols-[1fr_auto]">
+      <header className="mb-8 grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
         <div>
           <p className="eyebrow">Officers of the court only</p>
           <h1 className="font-display text-4xl font-black text-parchment sm:text-5xl">Moderation console</h1>
@@ -89,7 +89,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         <JudgeOwl mood="stern" className="chr-sticker hidden w-36 md:block" />
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <form action="/moderation" className="velvet on-dark flex gap-2 p-4">
           <label className="sr-only" htmlFor="mod-case">
             Case number

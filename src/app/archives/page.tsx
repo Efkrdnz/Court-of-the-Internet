@@ -54,7 +54,7 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <header className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
+      <header className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
         <div className="animate-in">
           <p className="eyebrow">The permanent record</p>
           <h1 className="mt-2 font-display text-4xl font-black text-parchment sm:text-6xl">
@@ -66,11 +66,11 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
       </header>
 
       {/* Verdict statistics */}
-      <section aria-label="Verdict statistics" className="velvet mt-8 grid gap-6 p-6 md:grid-cols-[auto_1fr] md:items-center">
+      <section aria-label="Verdict statistics" className="velvet mt-8 grid grid-cols-1 gap-6 p-6 md:grid-cols-[auto_1fr] md:items-center">
         <Scales tilt={vc.GUILTY > vc.NOT_GUILTY ? "left" : vc.GUILTY < vc.NOT_GUILTY ? "right" : "level"} className="mx-auto h-24 w-32 text-gold" />
         <div>
           <p className="font-display text-2xl font-bold text-parchment">
-            {decided} cases decided · {decided ? Math.round((vc.GUILTY / decided) * 100) : 0}% conviction rate
+            {decided} cases closed · {vc.GUILTY + vc.NOT_GUILTY ? Math.round((vc.GUILTY / (vc.GUILTY + vc.NOT_GUILTY)) * 100) : 0}% conviction rate
           </p>
           <div className="mt-3 flex h-4 overflow-hidden rounded-full ring-1 ring-gold/30" aria-hidden>
             <div className="bg-crimson" style={{ width: `${decided ? (vc.GUILTY / decided) * 100 : 0}%` }} />
@@ -95,7 +95,7 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
       ) : null}
 
       {/* Search & filters */}
-      <form action="/archives" method="get" role="search" className="on-dark mt-10 grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+      <form action="/archives" method="get" role="search" className="on-dark mt-10 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
         <label className="relative">
           <span className="sr-only">Search the archives</span>
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gold-light/70" />
@@ -149,7 +149,7 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
           </Link>
         </div>
       ) : (
-        <div className="mt-2 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-2 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {archive.cards.map((c) => (
             <CaseFileCard key={c.id} c={c} />
           ))}

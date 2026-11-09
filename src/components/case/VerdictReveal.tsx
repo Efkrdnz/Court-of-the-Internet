@@ -34,8 +34,8 @@ export function VerdictReveal({
   verdict: Verdict;
   guilty: number;
   notGuilty: number;
-  /** The viewer's personal result, if they took part. */
-  outcome: "won" | "lost" | null;
+  /** The viewer's personal result: won/lost for participants, majority/minority for jurors. */
+  outcome: "won" | "lost" | "majority" | "minority" | null;
 }) {
   const reduce = useReduceMotion();
   const [stage, setStage] = useState<"idle" | "gavel" | "stamp" | "done">("done");
@@ -71,7 +71,7 @@ export function VerdictReveal({
   return (
     <section aria-labelledby="verdict-heading" className={clsx("velvet relative overflow-hidden bg-gradient-to-b to-transparent p-6 sm:p-8", tone)}>
       {celebrate ? <Confetti pieces={70} /> : null}
-      <div className="relative grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <div className="relative grid grid-cols-1 items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="relative mx-auto w-full max-w-xs">
           <JudgeOwl mood={verdict === "MISTRIAL" ? "shocked" : verdict === "DISMISSED" ? "sleepy" : "stern"} className="chr-hover chr-sticker w-full" />
           <motion.div
@@ -114,8 +114,14 @@ export function VerdictReveal({
           <motion.div initial={false} animate={{ opacity: showStamp ? 1 : 0.15 }} className="mt-4 space-y-4">
             <p className="text-lg text-parchment">{h.sub}</p>
             {outcome ? (
-              <p className={clsx("inline-block rounded-full px-4 py-1 text-sm font-black uppercase tracking-widest", outcome === "won" ? "bg-gold text-ink" : "bg-night/60 text-parchment")}>
-                {outcome === "won" ? "You won this case!" : "You lost this one. Appeal denied."}
+              <p className={clsx("inline-block rounded-full px-4 py-1 text-sm font-black uppercase tracking-widest", outcome === "won" || outcome === "majority" ? "bg-gold text-ink" : "bg-night/60 text-parchment")}>
+                {outcome === "won"
+                  ? "You won this case!"
+                  : outcome === "lost"
+                    ? "You lost this one. Appeal denied."
+                    : outcome === "majority"
+                      ? "Your vote sided with the majority."
+                      : "You were outvoted. Dissent noted."}
               </p>
             ) : null}
             {verdict !== "DISMISSED" || guilty + notGuilty > 0 ? <TallyBars key={runId} guilty={guilty} notGuilty={notGuilty} animate={!reduce && runId > 0} delay={runId > 0 ? 1.15 : 0} /> : null}

@@ -43,13 +43,13 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
             Website <input name="website" tabIndex={-1} autoComplete="off" />
           </label>
         </div>
-        {state && !state.ok ? <FormAlert>{state.error}</FormAlert> : null}
+        {state && !state.ok ? <FormAlert className="scroll-mt-24">{state.error}</FormAlert> : null}
 
         <fieldset className="velvet p-5 sm:p-6">
           <legend className="sr-only">Category</legend>
           <p className="font-display text-xl font-bold text-parchment">1. Choose the statute you broke</p>
           <p className="mb-4 text-sm text-parchment/60">Every crime belongs somewhere in the legal code.</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:grid-cols-3">
             {CATEGORIES.map((c) => {
               const on = category === c.key;
               return (

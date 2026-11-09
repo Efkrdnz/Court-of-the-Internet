@@ -6,6 +6,7 @@ import { getCaseDetail, listJuryCases } from "@/server/queries/cases";
 import { refreshCase, runMaintenance } from "@/server/services/maintenance";
 import { gameConfig } from "@/server/config";
 import { db } from "@/server/db";
+import { decidedJuryVotes } from "@/server/queries/players";
 import { formatCaseNumber, casePath } from "@/lib/text";
 import { getCategory } from "@/lib/categories";
 import { percent } from "@/lib/format";
@@ -43,11 +44,12 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
   const focusCase = focus?.kind === "ok" ? focus.case : null;
   const others = queue.cards.filter((c) => c.number !== pinned).slice(0, 6);
   const stats = user ? await db.userStats.findUnique({ where: { userId: user.id }, select: { juryVotes: true, juryMajorityVotes: true } }) : null;
+  const decidedVotes = user ? ((await decidedJuryVotes([user.id])).get(user.id) ?? 0) : 0;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <header className="velvet relative overflow-hidden bg-gradient-to-br from-gold/15 p-6 sm:p-10">
-        <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
+        <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
           <div className="animate-in">
             <p className="eyebrow">Game mode · Juror</p>
             <h1 className="mt-2 font-display text-4xl font-black leading-tight text-parchment sm:text-6xl">
@@ -60,7 +62,7 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
             {user && stats ? (
               <p className="mt-4 text-sm text-parchment/70">
                 You&apos;ve served on <strong className="text-gold-light">{stats.juryVotes}</strong> juries · sided with the majority{" "}
-                <strong className="text-gold-light">{percent(stats.juryVotes ? stats.juryMajorityVotes / stats.juryVotes : null)}</strong> of the time ·{" "}
+                <strong className="text-gold-light">{percent(decidedVotes ? stats.juryMajorityVotes / decidedVotes : null)}</strong> of decided cases ·{" "}
                 <strong className="text-gold-light">{queue.total}</strong> cases await your judgement
               </p>
             ) : null}
@@ -138,13 +140,13 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
           <h2 id="others-heading" className="rule-ornate mb-6 font-display text-2xl font-bold">
             <span className="text-parchment">Also awaiting a jury</span>
           </h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {others.map((c) => (
               <CaseFileCard
                 key={c.id}
                 c={c}
                 footer={
-                  <Link href={`/jury?case=${c.number}`} className="btn btn-sm w-full">
+                  <Link href={`/jury?case=${c.number}`} className="btn btn-sm h-auto w-full whitespace-normal py-2 text-center leading-snug">
                     Judge this case ({c.votesCast >= gameConfig.quorum ? `${c.votesCast} votes, quorum reached` : `${c.votesCast}/${gameConfig.quorum} votes`})
                   </Link>
                 }
