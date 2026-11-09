@@ -317,7 +317,11 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
         arguments: { where: { role }, select: { id: true, authorId: true } },
       },
     });
-    if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    // The writer knew the case: tell them what happened rather than "not found".
+    if (c.moderationState === "REMOVED") {
+      throw new CourtError("NOT_FOUND", "A moderator sealed this case while you were writing, so it can't take arguments. Your draft is saved on this device.");
+    }
     if (c.arguments.length > 0) {
       // A double-submit finds its own first copy: say so in the second person.
       if (c.arguments[0].authorId === userId) throw new CourtError("ALREADY_DONE", `Your ${role === "DEFENSE" ? "defense" : "prosecution"} is already on file.`);

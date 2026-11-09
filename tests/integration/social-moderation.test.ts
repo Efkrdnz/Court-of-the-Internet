@@ -15,6 +15,7 @@ import {
   removeCase,
   restoreCase,
   setBan,
+  setUserRole,
   strikeArgument,
 } from "@/server/services/moderation";
 import { hitRateLimit } from "@/server/rate-limit";
@@ -585,6 +586,13 @@ describe("moderation", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(grantEntitlement(player, player, "theme:velvet-rope")).rejects.toMatchObject({ code: "FORBIDDEN" });
     await grantEntitlement(admin, player, "theme:velvet-rope");
+    // Unknown and deleted accounts are refused cleanly, for every console action (audit 31 #3).
+    await expect(grantEntitlement(admin, "cnotarealuserid000000000", "theme:velvet-rope")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const gone = await makeUser();
+    await deleteAccount(gone, "objection!");
+    await expect(grantEntitlement(admin, gone, "theme:velvet-rope")).rejects.toMatchObject({ code: "INVALID_STATE" });
+    await expect(setBan(admin, gone, true)).rejects.toMatchObject({ code: "INVALID_STATE" });
+    await expect(setUserRole(admin, gone, "MODERATOR")).rejects.toMatchObject({ code: "INVALID_STATE" });
     await updateProfile(player, { displayName: "P", bio: "hi", avatar: DEFAULT_AVATAR, profileTheme: "velvet-rope", featuredBadge: null });
     expect((await db.user.findUniqueOrThrow({ where: { id: player } })).profileTheme).toBe("velvet-rope");
     await expect(

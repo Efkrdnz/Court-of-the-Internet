@@ -156,6 +156,10 @@ const VIOLENCE = [
   // Threats against someone named: "I'm going to kill Kevin", "I'll murder Sarah", "Gonna stab Dave".
   new RegExp(`\\b(?:[Gg]oing\\s+to|[Gg]onna|I\\s*(?:will|'ll|would|'d))\\s+(?:kill|murder|stab|shoot|strangle|shank|poison|choke|drown|end)\\s+${NAMED}`),
   /\bi\s*(?:will|'ll|am\s+going\s+to|'m\s+going\s+to|'m\s+gonna|m\s+gonna)\s+end\s+(?:you|u|him|her|them)\b/i,
+  // "I'm going to punch my neighbour", "beat the crap out of him".
+  new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll))\\s+(?:punch|smack|slap|headbutt|beat\\s+the\\s+(?:crap|hell|shit|snot|living\\s+daylights)\\s+out\\s+of)\\s+${TARGET}\\b${NOT_THEIR_THING}${NOT_A_GAME}`, "i"),
+  // Wishing death on a person: "I hope my boss dies", "I wish my landlord would die".
+  new RegExp(`\\b(?:hope|wish|pray)\\s+(?:that\\s+)?${TARGET}\\s+(?:would\\s+|will\\s+|just\\s+)?(?:dies?|drops?\\s+dead|gets?\\s+(?:hit\\s+by|killed|run\\s+over|cancer)|burns?\\s+(?:alive|to\\s+death))\\b`, "i"),
   // Wishing death on someone: "I hope you die", "go die", "you should die".
   /\b(?:i\s+)?hope\s+(?:you|u|ya|he|she|they|y'all)\s+(?:die|dies|get\s+hit\s+by|rot|burn)\b|\bgo\s+die\b|\b(?:you|u)\s+should\s+(?:die|just\s+die)\b/i,
   // "I'm going to kill my roommate", "gonna stab the neighbour": intent plus a person.
@@ -236,6 +240,13 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps5|xbox|switch|jewel\w*|watch|watches|bikes?|tools?)\b/i,
   /\bembezzl/i,
+  // Spiking someone's drink (even without naming what): "spiked my friend's drink". ("Spiked the punch" isn't aimed at anyone.)
+  /\bspiked\s+(?:(?:my|our|the|a)\s+[\w-]+(?:'s|s'|’s)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:drink|coffee|tea|beer|cocktail|soda|food|lunch|meal|water|juice|smoothie|wine)\b/i,
+  /\bburgl(?:ed|ing|es|e)\b/i,
+  /\bbroke\s+into\s+(?:my|our|the)\s+(?:neighbou?rs?|ex|boss|coworkers?|co-workers?|landlords?|teachers?)['’]?s?\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shed|office)\b/i,
+  /\b(?:hit|knocked(?:\s+over)?|ran\s+over|struck|clipped)\s+(?:a|an|the|some)\s+(?:\w+\s+)?(?:pedestrian|cyclist|biker|jogger|kid|child|person|man|woman|girl|boy)\b.{0,60}\b(?:(?:drove|sped|took|ran)\s+(?:off|away)|kept\s+(?:on\s+)?driving|didn'?t\s+stop|fled|left\s+the\s+scene)\b/i,
+  // Stealing from the till at work, the safe or a charity tin.
+  /\b(?:stole|steal|stealing|took|take|taking|nicked|pocketed|skimmed)\s+(?:\w+\s+){0,2}(?:money|cash|notes)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
   /\bhit[\s-]and[\s-]run\b/i,
   /\b(?:stole|steal|stealing|cloned|skimmed|swiped)\s+(?:\w+(?:'s|s')?\s+){0,2}(?:credit|debit|bank)\s+cards?\b|\bcredit[\s-]card\s+(?:fraud|theft)\b|\bidentity\s+theft\b/i,
   /\brap(?:e|ed|ing|ist)\b/i,

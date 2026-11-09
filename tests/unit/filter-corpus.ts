@@ -96,6 +96,15 @@ export const BENIGN = [
   "🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕 I ate all of it",
   "honestly...i...ate...the...cake...and...the...pie",
   "Pneumonoultramicroscopicsilicovolca! is what I yelled", // 35 letters, then "!"
+  // Near-misses of the audit 31 patterns
+  "I'm going to punch the clock early and leave",
+  "I hope my plants die so I can stop watering them",
+  "I wish my phone would die so I could stop doom-scrolling",
+  "I spiked the punch with extra pineapple juice",
+  "I broke into my parents house when I forgot my keys",
+  "I took money from my piggy bank for the vending machine",
+  "I hit a pothole with my car and kept driving",
+  "I used my mom's credit card number to order one pizza and told her",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -157,4 +166,17 @@ export const EVASIONS: [string, string][] = [
   ["I mugged an old lady", "serious-crime"],
   ["hit me up at petty_king_99 on insta", "handle"],
   ["call 555, 123, 4567 after six", "personal-info"],
+  // Audit 31
+  ["I'm going to punch my neighbour in the face", "violence"],
+  ["I'm going to beat the crap out of my neighbour", "violence"],
+  ["I hope my boss dies", "violence"],
+  ["I wish my landlord would die", "violence"],
+  ["I hope my landlord dies in a fire", "violence"],
+  ["I spiked my friend's drink at the party as a prank", "serious-crime"],
+  ["I burgled my neighbour's house", "serious-crime"],
+  ["I broke into my neighbours house", "serious-crime"],
+  ["I knocked a pedestrian over with my car and drove away", "serious-crime"],
+  ["I hit a cyclist with my car and just kept driving", "serious-crime"],
+  ["I stole money from the till at work every shift for a year", "serious-crime"],
+  ["I took cash out of the cash register at work", "serious-crime"],
 ];

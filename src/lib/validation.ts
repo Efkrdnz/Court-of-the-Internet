@@ -81,7 +81,7 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
   })
   // The court's own titles for staff.
-  .refine((s) => !/^\s*(?:presiding\s+judge|court\s+clerk|the\s+court|the\s+clerks?|moderator|mod|administrator|admin)\b/i.test(s.normalize("NFKC")), {
+  .refine((s) => !/^\s*(?:presiding\s+judge|court\s+clerk|the\s+court|the\s+clerks?|the\s+judge|the\s+bailiff|(?:your|his|her|their)\s+hono(?:u)?r|officer\s+of\s+the\s+court|moderator|mod|administrator|admin)\b/i.test(s.normalize("NFKC")), {
     message: "That's an official title of the court. Pick your own name.",
   });
 

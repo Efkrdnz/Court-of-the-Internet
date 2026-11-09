@@ -28,6 +28,14 @@ function timeLeftWhenPaused(c: { deliberationEndsAt: Date | null; deliberationPa
   return c.deliberationEndsAt.getTime() - (c.deliberationPausedAt ?? clock.now()).getTime();
 }
 
+/** The player a moderation action targets: must exist and not be a deleted account. */
+async function liveTarget(tx: Tx, userId: string) {
+  const target = await tx.user.findUnique({ where: { id: userId }, select: { role: true, bannedAt: true, deletedAt: true } });
+  if (!target) throw new CourtError("NOT_FOUND", "User not found.");
+  if (target.deletedAt) throw new CourtError("INVALID_STATE", "That account has been deleted.");
+  return target;
+}
+
 async function assertStaff(tx: Tx, userId: string) {
   const u = await tx.user.findUnique({ where: { id: userId }, select: { role: true, bannedAt: true } });
   if (!u || u.bannedAt || (u.role !== "ADMIN" && u.role !== "MODERATOR")) {
@@ -252,8 +260,7 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     const mod = await assertStaff(tx, moderatorId);
     // Lock the player's row first, so simultaneous bans (or unbans) see each other: one acts, the rest are no-ops.
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${targetUserId} FOR UPDATE`;
-    const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { role: true, bannedAt: true } });
-    if (!target) throw new CourtError("NOT_FOUND", "User not found.");
+    const target = await liveTarget(tx, targetUserId);
     if (banned === !!target.bannedAt) {
       throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
     }
@@ -365,6 +372,7 @@ export async function grantEntitlement(moderatorId: string, targetUserId: string
     const mod = await assertStaff(tx, moderatorId);
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can grant cosmetics.");
     if (!GRANTABLE.has(itemKey)) throw new CourtError("VALIDATION", "Unknown cosmetic item.");
+    await liveTarget(tx, targetUserId);
     await tx.entitlement.upsert({
       where: { userId_itemKey: { userId: targetUserId, itemKey } },
       create: { userId: targetUserId, itemKey, source: "GRANTED" },
@@ -384,8 +392,7 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
   return db.$transaction(async (tx) => {
     const mod = await assertStaff(tx, adminId);
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can appoint moderators.");
-    const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { role: true } });
-    if (!target) throw new CourtError("NOT_FOUND", "User not found.");
+    const target = await liveTarget(tx, targetUserId);
     if (target.role === "ADMIN") throw new CourtError("FORBIDDEN", "Admins can't be demoted here.");
     await tx.user.update({ where: { id: targetUserId }, data: { role } });
     await log(tx, adminId, `SET_ROLE_${role}`, { targetUserId });

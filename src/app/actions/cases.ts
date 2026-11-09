@@ -24,9 +24,19 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
     screenConfession(input); // content-filter rejections don't count against the limit either
     await precheckConfession(user.id, input); // nor do duplicates or a full daily cap
     const ip = await clientIp();
-    await enforceRateLimit(`confess:${user.id}`, 3, 600, "Slow down! The stenographer can only type so fast.");
-    if (ip) await enforceRateLimit(`confess-ip:${ip}`, 15, 3600, "The court has heard a lot of confessions from this network in the last hour. Try again later.");
-    const created = await confess(user.id, input);
+    // Counted up front (so a burst can't slip past), and given back if the confession is then
+    // refused inside the transaction (a concurrent duplicate, the daily cap).
+    const refund = await reserveAttempt([
+      { key: `confess:${user.id}`, limit: 3, windowSeconds: 600, message: "Slow down! The stenographer can only type so fast." },
+      ...(ip ? [{ key: `confess-ip:${ip}`, limit: 15, windowSeconds: 3600, message: "The court has heard a lot of confessions from this network in the last hour. Try again later." }] : []),
+    ]);
+    let created;
+    try {
+      created = await confess(user.id, input);
+    } catch (e) {
+      await refund();
+      throw e;
+    }
     path = `${casePath(created)}?filed=1`;
   } catch (e) {
     return toFailure(e);
@@ -42,9 +52,17 @@ export async function claimAction(caseId: string, role: ArgumentRole): Promise<A
   try {
     const user = await requireActiveUser();
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
-    await enforceRateLimit(`claim:${user.id}`, 20, 600);
     if (!isCaseId(caseId)) throw new CourtError("NOT_FOUND", "That case could not be found.");
-    await claimCase(user.id, caseId, role);
+    // Only claims that succeed count toward the 20 per 10 minutes (a refused claim, "too slow" or
+    // "already moved on", gives its attempt back); a looser ceiling still bounds hammering.
+    await enforceRateLimit(`claim-attempt:${user.id}`, 120, 600);
+    const refund = await reserveAttempt([{ key: `claim:${user.id}`, limit: 20, windowSeconds: 600, message: "Order in the court! You're doing that too fast. Try again in a moment." }]);
+    try {
+      await claimCase(user.id, caseId, role);
+    } catch (e) {
+      await refund();
+      throw e;
+    }
     target = role === "DEFENSE" ? `/defend/${caseId}` : `/prosecute/${caseId}`;
   } catch (e) {
     return toFailure(e);

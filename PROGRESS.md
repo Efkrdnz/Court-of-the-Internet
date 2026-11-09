@@ -748,6 +748,20 @@ Environment note from the audit: the checkout's untracked local `.env` enables d
 | D5 | In the grace period the editor said "expires in now: file quickly" and other pages "Time's up" | claim countdowns switch to "Your claim time is up. You're in a short grace period: file now…" | — |
 | D6 | README said 72 e2e tests; symbol-only display names | count removed (it drifts); names need a letter or digit; framework SyntaxError for non-JSON action bodies documented | unit |
 
+## Thirty-first independent audit (fresh agent, build of commit fbd0bd3)
+
+**Result: 16 PASS, 1 CONCERN (17), 0 FAIL.** All 48 new everyday confessions it wrote were accepted; 21 of its plainly worded evasions were blocked.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Plainly worded misses in covered categories: "going to punch my neighbour", "beat the crap out of", "I hope my boss dies", "I wish my landlord would die", "spiked my friend's drink", "burgled", "broke into my neighbours house" (no apostrophe), hit-and-run phrased "knocked … over … drove away" / "kept driving", taking money from the till at work | patterns for each; near-misses kept ("punch the clock", "hope my plants die", "spiked the punch", "broke into my parents house", "hit a pothole … kept driving", money from a piggy bank); README states that borrowing a parent's card is left to moderators | corpus: 96 everyday sentences, 68 evasions; 341 seed texts pass |
+| — | Display names "The Judge", "Your Honour", "Officer of the Court" | refused as court titles | unit |
+| 2 | Refused claims (and confessions refused inside the transaction) used up the rate-limit budget | claims and confessions reserve an attempt and give it back when refused; a looser 120-per-10-minutes ceiling bounds claim hammering | — |
+| 3 | Granting to an unknown user threw a foreign-key error; banning, granting to or promoting a deleted account "succeeded" | every console action on a player checks the account exists and isn't deleted | integration |
+| 4 | 20 failed logins from one IP (any accounts) pause logins for everyone on that IP | documented in README (a deliberate brute-force guard) | — |
+| 5 | A case sealed mid-draft answered "That case could not be found." on filing | the writer is told a moderator sealed it and that the draft is saved | — |
+| 6 | A pin is replaced if the confessor opts out of featuring, and not restored on opting back in | documented (opt-out wins) | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

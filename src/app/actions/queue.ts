@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireActiveUser } from "@/server/auth/current-user";
-import { enforceRateLimit } from "@/server/rate-limit";
+import { enforceRateLimit, reserveAttempt } from "@/server/rate-limit";
 import { currentClaim, pickRandomQueueCase } from "@/server/queries/cases";
 import { claimCase } from "@/server/services/cases";
 import { CourtError, isCourtError } from "@/server/errors";
@@ -11,10 +11,13 @@ import { toFailure, type ActionResult } from "./_util";
 /** "Receive a case": the court picks a random eligible case and claims it for you. */
 export async function claimRandomAction(role: "DEFENSE" | "PROSECUTION"): Promise<ActionResult> {
   let target: string | null = null;
+  // Only successful claims count toward the claim budget (see claimAction).
+  let refundClaim: (() => Promise<void>) | undefined;
   try {
     const user = await requireActiveUser();
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
-    await enforceRateLimit(`claim:${user.id}`, 20, 600);
+    await enforceRateLimit(`claim-attempt:${user.id}`, 120, 600);
+    refundClaim = await reserveAttempt([{ key: `claim:${user.id}`, limit: 20, windowSeconds: 600, message: "Order in the court! You're doing that too fast. Try again in a moment." }]);
     // A couple of attempts in case someone grabs our pick first.
     for (let attempt = 0; attempt < 3 && !target; attempt++) {
       const pick = await pickRandomQueueCase(role, user);
@@ -40,6 +43,7 @@ export async function claimRandomAction(role: "DEFENSE" | "PROSECUTION"): Promis
     }
     if (!target) throw new CourtError("CONFLICT", "Everyone is grabbing cases right now. Try again in a moment.");
   } catch (e) {
+    await refundClaim?.();
     return toFailure(e);
   }
   redirect(target);
