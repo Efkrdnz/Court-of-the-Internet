@@ -288,8 +288,8 @@ export function DeleteAccountForm() {
   return (
     <form {...formProps} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <p className="text-sm sm:col-span-2">
-        Your username and profile are scrubbed and you are signed out everywhere. Cases you took part in stay in the public record, credited to &ldquo;Former
-        Citizen&rdquo;. This cannot be undone.
+        Your profile, bio and display name are scrubbed and you are signed out everywhere. Your username is retired (no one else can take it). Cases and
+        votes you took part in stay in the record, credited to &ldquo;Former Citizen&rdquo;. This cannot be undone.
       </p>
       <div>
         <label htmlFor="del-password" className="field-label">

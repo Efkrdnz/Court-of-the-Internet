@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { loginSchema, signupSchema } from "@/lib/validation";
-import { authenticate, registerUser } from "@/server/services/accounts";
+import { assertNotStaffName, authenticate, registerUser } from "@/server/services/accounts";
 import { createSession, destroySession } from "@/server/auth/sessions";
 import { clearSessionCookie, clientIp, getSessionToken, setSessionCookie } from "@/server/auth/current-user";
 import { enforceRateLimit } from "@/server/rate-limit";
@@ -32,6 +32,7 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
       const screened = screenText(value, { allowSpamCheck: false });
       if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, field);
     }
+    await assertNotStaffName(input.displayName);
     if (await db.user.findUnique({ where: { username: input.username }, select: { id: true } })) {
       throw new CourtError("CONFLICT", "That username is already taken.", "username");
     }

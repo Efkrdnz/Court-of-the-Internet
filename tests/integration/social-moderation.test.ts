@@ -270,6 +270,21 @@ describe("moderation", () => {
     expect(await db.vote.count({ where: { userId: rogue } })).toBe(1); // the closed trial's vote stands
     expect((await db.case.findUniqueOrThrow({ where: { id: closed.id } })).guiltyVotes).toBe(4);
     expect((await auditStats(rogue)).ok).toBe(true);
+    // Unban and vote again: no second jury-vote XP for the same case (audit 9 #3).
+    await setBan(admin, rogue, false);
+    await castVote(rogue, open.id, "GUILTY");
+    expect(await db.xpEvent.count({ where: { userId: rogue, caseId: open.id, reason: "jury-vote" } })).toBe(1);
+    expect((await auditStats(rogue)).ok).toBe(true);
+  });
+
+  it("players can't pose as an officer of the court (audit 9 #8)", async () => {
+    await makeUser("real_judge", "ADMIN");
+    await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });
+    const player = await makeUser();
+    await expect(
+      updateProfile(player, { displayName: "judge realname", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await updateProfile(player, { displayName: "Judge Mental", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {

@@ -78,6 +78,11 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
       : null,
     db.report.count({ where: { status: "OPEN" } }),
   ]);
+  // Name the player behind ban/unban entries (stored as an id).
+  const targetIds = [...new Set(log.map((l) => l.targetUserId).filter((id): id is string => !!id))];
+  const targetNames = new Map(
+    (await db.user.findMany({ where: { id: { in: targetIds } }, select: { id: true, username: true } })).map((u) => [u.id, u.username]),
+  );
 
   return (
     <ModFlashProvider>
@@ -259,6 +264,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               <li key={l.id} className="flex flex-wrap items-center gap-x-3 px-4 py-1 text-parchment/80">
                 <span className="font-bold text-gold-light">{l.action}</span>
                 <span>by @{l.moderator.username}</span>
+                {l.targetUserId ? <span>→ @{targetNames.get(l.targetUserId) ?? "unknown"}</span> : null}
                 {l.case ? <Link href={casePath(l.case)} className="inline-flex min-h-9 items-center underline">case {formatCaseNumber(l.case.number)}</Link> : null}
                 {l.note ? <span className="italic">“{l.note}”</span> : null}
                 <span className="ml-auto text-parchment/50">{relativeTime(l.createdAt)}</span>

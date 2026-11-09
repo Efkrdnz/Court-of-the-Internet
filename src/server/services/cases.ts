@@ -420,7 +420,9 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
       throw e;
     }
     await tx.userStats.update({ where: { userId }, data: { juryVotes: { increment: 1 } } });
-    await awardXp(tx, userId, XP.juryVote, "jury-vote", caseId);
+    // Once per case: a vote removed by a ban and cast again after an unban earns nothing new.
+    const paid = await tx.xpEvent.findFirst({ where: { userId, caseId, reason: "jury-vote" }, select: { id: true } });
+    if (!paid) await awardXp(tx, userId, XP.juryVote, "jury-vote", caseId);
     await checkStatAchievements(tx, userId, caseId);
 
     const tallies = await tx.case.findUniqueOrThrow({

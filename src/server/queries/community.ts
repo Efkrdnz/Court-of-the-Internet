@@ -107,9 +107,9 @@ export async function getHighlights() {
   if (topAttorney[0]?.attorneyId) {
     const u = await db.user.findUnique({
       where: { id: topAttorney[0].attorneyId },
-      select: { username: true, displayName: true, avatar: true, deletedAt: true },
+      select: { username: true, displayName: true, avatar: true, deletedAt: true, bannedAt: true },
     });
-    if (u && !u.deletedAt) {
+    if (u && !u.deletedAt && !u.bannedAt) {
       attorneyOfTheMonth = { username: u.username, displayName: u.displayName, avatar: parseAvatar(u.avatar), wins: topAttorney[0]._count._all };
     }
   }

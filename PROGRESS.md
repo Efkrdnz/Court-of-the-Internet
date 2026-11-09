@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **66/66 Playwright** and **81/81 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **66/66 Playwright** and **83/83 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **66/66 Playwright** and **81/81 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 81 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 83 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -271,6 +271,31 @@ It confirmed the seventh round:
 Not changed:
 - **Banned players can still log in to browse.** This is intentional; every action is refused and a banner explains why.
 - **Pages are heavy because SVGs are inline.** The leaderboards page is about 120 KB gzipped. Acceptable for now, and noted for a future optimisation (sprite or `<use>` reuse).
+
+## Ninth independent audit (fresh agent, build of commit cf171bf)
+
+**Result: 15 PASS, 2 CONCERN (6 statistics, 17 docs), 0 FAIL.** It confirmed the eighth round:
+- competition ranking on tied leaderboards
+- re-reports by dismissed reporters don't re-hide a case
+- the review pause correctly restores the remaining time
+- anonymity holds in HTML, the page payload, OG images and queues
+- 8 players' statistics match its SQL
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **A vote committed mid-close was accepted but missing from the stored tally** (case 31 stored 5–7 while its rows were 7–9; the verdict could flip) | `closeDeliberation` takes the case row lock (`SELECT … FOR UPDATE`) before counting. Votes take the same lock, so in-flight votes finish first and are counted, and later ones find the case closed | integration `counts a vote that is still committing when the close starts`: a deterministic in-flight vote held by `pg_sleep`. It **fails on the old code** (2–1 GUILTY) and passes now (2–2 MISTRIAL) |
+| 2 | Sockpuppet accounts can vote immediately | documented as a limitation needing an external identity-verification provider. Mitigations: per-IP signup limit behind a proxy, report age gate, bans remove open votes | — |
+| 3 | Ban, unban and re-vote earned jury XP twice for one case | jury XP is paid once per player per case | ban integration test extended |
+| 4 | /rules and README described the old report threshold | both describe the established-reporter rule | — |
+| 5 | The audit log didn't name banned users | shows "→ @username" | visual |
+| 6 | The canonical-slug redirect dropped the query string (`?filed=1`) | the query string is preserved | status check |
+| 7 | Deleting an account kept its open votes without saying so; Settings said the username was "scrubbed" | documented (votes stand; the username is retired); accurate Settings copy | — |
+| 8 | A player could take a staff member's display name | staff display names are reserved (case-insensitive) | integration `players can't pose as an officer of the court` |
+| 11 | "Attorney of the month" could feature a banned player | banned players excluded | — |
+
+Not changed:
+- Inline text links inside sentences ("community rules", "Sign in") fall under WCAG 2.5.8's inline exception, and case-card titles are covered by a full-card link overlay.
+- Sealed case pages stay 200 with `noindex`.
 
 ## Per-phase evidence
 

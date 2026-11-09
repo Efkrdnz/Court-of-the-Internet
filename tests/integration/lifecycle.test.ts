@@ -374,6 +374,32 @@ describe("confession rules", () => {
     await makeCase(accused);
   });
 
+  it("counts a vote that is still committing when the close starts (audit 9 #1)", async () => {
+    process.env.COURT_QUORUM = "3";
+    const [accused, attorney, prosecutor, late] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const jurors = await makeUsers(3, "inflight");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await voteAll(c.id, jurors, 2); // 2–1 guilty, quorum met
+
+    // A vote mid-flight: it holds the case row (counter bumped) and its Vote row isn't committed yet,
+    // exactly the state castVote is in between its conditional update and its commit.
+    const inflight = db.$transaction(async (tx) => {
+      await tx.case.update({ where: { id: c.id }, data: { notGuiltyVotes: { increment: 1 } } });
+      await tx.vote.create({ data: { caseId: c.id, userId: late, choice: "NOT_GUILTY", createdAt: new Date() } });
+      await tx.$executeRaw`SELECT pg_sleep(0.6)`;
+    });
+    await new Promise((r) => setTimeout(r, 150));
+    advance(hours(25));
+    const closing = closeDeliberation(c.id);
+    await Promise.all([inflight, closing]);
+
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    // 2–2 including the in-flight vote: a mistrial, not a 2–1 guilty verdict.
+    expect([row.guiltyVotes, row.notGuiltyVotes]).toEqual([2, 2]);
+    expect(row.verdict).toBe("MISTRIAL");
+  });
+
   it("orders the jury queue by total votes, never revealing the hidden split (audit 6 #7)", async () => {
     const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
     const jurors = await makeUsers(3, "jq");

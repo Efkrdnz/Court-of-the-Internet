@@ -32,6 +32,11 @@ export type CloseOutcome =
 export async function closeDeliberation(caseId: string): Promise<CloseOutcome> {
   return db.$transaction(
     async (tx) => {
+      // Lock the case row before counting. A vote takes the same row lock (its conditional counter
+      // update) before inserting its Vote row, so in-flight votes finish first and are counted,
+      // and later ones find the case closed. Without this, a vote committed mid-close was
+      // accepted but missing from the stored tally.
+      await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
       const now = clock.now();
       const c = await tx.case.findUnique({
         where: { id: caseId },

@@ -223,7 +223,7 @@ UPDATE "User" SET role = 'ADMIN' WHERE username = 'you';
 
 ## Safety
 
-This is a humorous, fictional courtroom. Submissions are screened for personal information (emails, phones, addresses), links, @handles, slurs (with leetspeak normalisation), threats and serious-crime content. Players can report cases or individual arguments, and three distinct reports hide a case pending review. While a deliberating case is under review or sealed, its clock stops: no verdict and no payouts. It resumes with the remaining time when a moderator dismisses the reports or restores the case. Moderators can seal cases, strike arguments, ban players (which releases their claims and ends their sessions), adjourn trials and pin featured cases. Every action is audit-logged. See [`/rules`](src/app/rules/page.tsx).
+This is a humorous, fictional courtroom. Submissions are screened for personal information (emails, phones, addresses), links, @handles, slurs (with leetspeak normalisation), threats and serious-crime content. Players can report cases or individual arguments, and every report reaches the moderation queue. Reports from three distinct established reporters (accounts at least 24h old, with no dismissed report on that case) hide a case pending review. This means a handful of throwaway accounts can't freeze a trial. While a deliberating case is under review or sealed, its clock stops: no verdict and no payouts. It resumes with the remaining time when a moderator dismisses the reports or restores the case. Moderators can seal cases, strike arguments, ban players (which releases their claims and ends their sessions), adjourn trials and pin featured cases. Every action is audit-logged. See [`/rules`](src/app/rules/page.tsx).
 
 ## Known limitations
 
@@ -234,10 +234,15 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
     - Someone spraying 100 wrong passwords from rotated IPs can still lock an account's owner out for 15 minutes (see above).
     - **Always deploy behind a proxy.** This is a deployment requirement, not something the app can fix: Next doesn't give server actions the socket address.
   - If a request has no address at all (no header and none set by the server), per-IP limits are skipped rather than lumping such clients into one shared bucket. Signups then fall under a site-wide 60/hour ceiling and logged-out views aren't counted.
+- **No identity verification, so sockpuppets are possible.** There is no email or phone verification (no external messaging service is configured), so one person can register several accounts.
+  - The per-IP signup limit (6 per hour behind a proxy) and the 24h age requirement for auto-hiding reports slow this down.
+  - New accounts *can* vote immediately, because onboarding asks new players to sit on juries. A determined group of sockpuppets could therefore swing a small trial; moderators can ban them, which removes their votes from open trials.
+  - Proper protection needs a verification provider (email, phone or OAuth). That is an external dependency.
 - **Moderation doesn't rewrite history.**
   - Sealing a *closed* case hides it from every public page and the archive totals, but the players' records (wins, convictions, XP) from that trial stand.
   - Striking an argument hides it from non-staff without pausing or annulling the trial; jurors who already voted keep their votes. Seal the case instead if the whole trial should stop.
-  - Banning a player removes their votes from trials still in deliberation (those votes no longer count); verdicts already reached stand.
+  - Banning a player removes their votes from trials still in deliberation (those votes no longer count); verdicts already reached stand. Jury XP is paid once per case, so unbanning and re-voting earns nothing extra.
+  - Deleting your own account keeps your votes (they were cast legitimately) and retires your username so nobody can impersonate you through old links.
 - **Anonymity costs rewards.** Anonymous cases never expose the confessor's name, id or profile link: not in pages, page payloads, OG images, the sitemap or leaderboards.
   - Anonymous cases are also off the record. The confessor gets no XP, achievements, conviction or acquittal counts from them, at filing or at verdict. Otherwise a change on their public profile would reveal them.
   - They still get the private verdict notification and see the case in their courtroom.

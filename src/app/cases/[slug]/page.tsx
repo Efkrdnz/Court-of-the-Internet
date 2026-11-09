@@ -61,7 +61,12 @@ export default async function CasePage({ params, searchParams }: Props) {
   if (!number) notFound();
   const ref = await getCaseIdByNumber(number);
   if (!ref) notFound();
-  if (slug !== `${ref.number}-${ref.slug}`) permanentRedirect(casePath(ref));
+  if (slug !== `${ref.number}-${ref.slug}`) {
+    // Keep the query string (e.g. ?filed=1) when canonicalising the URL.
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) for (const one of Array.isArray(v) ? v : v === undefined ? [] : [v]) qs.append(k, one);
+    permanentRedirect(`${casePath(ref)}${qs.size ? `?${qs}` : ""}`);
+  }
 
   await refreshCase(ref.id);
   const user = await getCurrentUser();

@@ -60,7 +60,7 @@ export default function RulesPage() {
         <h2 className="mt-10 font-display text-2xl font-black">How we enforce it</h2>
         <ul className="mt-3 list-disc space-y-2 pl-6">
           <li>Submissions are automatically screened for personal info, links, slurs and threats.</li>
-          <li>Anyone can report a case or argument. Three separate reports put a case under review and hide it from public listings.</li>
+          <li>Anyone can report a case or argument, and every report reaches the clerks. Reports from three separate established players (accounts at least a day old) put a case under review automatically and hide it from public listings until a clerk decides.</li>
           <li>Moderators can seal cases, strike arguments from the record, and ban players. Every action is logged.</li>
           <li>Anonymous mode hides your name from everyone else, but moderators can still trace abuse to an account.</li>
           <li>Payments can never buy votes, verdicts, or rankings. Cosmetics only.</li>
