@@ -8,10 +8,11 @@ import { changePassword, deleteAccount, updatePreferences, updateProfile } from 
 import { enforceRateLimit } from "@/server/rate-limit";
 import { screenText } from "@/lib/content-filter";
 import { CourtError } from "@/server/errors";
-import { toFailure, type ActionResult } from "./_util";
+import { assertForm, toFailure, type ActionResult } from "./_util";
 
 export async function updateProfileAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
+    assertForm(formData);
     const user = await requireActiveUser();
     const input = profileSchema.parse({
       displayName: formData.get("displayName"),
@@ -44,6 +45,7 @@ export async function updateProfileAction(_prev: ActionResult | null, formData: 
 
 export async function updatePreferencesAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
+    assertForm(formData);
     const user = await requireActiveUser();
     const input = preferencesSchema.parse({
       reducedMotion: formData.get("reducedMotion"),
@@ -60,6 +62,7 @@ export async function updatePreferencesAction(_prev: ActionResult | null, formDa
 
 export async function changePasswordAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
+    assertForm(formData);
     const user = await getCurrentUser();
     if (!user) throw new CourtError("UNAUTHENTICATED", "Please sign in again.");
     const input = changePasswordSchema.parse(Object.fromEntries(formData.entries()));
@@ -74,6 +77,7 @@ export async function changePasswordAction(_prev: ActionResult | null, formData:
 
 export async function deleteAccountAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
+    assertForm(formData);
     const user = await getCurrentUser();
     if (!user) throw new CourtError("UNAUTHENTICATED", "Please sign in again.");
     await enforceRateLimit(`delete:${user.id}`, 5, 900);

@@ -34,16 +34,33 @@ export async function enforceRateLimit(
   if (!result.allowed) throw new CourtError("RATE_LIMITED", message);
 }
 
+export type LimitSpec = { key: string; limit: number; windowSeconds: number; message: string };
+
+async function refundRateLimit(key: string) {
+  await db.$executeRaw`UPDATE "RateLimit" SET "count" = GREATEST(0, "count" - 1) WHERE "key" = ${key}`;
+}
+
 /**
- * Read-only check: throws if `key` has already used up `limit` in the current window, without
- * counting this request. Pair with hitRateLimit() to count only the attempts that should count
- * (e.g. failed logins).
+ * Takes one attempt from every limit up front, atomically, so a burst of concurrent requests
+ * can't all slip past a check before any of them is counted. If any limit is used up, the
+ * attempt is given back everywhere and RATE_LIMITED is thrown. Otherwise returns a `refund`
+ * for attempts that shouldn't count after all (e.g. a successful login: only failures count).
  */
-export async function assertUnderLimit(key: string, limit: number, windowSeconds: number, message: string) {
-  if (process.env.DISABLE_RATE_LIMITS === "1") return;
-  const floor = new Date(clock.now().getTime() - windowSeconds * 1000);
-  const row = await db.rateLimit.findUnique({ where: { key }, select: { count: true, windowStart: true } });
-  if (row && row.windowStart > floor && row.count >= limit) throw new CourtError("RATE_LIMITED", message);
+export async function reserveAttempt(limits: LimitSpec[]): Promise<() => Promise<void>> {
+  if (process.env.DISABLE_RATE_LIMITS === "1") return async () => {};
+  const taken: string[] = [];
+  const refund = async () => {
+    for (const key of taken) await refundRateLimit(key);
+  };
+  for (const { key, limit, windowSeconds, message } of limits) {
+    const result = await hitRateLimit(key, limit, windowSeconds);
+    taken.push(key);
+    if (!result.allowed) {
+      await refund();
+      throw new CourtError("RATE_LIMITED", message);
+    }
+  }
+  return refund;
 }
 
 /** Periodic cleanup of stale windows. */

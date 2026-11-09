@@ -430,11 +430,12 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
     });
     if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
     if (c.status !== "DELIBERATION") throw new CourtError("INVALID_STATE", "This case isn't accepting votes.");
-    if (!c.deliberationEndsAt || c.deliberationEndsAt <= now) {
-      throw new CourtError("INVALID_STATE", "Deliberation has closed. The verdict is being read.");
-    }
+    // Review first: a paused trial's clock is stopped, so its wall-clock deadline may have passed.
     if (c.moderationState === "UNDER_REVIEW") {
       throw new CourtError("INVALID_STATE", "Voting is paused while the clerks review this case.");
+    }
+    if (!c.deliberationEndsAt || c.deliberationEndsAt <= now) {
+      throw new CourtError("INVALID_STATE", "Deliberation has closed. The verdict is being read.");
     }
     if ([c.accusedId, c.attorneyId, c.prosecutorId].includes(userId)) {
       throw new CourtError("INELIGIBLE", "You're part of this case, so you can't sit on its jury. Nice try.");

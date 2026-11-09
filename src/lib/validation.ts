@@ -3,6 +3,7 @@ import { CATEGORY_KEYS } from "./categories";
 import { LIMITS } from "./limits";
 import { charCount, normalizeText } from "./text";
 import { avatarSchema } from "./avatar";
+import { CRITTERS } from "./alias";
 
 const text = (opts: { min?: number; max: number; label: string; multiline?: boolean }) =>
   z
@@ -72,6 +73,10 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
   // (Checked on the NFKC form, so a full-width ＃ or trailing punctuation doesn't slip past.)
   // Any hash-like symbol (#, ＃, ♯, ⋕, ﹟…) or other symbol before a hex tag counts.
   .refine((s) => !/[#\uFF03\u266F\u22D5\uFE5F]\s*[0-9a-f]{3,6}\b|[^\p{L}\p{N}\s]\s*[0-9a-f]{4}\s*[^\p{L}\p{N}]*$/iu.test(s.normalize("NFKC")), {
+    message: "Names with a #tag look like an anonymous alias. Pick something else.",
+  })
+  // …or without the hash at all: "Sneaky Pigeon D577" (an alias critter followed by a 4-hex tag).
+  .refine((s) => !new RegExp(`\\b(?:${CRITTERS.join("|")})\\W*[0-9a-f]{4}\\W*$`, "iu").test(s.normalize("NFKC")), {
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
   })
   // The court's own titles for staff.

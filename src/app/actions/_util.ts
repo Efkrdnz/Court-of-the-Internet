@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { isCourtError } from "@/server/errors";
+import { CourtError, isCourtError } from "@/server/errors";
 import { fieldErrors, type FieldErrors } from "@/lib/validation";
 
 export type ActionResult<T = undefined> =
@@ -28,6 +28,11 @@ export function toFailure(e: unknown): { ok: false; error: string; fieldErrors?:
   }
   console.error("[action] unexpected error", e);
   return { ok: false, error: "The court stenographer fainted. Please try again." };
+}
+
+/** Crafted calls without a form body get a clean validation error instead of a TypeError. */
+export function assertForm(formData: unknown): asserts formData is FormData {
+  if (!(formData instanceof FormData)) throw new CourtError("VALIDATION", "That form didn't arrive. Reload the page and try again.");
 }
 
 export function formObject(formData: FormData): Record<string, unknown> {

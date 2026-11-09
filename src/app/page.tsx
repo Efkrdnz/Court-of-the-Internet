@@ -89,7 +89,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
             </div>
             <p className="mt-5 text-sm text-parchment/55">
               Free to play · no registration needed to browse the{" "}
-              <Link href="/archives" className="font-semibold text-gold-light underline underline-offset-2">
+              <Link href="/archives" className="inline-flex min-h-9 items-center font-semibold text-gold-light underline underline-offset-2">
                 public archives
               </Link>
             </p>

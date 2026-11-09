@@ -17,7 +17,7 @@ export function NavLinks() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={clsx(
-                "relative whitespace-nowrap rounded-md px-2 py-2 text-sm font-bold tracking-wide transition-colors xl:px-3",
+                "relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm font-bold tracking-wide transition-colors xl:px-3",
                 active ? "text-gold-light" : "text-parchment/80 hover:text-gold-light",
               )}
             >

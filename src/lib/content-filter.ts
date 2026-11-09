@@ -44,14 +44,14 @@ function rot13(s: string): string {
 
 const SLURS = new Set(ENCODED_SLURS.split(",").map(rot13));
 
-const LEET: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", $: "s", "!": "i" };
+const LEET: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "6": "g", "7": "t", "@": "a", $: "s", "!": "i" };
 
 function normaliseForWords(text: string): string[] {
   const lowered = text
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
-    .replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
+    .replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
   return lowered.split(/[^a-z]+/).filter(Boolean);
 }
 
@@ -218,7 +218,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/[\u3002\uFF0E\uFF61]/g, ".") // ideographic / fullwidth full stops
     .replace(/\s*[[({]\s*(?:\.|dot)\s*[\])}]\s*/gi, ".")
     .replace(/\s+\.\s+(?=(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|ninja)\b)/gi, ".");
-  const leet = undotted.replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
+  const leet = undotted.replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
   // Digit-like tokens read O as 0 and I/l as 1 ("O77OO 9OO 123").
   const deLettered = text.replace(/\b[\dOoIl]*\d[\dOoIl]*\b/g, (tok) => tok.replace(/[Oo]/g, "0").replace(/[Il]/g, "1"));
   const numbered = deLettered.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
@@ -237,7 +237,10 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   }
   const spacedEmail = spacedRuns.some((run) => EMAIL.test(run));
   if (spacedRuns.some((run) => URL.test(run))) return fail("link");
-  if (PHONE.test(text) || PHONE.test(numbered) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
+  // Digits separated by anything that isn't a letter or digit ("555|123|4567", "555🍕123🍕4567"),
+  // and keycap emoji digits ("5️⃣5️⃣5️⃣").
+  const phoneish = numbered.replace(/[\uFE0F\u20E3]/g, "").replace(/[^\p{L}\p{Nd}\s+]/gu, " ");
+  if (PHONE.test(text) || PHONE.test(numbered) || PHONE.test(phoneish) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
   // Bare IPv4 addresses and the reserved .example/.test/.invalid names are links too.
   if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(text) || URL.test(undotted) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
@@ -258,9 +261,11 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     if (collapsed !== word && SLURS_COLLAPSED.has(collapsed)) return fail("hate");
   }
   // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
-  const decoded = text.replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
+  const decoded = text.replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
   if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("violence");
   if (SERIOUS.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("serious-crime");
+  // Same specific message as titles get, rather than the generic spam one.
+  if (allowSpamCheck && LONG_WORD.test(raw)) return { ok: false, issue: "spam", message: LONG_WORD_MESSAGE };
   if (allowSpamCheck && looksLikeSpam(raw)) return fail("spam");
   return { ok: true };
 }

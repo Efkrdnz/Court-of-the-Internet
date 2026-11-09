@@ -2,7 +2,7 @@
  * Deterministic aliases for anonymous defendants. The alias is derived from a random
  * per-case seed (never from the user id), so it cannot be correlated across cases.
  */
-const CRITTERS = [
+export const CRITTERS = [
   "Hamster",
   "Raccoon",
   "Pigeon",

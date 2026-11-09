@@ -19,6 +19,7 @@ import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
 import { skeleton } from "@/lib/confusables";
 import { releaseClaims } from "./claims";
+import { withdrawOpenReports } from "./reports";
 
 /** Letters and digits only, case- and accent-folded: "Judge Wigsworth." and "Judge\u200bWigsworth" collide. */
 const DIGIT_LOOKALIKES: Record<string, string> = { i: "l", "1": "l", "|": "l", "0": "o", "5": "s", "3": "e", "4": "a", "@": "a", $: "s" };
@@ -216,6 +217,8 @@ export async function deleteAccount(userId: string, password: string) {
     });
     // Free any case they were drafting so other players aren't blocked until it expires.
     await releaseClaims(tx, { userId });
+    // Their open reports stop counting toward the queue and auto-review (their votes stand).
+    await withdrawOpenReports(tx, userId);
     await tx.session.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
   });

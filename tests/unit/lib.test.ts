@@ -542,3 +542,42 @@ describe("full-width display names (audit 25 D5)", () => {
     expect(signupSchema.safeParse({ ...base, displayName: "Ｐｒｅｓｉｄｉｎｇ Ｊｕｄｇｅ" }).success).toBe(false);
   });
 });
+
+describe("small capitals, keycaps, odd separators and long words (audit 26 #2, #3)", () => {
+  it.each([
+    ["you ꜰᴀɢɢᴏᴛ", "hate"],
+    ["you fa66ot", "hate"],
+    ["call 555|123|4567 for legal advice", "personal-info"],
+    ["call 555:123:4567", "personal-info"],
+    ["call 555🍕123🍕4567", "personal-info"],
+    ["call 5️⃣5️⃣5️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣", "personal-info"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it.each(["I hid 6 donuts in the 6th floor fridge", "Final score 3|2 after 90 minutes", "I ate 2🍕 and 3🍔 at the 1 o'clock meeting"])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+  it("gives arguments the specific long-word message", () => {
+    const result = screenText("My client suffers from hippopotomonstrosesquippedaliophobic tendencies.");
+    expect(result).toMatchObject({ ok: false, issue: "spam" });
+    expect(!result.ok && result.message).toMatch(/longer than 35 characters/);
+  });
+});
+
+describe("crafted action calls (audit 26 #5)", () => {
+  it("refuses a call without a form body with a validation error, not a TypeError", async () => {
+    const { assertForm } = await import("@/app/actions/_util");
+    for (const bad of [undefined, null, "x", {}, []]) expect(() => assertForm(bad)).toThrow(expect.objectContaining({ code: "VALIDATION" }));
+    expect(() => assertForm(new FormData())).not.toThrow();
+  });
+});
+
+describe("alias look-alikes without a hash (audit 26 #8)", () => {
+  const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+  it.each(["Sneaky Pigeon D577", "Sweaty Walrus d89b", "Shifty Goose - 06EF"])("rejects %j", (displayName) => {
+    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(false);
+  });
+  it.each(["Big Tony 2024", "Pigeon Fan 1999", "Agent 47", "Goose Lover"])("accepts %j", (displayName) => {
+    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
+  });
+});

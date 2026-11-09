@@ -9,6 +9,7 @@ import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
 import { releaseClaims, sealedCaseNotice } from "./claims";
 import { pauseDeliberation, resumeDeliberation } from "./pause";
+import { dismissReporterOnLockedCase } from "./reports";
 import { getAchievement } from "@/lib/achievements";
 import { REACTION_COUNTER_FIELD, reactionWeight } from "@/lib/reactions";
 import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from "@/lib/cosmetics";
@@ -281,9 +282,7 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
           );
         }
         if (reports.some((x) => x.caseId === caseId)) {
-          await tx.report.updateMany({ where: { caseId, reporterId: targetUserId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
-          const stillOpen = await tx.report.findMany({ where: { caseId, status: "OPEN" }, select: { reporterId: true }, distinct: ["reporterId"] });
-          await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length } });
+          await dismissReporterOnLockedCase(tx, caseId, targetUserId);
         }
       }
       if (removed) await tx.userStats.update({ where: { userId: targetUserId }, data: { juryVotes: { decrement: removed } } });

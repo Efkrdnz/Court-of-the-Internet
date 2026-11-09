@@ -17,7 +17,8 @@ import {
   setBan,
   strikeArgument,
 } from "@/server/services/moderation";
-import { assertUnderLimit, hitRateLimit } from "@/server/rate-limit";
+import { hitRateLimit } from "@/server/rate-limit";
+import { loginWithLimits } from "@/server/services/login";
 import { auditStats } from "@/server/services/stats";
 import { getFeaturedCase, utcDay } from "@/server/queries/community";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
@@ -222,6 +223,8 @@ describe("moderation", () => {
     expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("DELIBERATION");
     expect((await stats(prosecutor)).prosecutionWins).toBe(0);
     await expect(adjournNow(admin, c.id)).rejects.toMatchObject({ code: "INVALID_STATE" });
+    // A stale tab voting now is told the trial is paused, not that it has closed (audit 26 #6).
+    await expect(castVote(jurors[9], c.id, "GUILTY")).rejects.toMatchObject({ message: expect.stringMatching(/paused/) });
 
     await dismissReports(admin, c.id);
     let row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
@@ -305,6 +308,16 @@ describe("moderation", () => {
     expect(await db.reaction.count({ where: { userId: rogue } })).toBe(0);
     expect(await db.report.findFirstOrThrow({ where: { reporterId: rogue } })).toMatchObject({ status: "DISMISSED" });
     expect(await db.report.findFirstOrThrow({ where: { reporterId: witness } })).toMatchObject({ status: "OPEN" });
+  });
+
+  it("deleting an account withdraws its open reports (audit 26 #8)", async () => {
+    const [accused, quitter, witness] = [await makeUser(), await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await fileReport(quitter, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    await fileReport(witness, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    await deleteAccount(quitter, "objection!");
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).openReports).toBe(1);
+    expect(await db.report.findFirstOrThrow({ where: { reporterId: quitter } })).toMatchObject({ status: "DISMISSED" });
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
@@ -562,13 +575,20 @@ describe("rate limiting", () => {
     expect((await hitRateLimit("test:key", 3, 60)).allowed).toBe(true);
   });
 
-  it("can check a limit without counting the request (failed-login-only limits, audit 23 #5)", async () => {
-    await assertUnderLimit("test:peek", 3, 60, "limited"); // never counted
-    await assertUnderLimit("test:peek", 3, 60, "limited");
-    for (let i = 0; i < 3; i++) await hitRateLimit("test:peek", 3, 60);
-    await expect(assertUnderLimit("test:peek", 3, 60, "limited")).rejects.toMatchObject({ code: "RATE_LIMITED" });
-    advance(minutes(2));
-    await assertUnderLimit("test:peek", 3, 60, "limited"); // window over
+  it("a burst of concurrent wrong-password logins gets no more checks than the limits allow (audit 26 #1)", async () => {
+    await makeUser("burst_target");
+    const results = await Promise.allSettled(Array.from({ length: 40 }, () => loginWithLimits("burst_target", "wrong-password-guess", "10.66.0.1")));
+    const refused = results.filter((r) => r.status === "rejected" && (r.reason as { code?: string }).code === "RATE_LIMITED");
+    const checked = results.length - refused.length;
+    expect(checked).toBe(8); // the per-account-per-IP limit
+    const row = await db.rateLimit.findUniqueOrThrow({ where: { key: "login-user-ip:burst_target:10.66.0.1" } });
+    expect(row.count).toBe(8); // refused attempts were given back
+    // The correct password from the same IP is refused too while the window lasts…
+    await expect(loginWithLimits("burst_target", "objection!", "10.66.0.1")).rejects.toMatchObject({ code: "RATE_LIMITED" });
+    // …but from another IP it works, and a success doesn't count against anyone.
+    await loginWithLimits("burst_target", "objection!", "10.66.0.2");
+    expect((await db.rateLimit.findUniqueOrThrow({ where: { key: "login-user:burst_target" } })).count).toBe(8);
+    expect((await db.rateLimit.findUniqueOrThrow({ where: { key: "login:10.66.0.2" } })).count).toBe(0);
   });
 
   it("is atomic under concurrency", async () => {

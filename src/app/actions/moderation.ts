@@ -18,13 +18,14 @@ import { auditStats } from "@/server/services/stats";
 import { utcDay } from "@/server/queries/community";
 import { CourtError } from "@/server/errors";
 import { db } from "@/server/db";
-import { toFailure, type ActionResult } from "./_util";
+import { assertForm, toFailure, type ActionResult } from "./_util";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 /** Single entry point for console forms: `op` selects the operation. */
 export async function moderationAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
+    assertForm(formData);
     const mod = await requireStaff();
     const op = str(formData, "op");
     const caseId = str(formData, "caseId");

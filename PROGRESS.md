@@ -658,6 +658,27 @@ It confirmed the twenty-fourth round. Highlights:
 
 Also fixed: `instrumentation.ts` now imports a Node-only module, so dev builds no longer warn about `process.exit` in the Edge bundle.
 
+## Twenty-sixth independent audit (fresh agent, build of commit 57d4686)
+
+**Result: 12 PASS, 5 CONCERN (5, 10, 13, 15, 17), 0 FAIL.**
+
+It confirmed the twenty-fifth round:
+- the mobile menu closes on Back and after resizing
+- a ban removes votes, XP and reactions
+- its own SQL recount of 13 counters for every user had 0 mismatches after all its races
+- 117 internal links, 0 broken; no 500s from URL fuzzing
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | A burst of 150 concurrent wrong-password logins was fully checked: limits were read before, and counted after, the password check | each attempt is counted atomically up front and refunded on success (or when refused), in `loginWithLimits` | integration: 40 concurrent guesses → exactly 8 checked, count stays 8, the correct password from the same IP is refused, a success elsewhere counts nothing |
+| 2 | Filter gaps: small-capital letters, keycap digits, phones separated by `|`, `:` or emoji, `6` for `g` | small capitals fold to Latin; a phone variant treats any symbol as a separator and drops keycap marks; `6` → `g` in leetspeak | unit (6 rejected, 3 benign accepted); 341 seed texts still pass |
+| 3 | A 36-character word in an argument got the generic spam message | arguments get the specific long-word message | unit |
+| 4 | README said long words only break on phones | README corrected (large headings on desktop too) | — |
+| 5 | Crafted action calls without a form body threw TypeErrors | every form action asserts a FormData body first and answers with a validation error | unit |
+| 6 | A vote on a paused trial past its wall-clock deadline was told "Deliberation has closed" | the review state is checked before the deadline | integration (pause test) |
+| 7 | Header nav links 33px tall at 1024px; inline archive link 17px on phones | 44px nav links; the inline link is 36px | — |
+| 8 | "sworn in November 9"; a deleted account's open reports kept counting; "Sneaky Pigeon D577" accepted | "sworn in on"; deletion withdraws open reports (shared helper with bans); alias-critter + 4-hex names refused | integration (deletion), unit (3 rejected; "Big Tony 2024" and "Pigeon Fan 1999" accepted) |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

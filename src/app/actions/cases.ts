@@ -11,11 +11,12 @@ import { toggleReaction } from "@/server/services/reactions";
 import { fileReport } from "@/server/services/moderation";
 import { CourtError } from "@/server/errors";
 import { casePath } from "@/lib/text";
-import { formObject, isBot, toFailure, type ActionResult } from "./_util";
+import { assertForm, formObject, isBot, toFailure, type ActionResult } from "./_util";
 
 export async function confessAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   let path: string;
   try {
+    assertForm(formData);
     const user = await requireActiveUser();
     if (isBot(formData)) throw new CourtError("VALIDATION", "The bailiff suspects you are a robot.");
     // Validate first: rejected (invalid) submissions must not use up the rate-limit budget.
@@ -71,6 +72,7 @@ export async function submitArgumentAction(
 ): Promise<ActionResult> {
   let target: string;
   try {
+    assertForm(formData);
     const user = await requireActiveUser();
     // `role` is bound on the client, so never trust it without checking.
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
@@ -118,6 +120,7 @@ export async function reactAction(
 
 export async function reportAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
+    assertForm(formData);
     const user = await requireActiveUser();
     const input = reportSchema.parse(formObject(formData));
     await enforceRateLimit(`report:${user.id}`, 10, 3600, "You've filed a lot of reports. The clerks need a minute.");
