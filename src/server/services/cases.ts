@@ -135,8 +135,11 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
     const openStatus = OPEN_STATUS[role];
     const claimedStatus = CLAIMED_STATUS[role];
 
+    // A claim stays the holder's through the grace period, so nobody can snatch a case
+    // from a writer who is still allowed to file it.
+    const reclaimableBefore = new Date(now.getTime() - gameConfig.claimGraceMs);
     const current = await tx.case.findFirst({
-      where: { claimedById: userId, status: claimedStatus, claimExpiresAt: { gt: now } },
+      where: { claimedById: userId, status: claimedStatus, claimExpiresAt: { gte: reclaimableBefore } },
       select: { id: true, number: true, claimExpiresAt: true },
     });
     if (current?.id === caseId) return { caseId, expiresAt: current.claimExpiresAt!, alreadyHeld: true };
@@ -186,7 +189,7 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
         moderationState: "VISIBLE",
         accusedId: { not: userId },
         ...(role === "PROSECUTION" ? { attorneyId: { not: userId } } : {}),
-        OR: [{ status: openStatus }, { status: claimedStatus, claimExpiresAt: { lt: now } }],
+        OR: [{ status: openStatus }, { status: claimedStatus, claimExpiresAt: { lt: reclaimableBefore } }],
       },
       data: { status: claimedStatus, claimedById: userId, claimExpiresAt: expiresAt },
     });

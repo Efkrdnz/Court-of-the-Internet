@@ -49,7 +49,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
           <legend className="sr-only">Category</legend>
           <p className="font-display text-xl font-bold text-parchment">1. Choose the statute you broke</p>
           <p className="mb-4 text-sm text-parchment/60">Every crime belongs somewhere in the legal code.</p>
-          <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-2">
             {CATEGORIES.map((c) => {
               const on = category === c.key;
               return (
@@ -63,7 +63,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
                   <input type="radio" name="category" value={c.key} checked={on} onChange={() => setCategory(c.key)} className="sr-only" />
                   <CategoryIcon category={c.key} className={clsx("h-10 w-10 shrink-0 transition-transform", on ? "scale-110 rotate-[-6deg]" : "group-hover:rotate-[-6deg]")} />
                   <span className="min-w-0">
-                    <span className="block text-sm font-bold leading-tight text-parchment">{c.label}</span>
+                    <span className="block hyphens-auto text-sm font-bold leading-tight text-parchment">{c.label}</span>
                     <span className="block font-type text-[11px] text-parchment/50">{c.statute}</span>
                   </span>
                 </label>
@@ -165,8 +165,9 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
             </span>
           </label>
           <FieldError errors={fe?.acceptRules} />
-          <SubmitButton pending={pending} className="btn-lg w-full" pendingLabel="Entering it into the record…">
-            Submit my confession to the court
+          <SubmitButton pending={pending} className="btn-lg w-full whitespace-normal text-balance text-center" pendingLabel="Entering it into the record…">
+            <span className="min-[400px]:hidden">Submit my confession</span>
+            <span className="hidden min-[400px]:inline">Submit my confession to the court</span>
           </SubmitButton>
         </div>
       </form>

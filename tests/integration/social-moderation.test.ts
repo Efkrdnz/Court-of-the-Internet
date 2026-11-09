@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { resetClock } from "@/server/clock";
 import { castVote, claimCase } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
+import { bumpViewCount } from "@/server/queries/cases";
 import {
   adjournNow,
   dismissReports,
@@ -43,6 +44,33 @@ describe("reactions", () => {
     row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
     expect(row.reactionScore).toBe(3);
     await expect(toggleReaction(attorney, c.id, "LEGENDARY")).rejects.toMatchObject({ code: "INELIGIBLE" });
+  });
+
+  it("counts a case view once per viewer per window", async () => {
+    const [accused, other] = [await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await bumpViewCount(c.id, `u:${other}`);
+    await bumpViewCount(c.id, `u:${other}`); // reload
+    await bumpViewCount(c.id, "ip:203.0.113.9");
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).viewCount).toBe(2);
+    advance(minutes(6 * 60 + 1));
+    await bumpViewCount(c.id, `u:${other}`);
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).viewCount).toBe(3);
+  });
+
+  it("survives a burst of concurrent toggles from one player without errors or drift", async () => {
+    const [accused, attorney, prosecutor, fan] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    for (let round = 0; round < 3; round++) {
+      const results = await Promise.allSettled(Array.from({ length: 9 }, () => toggleReaction(fan, c.id, "LEGENDARY")));
+      expect(results.filter((r) => r.status === "rejected")).toEqual([]);
+      const rows = await db.reaction.count({ where: { caseId: c.id, type: "LEGENDARY" } });
+      const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+      expect(rows).toBeLessThanOrEqual(1);
+      expect(row.legendaryCount).toBe(rows);
+      expect(row.reactionScore).toBe(rows * 3);
+    }
   });
 
   it("grants Legendary Litigator at 10 legendary reactions", async () => {

@@ -337,11 +337,11 @@ test("§12 forms: invalid submissions don't use up the rate limit (audit defect 
   await page.getByLabel("The confession").fill(`Every time it chirps she checks her phone. She has checked it four hundred times this week. The parrot is thriving (${sfx}).`);
   // Four failed attempts (rules not accepted) — more than the 3-per-10-minutes limit.
   for (let i = 0; i < 4; i++) {
-    await page.getByRole("button", { name: "Submit my confession to the court" }).click();
+    await page.getByRole("button", { name: /^Submit my confession/ }).click();
     await expect(page.getByText("You must accept the community rules.")).toBeVisible();
   }
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).check();
-  await page.getByRole("button", { name: "Submit my confession to the court" }).click();
+  await page.getByRole("button", { name: /^Submit my confession/ }).click();
   await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
 });
 
@@ -415,4 +415,63 @@ test("§12 jurors see majority/minority, not win/loss, on verdicts (audit #5)", 
   const expected = vote.choice === vote.case.verdict ? "Your vote sided with the majority." : "You were outvoted. Dissent noted.";
   await expect(page.getByText(expected)).toBeVisible();
   await expect(page.getByText(/You won this case|You lost this one/)).toHaveCount(0);
+});
+
+test("§12 notifications: the header badge clears once the inbox is opened (audit #4)", async ({ browser }) => {
+  const clerk = await prisma.user.findUniqueOrThrow({ where: { username: "clerk_pemberton" }, select: { id: true } });
+  await prisma.notification.create({
+    data: { userId: clerk.id, type: "MODERATION", title: "Audit regression check", body: "Badge should clear.", toastedAt: new Date() },
+  });
+  const page = await demoPage(browser, "clerk_pemberton");
+  const bell = page.locator('header a[href="/notifications"]');
+  await expect(bell).toHaveAttribute("aria-label", /unread/);
+  await bell.click();
+  await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible();
+  await expect(bell).toHaveAttribute("aria-label", "Notifications");
+  // Still clear after client-side navigation away (the shared layout isn't re-rendered).
+  await page.locator('header a[href="/"]').first().click();
+  await page.waitForURL((u) => u.pathname === "/");
+  await expect(bell).toHaveAttribute("aria-label", "Notifications");
+  await page.reload();
+  await expect(bell).toHaveAttribute("aria-label", "Notifications");
+});
+
+test("§12 mobile: buttons and case titles fit narrow phones without mid-word breaks (audit #4)", async ({ browser }) => {
+  const seeded = await prisma.case.findMany({ where: { moderationState: "VISIBLE" }, select: { number: true, slug: true, title: true } });
+  const longest = seeded
+    .map((c) => ({ c, word: Math.max(...c.title.split(/\s+/).map((w) => w.length)) }))
+    .sort((a, b) => b.word - a.word)[0].c;
+  for (const width of [320, 360]) {
+    const context = await browser.newContext({ viewport: { width, height: 740 }, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    await page.goto("/login");
+    await page.locator('form:has(input[name="username"][value="hammy_the_accused"]) button').click();
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+
+    await page.goto("/confess");
+    const spills = await page.locator(".btn").evaluateAll((els) =>
+      els.filter((el) => (el as HTMLElement).offsetParent && el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent?.trim()),
+    );
+    expect(spills, `buttons whose label spills out at ${width}px`).toEqual([]);
+
+    // Every word of the title fits on one line of the case heading (never split mid-word).
+    await page.goto(`/cases/${longest.number}-${longest.slug}`);
+    const h1 = page.getByRole("heading", { level: 1 });
+    const fit = await h1.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      const probe = document.createElement("span");
+      probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${cs.font};letter-spacing:${cs.letterSpacing}`;
+      document.body.appendChild(probe);
+      const widest = Math.max(
+        ...(el.textContent ?? "").split(/\s+/).map((w) => {
+          probe.textContent = w;
+          return probe.getBoundingClientRect().width;
+        }),
+      );
+      probe.remove();
+      return { widest, box: el.clientWidth };
+    });
+    expect(fit.widest <= fit.box, `title "${longest.title}" at ${width}px: ${JSON.stringify(fit)}`).toBe(true);
+    await context.close();
+  }
 });

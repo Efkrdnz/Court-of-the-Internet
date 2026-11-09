@@ -139,7 +139,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
         select: caseCardSelect,
       }),
       db.case.findMany({
-        where: { claimedById: viewer.id, claimExpiresAt: { gt: now }, status: { in: ["DEFENSE_CLAIMED", "PROSECUTION_CLAIMED"] } },
+        where: { claimedById: viewer.id, claimExpiresAt: { gt: new Date(now.getTime() - gameConfig.claimGraceMs) }, status: { in: ["DEFENSE_CLAIMED", "PROSECUTION_CLAIMED"] } },
         select: caseCardSelect,
       }),
       db.case.groupBy({ by: ["status"], where: { moderationState: "VISIBLE", status: { not: "CLOSED" } }, _count: { _all: true } }),
@@ -166,7 +166,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
         where: {
           moderationState: "VISIBLE",
           accusedId: { not: viewer.id },
-          OR: [{ status: "AWAITING_DEFENSE" }, { status: "DEFENSE_CLAIMED", claimExpiresAt: { lt: now } }],
+          OR: [{ status: "AWAITING_DEFENSE" }, { status: "DEFENSE_CLAIMED", claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
           ...muted,
         },
         orderBy: [{ createdAt: "asc" }],
@@ -178,7 +178,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
           moderationState: "VISIBLE",
           accusedId: { not: viewer.id },
           attorneyId: { not: viewer.id },
-          OR: [{ status: "AWAITING_PROSECUTION" }, { status: "PROSECUTION_CLAIMED", claimExpiresAt: { lt: now } }],
+          OR: [{ status: "AWAITING_PROSECUTION" }, { status: "PROSECUTION_CLAIMED", claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
           ...muted,
         },
         orderBy: [{ defenseFiledAt: "asc" }],

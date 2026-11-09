@@ -69,7 +69,7 @@ test("mobile: confess a crime end to end on a phone", async ({ browser }) => {
   await page.getByLabel("Case title").fill(`I paused the online game to win ${sfx}`);
   await page.getByLabel("The confession").fill("It was an online match, which cannot be paused, so I unplugged the router instead and claimed the win by forfeit. Twice.");
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).tap();
-  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  await page.getByRole("button", { name: /^Submit my confession/ }).tap();
   await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
   await expect(page.getByText(/entered into the record/)).toBeVisible();
   await expectNoHorizontalScroll(page);
@@ -164,7 +164,7 @@ test("mobile: a server-side rejection is brought into view (audit #4)", async ({
   await page.getByLabel("Case title").fill("I gave out a fake number at the party");
   await page.getByLabel("The confession").fill("Someone asked for my number so I gave them 555 123 4567 and then hid behind the snack table for an hour.");
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).tap();
-  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  await page.getByRole("button", { name: /^Submit my confession/ }).tap();
   // Focus moves to the offending field, and its own error message is on screen next to it.
   const field = page.getByLabel("The confession");
   await expect(field).toBeFocused();
@@ -184,13 +184,13 @@ test("narrow phones: long unbroken words never widen the page (audit 3 #1)", asy
   await page.getByLabel("Case title").fill("Supercalifragilisticexpialidociouslyx microwave");
   await page.getByLabel("The confession").fill("I microwaved fish in the office kitchen and then blamed the new intern, who does not exist.");
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).tap();
-  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  await page.getByRole("button", { name: /^Submit my confession/ }).tap();
   await expect(page.getByRole("alert").filter({ hasText: /spam/ }).first()).toBeVisible();
   // …and the longest allowed word (35 chars) still wraps everywhere it appears.
   const word = `Antidisestablishmentarianismwaffle${Date.now().toString(36).slice(-1)}`;
   expect(word.length).toBe(35);
   await page.getByLabel("Case title").fill(`I hid the ${word}`);
-  await page.getByRole("button", { name: "Submit my confession to the court" }).tap();
+  await page.getByRole("button", { name: /^Submit my confession/ }).tap();
   await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
   await expectNoHorizontalScroll(page);
   for (const path of ["/defend", "/u/fresh_intern", "/court"]) {

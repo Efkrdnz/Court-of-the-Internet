@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **62/62 Playwright** and **70/70 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **64/64 Playwright** and **72/72 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **62/62 Playwright** and **70/70 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 67 Vitest + 43 Playwright tests |
+| Important gameplay flows have automated tests | 72 Vitest + 64 Playwright tests (39 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -159,6 +159,25 @@ New edge cases, all fixed:
 | 4 | README overstated the per-account login limit without a proxy | README states exactly what holds with and without a proxy | n/a (doc) |
 | 5 | Attorney/prosecutor told "can't react to your own case" | "a case you took part in" | n/a |
 | 6 | Cosmetic: duplicate password error, 404/moderation titles, tally bars at 320px, conviction-rate wording, long toast queue | fixed (field-level errors only; neutral titles; compact bars; "(guilty vs. not guilty)"; toasts 5s/4s) | archives test updated |
+
+## Fourth independent audit (fresh agent, build of commit f504326)
+
+A fresh agent audited the final build of the third fix round against a newly seeded database. It played two full trials, including one closed automatically and one extended then dismissed. It raced 20 claimers, 12 concurrent votes and 9 concurrent reaction toggles, and recomputed every player's statistics in SQL (zero mismatches). It also checked anonymous-identity leaks, account deletion, the report → review → dismiss flow and 15 pages at three phone widths.
+
+**Result: 15 PASS, 2 CONCERN (13 mobile, 17 docs), 0 FAIL.** All findings are fixed:
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Confess submit label spilled out of its button at 360/320px | the full-width button wraps, with a shorter label below 400px | `§12 mobile: buttons and case titles fit narrow phones…` (no `.btn` spills at 320/360) |
+| 2 | A competing player could claim a case during the holder's 2-minute grace period, so the holder's filing was rejected | the claim stays the holder's until expiry + grace: in the claim service, the queues, the dashboard and the case pages | integration: grace blocks rivals, hides the case from the queue, and still lets the holder file |
+| 3 | Concurrent reaction toggles hit Prisma P2025 ("court stenographer fainted") | `deleteMany` with a count check; a lost race reports the real state | integration: 3 bursts of 9 parallel toggles, no rejections, counters equal rows (fails on the old code with P2025) |
+| 4 | README claimed the owner can't be locked out; the 100-per-15-minute per-account ceiling can lock out the owner when attempts come from many IPs | README states the trade-off exactly | n/a (doc) |
+| 5 | Header bell kept its unread badge after the inbox was opened (the shared layout isn't re-rendered on client navigation) | client `NotificationBell` clears once `/notifications` is seen; it resets when the server count changes | `§12 notifications: the header badge clears…` |
+| 6 | Titles broke mid-word on 320px case pages; "Miscellaneou/s" on the desktop confess page | smaller case title below 400px; 2-column category grid next to the preview | `§12 mobile: … case titles fit narrow phones` (widest word ≤ heading width at 320/360); screenshots at 320/700/1024/1280 |
+| 7 | "Adjourn now" / "Dismiss reports" showed no confirmation (the form removed itself) | moderation flash banner (`ModFlashProvider`) | lifecycle e2e asserts "Deliberation closed: GUILTY (2–1)." |
+| 8 | View counter counted every reload and curl; "Hover a locked item" on phones; "@ghost" title for missing users | one view per viewer (account or IP) per 6h; tapping a locked item shows how to unlock it; "Player not found" title | integration test for view de-duplication |
+
+Not changed: after a third report puts a case under review, the reporter sees the "under review" page instead of the dialog's thank-you. That page is the confirmation. The cron endpoint stays disabled until `CRON_SECRET` is set (documented; deliberations also close lazily on page visits).
 
 ## Per-phase evidence
 

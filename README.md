@@ -228,7 +228,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 ## Known limitations
 
 - **Client IPs need a proxy.** IP-based limits use the right-most `X-Forwarded-For` entries (`TRUST_PROXY_HOPS`).
-  - **Behind a reverse proxy** (nginx, Vercel, Fly…) clients can't spoof them. Login is limited to 8 attempts per account per client IP, which stops brute force without letting an attacker lock the owner out from elsewhere.
+  - **Behind a reverse proxy** (nginx, Vercel, Fly…) clients can't spoof them. Login is limited to 8 attempts per account per client IP, so one attacker can't lock the owner out from a different IP. There is also a per-account ceiling of 100 attempts per 15 minutes across all IPs. It stops distributed brute force, but someone spraying wrong passwords from many IPs can lock the real owner out, even with the correct password, until the 15-minute window resets. That is a deliberate trade-off: letting correct passwords through would defeat the ceiling.
   - **With `next start` exposed directly**, the client controls that header, because Next doesn't expose the socket address to server actions. The per-IP limits on signup, login and confession can then be bypassed by rotating the header. The only fixed protection left is the per-account ceiling of 100 login attempts per 15 minutes, plus scrypt's cost per guess. Always deploy behind a proxy.
 - **Private courtrooms** for friend groups and **paid memberships** are designed (see `docs/MONETIZATION.md`) but not built. The Patron perks section is explicitly labelled "not on sale yet"; admins can grant cosmetics for testing.
 - **No email:** there's no password reset by email. Admins can't reset passwords from the console yet; players can change their own in Settings.

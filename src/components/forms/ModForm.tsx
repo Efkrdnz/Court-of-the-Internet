@@ -1,9 +1,12 @@
 "use client";
 
+import { useCallback } from "react";
 import clsx from "clsx";
+import type { ActionResult } from "@/app/actions/_util";
 import { moderationAction } from "@/app/actions/moderation";
 import { useFormAction } from "@/components/ui/useFormAction";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { useModFlash } from "./ModFlash";
 
 /** A tiny form that posts one moderation operation and shows the result inline. */
 export function ModForm({
@@ -27,7 +30,16 @@ export function ModForm({
   options?: { name: string; values: string[] };
   confirmText?: string;
 }) {
-  const [state, formProps, pending] = useFormAction(moderationAction);
+  const flash = useModFlash();
+  const run = useCallback(
+    async (prev: ActionResult | null, fd: FormData) => {
+      const result = await moderationAction(prev, fd);
+      if (result.ok && result.message) flash?.(result.message);
+      return result;
+    },
+    [flash],
+  );
+  const [state, formProps, pending] = useFormAction(run);
   return (
     <form
       action={formProps.action}

@@ -21,7 +21,7 @@ test("a full trial: confess → defend → prosecute → jury → verdict → ar
 
   // --- Phase 1: confession (validation first) ---
   await page.goto("/confess");
-  await page.getByRole("button", { name: "Submit my confession to the court" }).click();
+  await page.getByRole("button", { name: /^Submit my confession/ }).click();
   await expect(page.getByText("Pick a category for your crime.")).toBeVisible();
 
   await page.locator(`label:has(input[value="roommate-disputes"])`).click();
@@ -32,7 +32,7 @@ test("a full trial: confess → defend → prosecute → jury → verdict → ar
     .fill(`Every time my roommate picks a show I don't like, the remote mysteriously ends up behind the frozen peas. He now watches with gloves on (${suffix}).`);
   await expect(page.getByRole("complementary", { name: "Live preview" }).getByText(title)).toBeVisible();
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).check();
-  await page.getByRole("button", { name: "Submit my confession to the court" }).click();
+  await page.getByRole("button", { name: /^Submit my confession/ }).click();
   await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
   await expect(page.getByText(/entered into the record/)).toBeVisible();
   const caseUrl = new URL(page.url()).pathname;
@@ -104,6 +104,8 @@ test("a full trial: confess → defend → prosecute → jury → verdict → ar
   await judge.goto(`/moderation?case=${caseNumber}`);
   judge.once("dialog", (d) => d.accept());
   await judge.getByRole("button", { name: /Adjourn now/ }).click();
+  // The button disappears with the deliberation, so the result is confirmed separately (audit #4).
+  await expect(judge.getByRole("status").filter({ hasText: "Deliberation closed: GUILTY (2–1)." })).toBeVisible();
   // The console re-renders with the closed case (the adjourn button is gone).
   await expect(judge.getByText(/Closed · Guilty/)).toBeVisible();
   await expect(judge.getByText(/Votes: 2 guilty · 1 not guilty/)).toBeVisible();

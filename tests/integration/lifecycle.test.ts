@@ -4,6 +4,7 @@ import { resetClock } from "@/server/clock";
 import { castVote, claimCase, confess, releaseClaim, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { expireStaleClaims, runMaintenanceNow } from "@/server/services/maintenance";
+import { listQueue } from "@/server/queries/cases";
 import { auditStats } from "@/server/services/stats";
 import {
   DEFENSE_TEXT,
@@ -304,7 +305,10 @@ describe("claims under concurrency and expiry", () => {
     // Not yet expired: others are blocked.
     await expect(claimCase(rescuer, c.id, "DEFENSE")).rejects.toMatchObject({ code: "CONFLICT" });
     advance(minutes(31));
-    // Expired: lazily reclaimable even before the sweep runs.
+    // Expired but inside the grace period: still the slowpoke's to file.
+    await expect(claimCase(rescuer, c.id, "DEFENSE")).rejects.toMatchObject({ code: "CONFLICT" });
+    advance(minutes(2));
+    // Past the grace period: lazily reclaimable even before the sweep runs.
     await claimCase(rescuer, c.id, "DEFENSE");
     const claims = await db.caseClaim.findMany({ where: { caseId: c.id }, orderBy: { claimedAt: "asc" } });
     expect(claims.map((x) => x.outcome)).toEqual(["EXPIRED", "ACTIVE"]);
@@ -319,6 +323,12 @@ describe("claims under concurrency and expiry", () => {
     await claimCase(writer, c.id, "DEFENSE");
     advance(minutes(31)); // expired, but within the 2-minute grace
     expect(await expireStaleClaims()).toBe(0);
+    // Nobody can snatch it during the grace period, and it isn't advertised as open.
+    await expect(claimCase(late, c.id, "DEFENSE")).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await listQueue({ role: "DEFENSE", viewer: null })).cards.map((x) => x.id)).not.toContain(c.id);
+    // The holder can't start a second defense while this one is still theirs.
+    const other = await makeCase(accused);
+    await expect(claimCase(writer, other.id, "DEFENSE")).rejects.toMatchObject({ code: "INELIGIBLE" });
     await submitArgument(writer, c.id, "DEFENSE", DEFENSE_TEXT); // grace honoured
 
     await claimCase(late, c.id, "PROSECUTION");

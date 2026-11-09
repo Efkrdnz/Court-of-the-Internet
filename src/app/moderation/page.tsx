@@ -7,6 +7,7 @@ import { grantableItems } from "@/server/services/moderation";
 import { casePath, formatCaseNumber } from "@/lib/text";
 import { relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
 import { REPORT_REASONS } from "@/lib/validation";
+import { ModFlashProvider } from "@/components/forms/ModFlash";
 import { ModForm } from "@/components/forms/ModForm";
 import { JudgeOwl } from "@/components/art/characters";
 
@@ -78,6 +79,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   ]);
 
   return (
+    <ModFlashProvider>
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <header className="mb-8 grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
         <div>
@@ -260,5 +262,6 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         )}
       </section>
     </div>
+    </ModFlashProvider>
   );
 }

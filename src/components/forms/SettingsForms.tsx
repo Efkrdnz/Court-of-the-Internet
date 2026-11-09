@@ -62,6 +62,8 @@ export function ProfileForm({
   const [state, formProps, pending] = useFormAction(updateProfileAction);
   const [avatar, setAvatar] = useState<AvatarConfig>(initial.avatar);
   const [theme, setTheme] = useState(initial.profileTheme);
+  // Phones can't hover, so tapping a locked item spells out how to unlock it.
+  const [lockHint, setLockHint] = useState<string | null>(null);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
 
   const group = <K extends keyof AvatarConfig>(kind: K, options: readonly AvatarConfig[K][], title: string) => (
@@ -75,6 +77,7 @@ export function ProfileForm({
             <label
               key={opt}
               title={lock ?? undefined}
+              onClick={lock ? () => setLockHint(`${label(opt)}: ${lock}`) : undefined}
               className={clsx(
                 "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition",
                 on ? "border-burgundy bg-burgundy text-ivory" : "border-sepia/40 bg-white/40 text-ink hover:bg-white/70",
@@ -111,7 +114,16 @@ export function ProfileForm({
           {group("headwear", HEADWEAR, "Headwear")}
           {group("accessory", ACCESSORIES, "Accessory")}
           {group("backdrop", BACKDROPS, "Backdrop")}
-          <p className="text-xs text-sepia">Locked items unlock through levels and achievements. Hover a locked item to see how.</p>
+          <p className="text-xs text-sepia" aria-live="polite">
+            {lockHint ? (
+              <>
+                <IconLock className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+                {lockHint}
+              </>
+            ) : (
+              "Locked items unlock through levels and achievements. Tap or hover a locked item to see how."
+            )}
+          </p>
           <FieldError errors={fe?.avatar} />
         </div>
       </div>

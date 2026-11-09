@@ -3,6 +3,7 @@ import type { CaseStatus, Prisma, Verdict } from "@prisma/client";
 import { db } from "../db";
 import { clock } from "../clock";
 import { gameConfig } from "../config";
+import { hitRateLimit } from "../rate-limit";
 import { anonymousAlias } from "@/lib/alias";
 import { parseAvatar, type AvatarConfig } from "@/lib/avatar";
 import { getCategory } from "@/lib/categories";
@@ -126,7 +127,8 @@ export function toCaseCard(
   const closed = row.status === "CLOSED";
   const canSeeTallies = closed || viewerVote !== null;
   const now = clock.now();
-  const claimLive = !!row.claimedById && !!row.claimExpiresAt && row.claimExpiresAt > now;
+  // The holder keeps the case through the grace period (they may still file), so it isn't up for grabs yet.
+  const claimLive = !!row.claimedById && !!row.claimExpiresAt && row.claimExpiresAt.getTime() + gameConfig.claimGraceMs > now.getTime();
   return {
     id: row.id,
     number: row.number,
@@ -199,7 +201,7 @@ function queueWhere(role: "DEFENSE" | "PROSECUTION", now: Date): Prisma.CaseWher
   const claimed: CaseStatus = role === "DEFENSE" ? "DEFENSE_CLAIMED" : "PROSECUTION_CLAIMED";
   return {
     moderationState: "VISIBLE",
-    OR: [{ status: open }, { status: claimed, claimExpiresAt: { lt: now } }],
+    OR: [{ status: open }, { status: claimed, claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
   };
 }
 
@@ -269,7 +271,7 @@ export async function pickRandomQueueCase(role: "DEFENSE" | "PROSECUTION", viewe
 export async function currentClaim(viewerId: string) {
   const now = clock.now();
   const rows = await db.case.findMany({
-    where: { claimedById: viewerId, claimExpiresAt: { gt: now }, status: { in: ["DEFENSE_CLAIMED", "PROSECUTION_CLAIMED"] } },
+    where: { claimedById: viewerId, claimExpiresAt: { gt: new Date(now.getTime() - gameConfig.claimGraceMs) }, status: { in: ["DEFENSE_CLAIMED", "PROSECUTION_CLAIMED"] } },
     select: caseCardSelect,
   });
   return toCaseCards(rows, { id: viewerId });
@@ -377,8 +379,14 @@ export async function getCaseDetail(number: number, viewer: { id: string; role: 
   };
 }
 
-export async function bumpViewCount(caseId: string) {
-  await db.case.update({ where: { id: caseId }, data: { viewCount: { increment: 1 } } }).catch(() => undefined);
+/** Counts a view at most once per viewer (account, or IP when logged out) per case every 6 hours. */
+export async function bumpViewCount(caseId: string, viewerKey: string) {
+  try {
+    const { allowed } = await hitRateLimit(`view:${caseId}:${viewerKey}`, 1, 6 * 3600);
+    if (allowed) await db.case.update({ where: { id: caseId }, data: { viewCount: { increment: 1 } } });
+  } catch {
+    // A view counter must never break the page.
+  }
 }
 
 export async function getCaseIdByNumber(number: number) {

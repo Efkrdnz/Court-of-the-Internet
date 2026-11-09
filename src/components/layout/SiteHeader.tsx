@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Crest } from "@/components/art/props";
-import { IconBell } from "@/components/art/props";
 import { parseAvatar } from "@/lib/avatar";
 import type { SessionUser } from "@/server/auth/sessions";
 import { getViewerSummary } from "@/server/queries/players";
 import { NavLinks } from "./NavLinks";
 import { MobileNav } from "./MobileNav";
 import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "./NotificationBell";
 
 export async function SiteHeader({ user }: { user: SessionUser | null }) {
   const summary = user ? await getViewerSummary(user.id) : null;
@@ -29,18 +29,7 @@ export async function SiteHeader({ user }: { user: SessionUser | null }) {
         <div className="flex items-center gap-2">
           {user && summary ? (
             <>
-              <Link
-                href="/notifications"
-                className="relative grid h-11 w-11 place-items-center rounded-full text-parchment/80 transition hover:bg-burgundy/40 hover:text-gold-light"
-                aria-label={summary.unread ? `Notifications (${summary.unread} unread)` : "Notifications"}
-              >
-                <IconBell className="h-5 w-5" />
-                {summary.unread ? (
-                  <span className="absolute right-1 top-1 grid min-w-5 place-items-center rounded-full bg-crimson px-1 text-[11px] font-black text-ivory ring-2 ring-[#1b070c]">
-                    {summary.unread > 99 ? "99+" : summary.unread}
-                  </span>
-                ) : null}
-              </Link>
+              <NotificationBell unread={summary.unread} />
               <UserMenu
                 username={user.username}
                 displayName={user.displayName}

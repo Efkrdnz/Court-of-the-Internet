@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getCurrentUser } from "@/server/auth/current-user";
+import { clientIp, getCurrentUser } from "@/server/auth/current-user";
 import { bumpViewCount, getCaseDetail, getCaseIdByNumber, relatedCases } from "@/server/queries/cases";
 import { refreshCase } from "@/server/services/maintenance";
 import { appConfig } from "@/server/config";
@@ -89,7 +89,7 @@ export default async function CasePage({ params, searchParams }: Props) {
   }
 
   const c = detail.case;
-  void bumpViewCount(c.id);
+  void bumpViewCount(c.id, user ? `u:${user.id}` : `ip:${await clientIp()}`);
   const cat = getCategory(c.category);
   const viewerRole = c.viewer.role;
   const url = `${appConfig.siteUrl}${casePath(c)}`;
@@ -157,7 +157,7 @@ export default async function CasePage({ params, searchParams }: Props) {
         </div>
         <p className="mt-4 font-display text-sm font-bold uppercase tracking-[0.35em] text-burgundy">In the Court of the Internet</p>
         <p className="mt-1 font-display text-lg italic text-sepia">The People v. {c.accused.displayName.replace(/^You \(as (.*)\)$/, "$1")}</p>
-        <h1 className="mx-auto mt-3 max-w-3xl text-balance font-display text-3xl font-black leading-tight text-ink sm:text-5xl">{c.title}</h1>
+        <h1 className="mx-auto mt-3 max-w-3xl text-balance hyphens-auto font-display text-2xl font-black leading-tight text-ink min-[400px]:text-3xl sm:text-5xl">{c.title}</h1>
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-sepia">
           <CategoryIcon category={c.category} className="h-7 w-7" />
           <span className="font-bold">{cat.label}</span>

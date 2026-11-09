@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import clsx from "clsx";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { getProfile } from "@/server/queries/players";
+import { db } from "@/server/db";
 import { ACHIEVEMENTS, TIER_STYLE, getAchievement } from "@/lib/achievements";
 import { getTheme } from "@/lib/cosmetics";
 import { formatDate, percent } from "@/lib/format";
@@ -17,7 +18,10 @@ type Props = { params: Promise<{ username: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
   if (username === "me") return { title: "Your profile" };
-  return { title: `@${username.toLowerCase()}`, description: `The public legal record of @${username.toLowerCase()} at the Court of the Internet.` };
+  const handle = username.toLowerCase();
+  const exists = await db.user.findFirst({ where: { username: handle, deletedAt: null }, select: { id: true } });
+  if (!exists) return { title: "Player not found", robots: { index: false } };
+  return { title: `@${handle}`, description: `The public legal record of @${handle} at the Court of the Internet.` };
 }
 
 const PATTERNS: Record<string, string> = {

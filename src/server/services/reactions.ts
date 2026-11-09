@@ -31,7 +31,15 @@ export async function toggleReaction(userId: string, caseId: string, type: React
         select: { id: true },
       });
       if (existing) {
-        await tx.reaction.delete({ where: { id: existing.id } });
+        // deleteMany, not delete: a concurrent toggle may already have removed the row.
+        const removed = await tx.reaction.deleteMany({ where: { id: existing.id } });
+        if (removed.count === 0) {
+          const counts = await tx.case.findUniqueOrThrow({
+            where: { id: caseId },
+            select: { hilariousCount: true, outrageousCount: true, legendaryCount: true, relatableCount: true },
+          });
+          return { active: false, counts };
+        }
         await tx.$executeRawUnsafe(
           `UPDATE "Case" SET "${field}" = GREATEST(0, "${field}" - 1), "reactionScore" = GREATEST(0, "reactionScore" - $1) WHERE "id" = $2`,
           weight,
