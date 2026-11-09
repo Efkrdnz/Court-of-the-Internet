@@ -33,6 +33,10 @@ export async function fileReport(
       await assertActiveUser(tx, reporterId);
       const c = await tx.case.findUnique({ where: { id: input.caseId }, select: { id: true, moderationState: true } });
       if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+      if (input.target !== "CASE") {
+        const arg = await tx.argument.findFirst({ where: { caseId: c.id, role: input.target }, select: { id: true } });
+        if (!arg) throw new CourtError("VALIDATION", "That argument hasn't been filed yet.", "target");
+      }
       await tx.report.create({
         data: { caseId: c.id, reporterId, reason: input.reason, details: input.details, target: input.target, createdAt: clock.now() },
       });
@@ -42,8 +46,27 @@ export async function fileReport(
       });
       const open = distinctReporters.length;
       await tx.case.update({ where: { id: c.id }, data: { openReports: open } });
+      // Every report reaches the moderation queue, but only established reporters can hide a case
+      // on their own: accounts at least a day old whose earlier reports on this case weren't
+      // dismissed. Otherwise three throwaway accounts could freeze any trial again and again.
+      const minAge = new Date(clock.now().getTime() - gameConfig.reporterMinAgeMs);
+      const dismissedBefore = await tx.report.findMany({
+        where: { caseId: c.id, status: "DISMISSED" },
+        select: { reporterId: true },
+        distinct: ["reporterId"],
+      });
+      const established = await tx.report.findMany({
+        where: {
+          caseId: c.id,
+          status: "OPEN",
+          reporter: { createdAt: { lte: minAge } },
+          reporterId: { notIn: dismissedBefore.map((d) => d.reporterId) },
+        },
+        select: { reporterId: true },
+        distinct: ["reporterId"],
+      });
       let autoReview = false;
-      if (open >= gameConfig.autoReviewReportThreshold && c.moderationState === "VISIBLE") {
+      if (established.length >= gameConfig.autoReviewReportThreshold && c.moderationState === "VISIBLE") {
         await tx.case.update({ where: { id: c.id }, data: { moderationState: "UNDER_REVIEW" } });
         await pauseDeliberation(tx, c.id); // voting is paused, so the deadline is too
         autoReview = true;
@@ -59,7 +82,8 @@ export async function fileReport(
 export async function removeCase(moderatorId: string, caseId: string, reason: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { id: true, number: true, accusedId: true, title: true } });
+    const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { id: true, number: true, accusedId: true, title: true, moderationState: true } });
+    if (c.moderationState === "REMOVED") throw new CourtError("ALREADY_DONE", "That case is already sealed.");
     // A sealed case can't be argued: hand any claim back so a later restore finds it on the docket.
     await releaseClaims(tx, { caseId }, sealedCaseNotice);
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "REMOVED", removalReason: reason.slice(0, 300) } });

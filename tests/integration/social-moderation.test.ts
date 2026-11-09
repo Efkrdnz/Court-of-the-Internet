@@ -91,6 +91,7 @@ describe("moderation", () => {
   it("auto-hides a case after three distinct reports and blocks gameplay", async () => {
     const accused = await makeUser();
     const reporters = await makeUsers(3, "reporter");
+    advance(hours(25)); // established accounts
     const c = await makeCase(accused);
     await fileReport(reporters[0], { caseId: c.id, target: "CASE", reason: "REAL_PERSON" });
     await expect(fileReport(reporters[0], { caseId: c.id, target: "CASE", reason: "SPAM" })).rejects.toMatchObject({
@@ -109,6 +110,29 @@ describe("moderation", () => {
     await dismissReports(mod, c.id);
     expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("VISIBLE");
     await claimCase(lawyer, c.id, "DEFENSE");
+  });
+
+  it("throwaway or already-dismissed reporters can't freeze a trial (audit 8 #3)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const mod = await makeUser("abuse_clerk", "MODERATOR");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    // Brand-new accounts: reports are recorded for moderators but don't hide the case.
+    const fresh = await makeUsers(3, "throwaway");
+    for (const r of fresh) expect(await fileReport(r, { caseId: c.id, target: "CASE", reason: "SPAM" })).toEqual({ autoReview: false });
+    let row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ moderationState: "VISIBLE", openReports: 3, deliberationPausedAt: null });
+
+    // A day later they're established, but their reports here were already dismissed once.
+    await dismissReports(mod, c.id);
+    advance(hours(25));
+    for (const r of fresh) await fileReport(r, { caseId: c.id, target: "DEFENSE", reason: "SPAM" });
+    row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.moderationState).toBe("VISIBLE");
+
+    // Reporting an argument that doesn't exist is rejected.
+    const early = await makeCase(accused);
+    await expect(fileReport(fresh[0], { caseId: early.id, target: "PROSECUTION", reason: "SPAM" })).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("lets staff remove cases, strike arguments, ban users and adjourn; players cannot", async () => {
@@ -147,6 +171,7 @@ describe("moderation", () => {
     const c = await makeCase(accused);
     await claimCase(holder, c.id, "DEFENSE");
     await removeCase(admin, c.id, "Checking something");
+    await expect(removeCase(admin, c.id, "Again")).rejects.toMatchObject({ code: "ALREADY_DONE" }); // no duplicate notice
     let row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
     expect(row).toMatchObject({ status: "AWAITING_DEFENSE", claimedById: null, moderationState: "REMOVED" });
     expect(await db.caseClaim.count({ where: { caseId: c.id, outcome: "ACTIVE" } })).toBe(0);
@@ -172,6 +197,7 @@ describe("moderation", () => {
     const admin = await makeUser("pause_admin", "ADMIN");
     const jurors = await makeUsers(10, "pz");
     const reporters = await makeUsers(3, "pzr");
+    advance(hours(25)); // established reporters
 
     // Under review mid-deliberation: the deadline passes but no verdict is reached.
     const c = await makeCase(accused);
@@ -206,7 +232,7 @@ describe("moderation", () => {
     row = await db.case.findUniqueOrThrow({ where: { id: d.id } });
     expect(row.status).toBe("DELIBERATION");
     expect((await stats(attorney)).reputation).toBe(before.reputation);
-    expect(await db.notification.count({ where: { userId: attorney, type: "VERDICT", href: { contains: String(d.number) } } })).toBe(0);
+    expect(await db.notification.count({ where: { userId: attorney, type: "VERDICT", href: { startsWith: `/cases/${d.number}-` } } })).toBe(0);
     await restoreCase(admin, d.id);
     expect(await closeDeliberation(d.id)).toEqual({ kind: "not-due" }); // full 24h remain
     advance(hours(24) + 1);
@@ -253,6 +279,10 @@ describe("moderation", () => {
     await deleteAccount(quitter, "objection!");
     expect(await db.case.findUniqueOrThrow({ where: { id: c.id } })).toMatchObject({ status: "AWAITING_DEFENSE", claimedById: null });
     await claimCase(next, c.id, "DEFENSE");
+    // The deleted username can't be taken over by someone else (audit 8 #6).
+    const oldName = (await db.user.findUniqueOrThrow({ where: { id: quitter } })).username;
+    await expect(makeUser(oldName)).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(authenticate(oldName, "objection!")).rejects.toBeTruthy();
 
     const [modA, modB] = [await makeUser("mod_a", "MODERATOR"), await makeUser("mod_b", "MODERATOR")];
     const admin = await makeUser("ban_admin", "ADMIN");

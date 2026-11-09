@@ -112,6 +112,9 @@ function lbPerson(u: LbRow) {
 
 const activeUser: Prisma.UserWhereInput = { deletedAt: null, bannedAt: null };
 
+/** Deterministic tie-break, so equal players don't shuffle between page loads. */
+const byName = (a: { user: { username: string } }, b: { user: { username: string } }) => a.user.username.localeCompare(b.user.username);
+
 export async function getLeaderboards() {
   const [defenders, prosecutors, convicts, streakers, jurors, xpLeaders, entertaining] = await Promise.all([
     db.userStats.findMany({
@@ -132,7 +135,7 @@ export async function getLeaderboards() {
     }),
     db.userStats.findMany({
       where: { user: activeUser, timesConvicted: { gt: 0 } },
-      orderBy: [{ timesConvicted: "desc" }, { casesConfessed: "desc" }],
+      orderBy: [{ timesConvicted: "desc" }, { casesConfessed: "desc" }, { user: { username: "asc" } }],
       select: { timesConvicted: true, timesAcquitted: true, casesConfessed: true, user: { select: lbUser } },
       take: 10,
     }),
@@ -143,13 +146,13 @@ export async function getLeaderboards() {
     }),
     db.userStats.findMany({
       where: { user: activeUser, juryVotes: { gte: LEADERBOARD_MIN_JURY_VOTES } },
-      orderBy: [{ juryVotes: "desc" }],
+      orderBy: [{ juryVotes: "desc" }, { user: { username: "asc" } }],
       select: { userId: true, juryVotes: true, juryMajorityVotes: true, user: { select: lbUser } },
       take: 10,
     }),
     db.userStats.findMany({
       where: { user: activeUser, xp: { gt: 0 } },
-      orderBy: [{ reputation: "desc" }, { xp: "desc" }],
+      orderBy: [{ reputation: "desc" }, { xp: "desc" }, { user: { username: "asc" } }],
       select: { xp: true, reputation: true, user: { select: lbUser } },
       take: 10,
     }),
@@ -161,15 +164,16 @@ export async function getLeaderboards() {
     }),
   ]);
 
-  const ranked = <T,>(rows: T[], wins: (r: T) => number, losses: (r: T) => number) =>
+  const ranked = <T extends { user: { username: string } },>(rows: T[], wins: (r: T) => number, losses: (r: T) => number) =>
     rows
       .map((r) => {
         const w = wins(r);
         const l = losses(r);
         return { row: r, wins: w, losses: l, decided: w + l, rate: w / Math.max(1, w + l), score: wilsonLowerBound(w, w + l) };
       })
-      .filter((r) => r.decided >= LEADERBOARD_MIN_DECIDED)
-      .sort((a, b) => b.score - a.score || b.wins - a.wins)
+      // A "best" board needs at least one win: 0–4 isn't a ranking anyone wants to top.
+      .filter((r) => r.decided >= LEADERBOARD_MIN_DECIDED && r.wins > 0)
+      .sort((a, b) => b.score - a.score || b.wins - a.wins || byName(a.row, b.row))
       .slice(0, 10);
 
   return {
@@ -196,7 +200,7 @@ export async function getLeaderboards() {
         streak: Math.max(r.longestDefenseStreak, r.longestProsecutionStreak),
         side: r.longestDefenseStreak >= r.longestProsecutionStreak ? ("Defense" as const) : ("Prosecution" as const),
       }))
-      .sort((a, b) => b.streak - a.streak)
+      .sort((a, b) => b.streak - a.streak || a.username.localeCompare(b.username))
       .slice(0, 10),
     jurors: await (async () => {
       const decided = await decidedJuryVotes(jurors.map((r) => r.userId));

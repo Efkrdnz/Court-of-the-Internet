@@ -101,7 +101,8 @@ describe("leaderboards", () => {
 
     const lb = await getLeaderboards();
     expect(lb.prosecutors[0]).toMatchObject({ username: "lb_prosecutor", wins: 3, losses: 0, streak: 3 });
-    expect(lb.attorneys[0]).toMatchObject({ username: "lb_attorney", wins: 0, losses: 3 });
+    // 0–3 qualifies on volume but a "best" board needs at least one win (audit 8 #7).
+    expect(lb.attorneys.map((a) => a.username)).not.toContain("lb_attorney");
     expect(lb.streaks[0]).toMatchObject({ username: "lb_prosecutor", streak: 3, side: "Prosecution" });
     expect(lb.convicts.map((c) => [c.username, c.convictions])).toEqual([["public_culprit", 2]]);
     expect(lb.convicts.map((c) => c.username)).not.toContain("anon_culprit");

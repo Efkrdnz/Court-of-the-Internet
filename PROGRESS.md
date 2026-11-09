@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **66/66 Playwright** and **80/80 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **66/66 Playwright** and **81/81 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **66/66 Playwright** and **80/80 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 80 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 81 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -246,6 +246,31 @@ It confirmed the sixth round end to end:
 | 9 | Audit-log and toast links under 36px | `min-h-9` | — |
 
 Not changed: sealed case pages return 200 with `noindex`. The page explains the seal to people who follow an old link, and the author sees the reason.
+
+## Eighth independent audit (fresh agent, build of commit 5d61ed0)
+
+**Result: 15 PASS (one with an animation note), 2 CONCERN (16, 17 docs accuracy), 0 FAIL.**
+
+It confirmed the seventh round:
+- **Phone widths:** no overflow or undersized buttons on 20 pages at 3 widths.
+- **Statistics:** its SQL matched stored stats for all 66 users after bans and deletions.
+- **Bans:** banned players' open votes are removed.
+- **Rate limits:** rejected submissions keep the form and don't use up limits.
+- **Demo login:** off by default in production.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1, 2 | Exposed directly (no proxy), rotating `X-Forwarded-For` bypasses per-IP limits; the per-account login ceiling can then lock an owner out | **External deployment requirement**: Next doesn't give server actions the socket address, so only a trusted proxy can make IPs reliable. README states the exact behaviour and consequences | — |
+| 3 | Three brand-new accounts could freeze any trial again and again with reports (including reports on arguments that don't exist yet) | reports on unfiled arguments are rejected. Only established reporters count towards auto-review: accounts at least 24h old whose reports on that case haven't been dismissed. Every report still reaches the queue | integration `throwaway or already-dismissed reporters can't freeze a trial` |
+| 4 | README's "no forwarding header" section was wrong (Next does attribute header-less requests to the connection) | rewritten | — |
+| 5 | README said 62 e2e tests; production accepted the public `.env.example` `SESSION_SECRET` | count fixed; production refuses `dev-only-*` secrets | — |
+| 6 | A deleted account's username could be re-registered by someone else, hijacking old `/u/<name>` links | deletion keeps the username on the scrubbed row (deleted players always display as "Former Citizen") | integration: re-signup with the old name → CONFLICT; login refused |
+| 7 | 0W–4L attorney ranked #3; truncated details on desktop; arbitrary distinct ranks for ties; "1 cases need attention" | "best" boards need ≥ 1 win; details wrap; competition ranking (1, 1, 3) with a name tie-break; plural fix | leaderboards integration test updated |
+| 8 | Re-sealing a sealed case re-notified the author; "Awaiting defense" counted claimed cases; 34px moderation inputs | ALREADY_DONE; counts only claimable cases; `min-h-9` | integration (double seal refused) |
+
+Not changed:
+- **Banned players can still log in to browse.** This is intentional; every action is refused and a banner explains why.
+- **Pages are heavy because SVGs are inline.** The leaderboards page is about 120 KB gzipped. Acceptable for now, and noted for a future optimisation (sprite or `<use>` reuse).
 
 ## Per-phase evidence
 

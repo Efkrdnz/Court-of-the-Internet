@@ -155,7 +155,7 @@ npm run build
 npm run test:e2e
 ```
 
-**End-to-end tests** (62, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
+**End-to-end tests** (66, on a production build, with real rate limits on) play a full trial through the real UI with five browser contexts (sign-up → confession → defense → prosecution → three jurors → admin adjourns → public verdict, archive search, OG image, profile stats, notifications). They also cover:
 - role restrictions, the reaction and report flows
 - the rendered leaderboards (thresholds, Wilson order, agreement with profiles)
 - **axe accessibility** on 13 pages
@@ -229,12 +229,11 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 
 - **Client IPs need a proxy.** IP-based limits use the right-most `X-Forwarded-For` entries (`TRUST_PROXY_HOPS`).
   - **Behind a reverse proxy** (nginx, Vercel, Fly…) clients can't spoof them. Login is limited to 8 attempts per account per client IP, so one attacker can't lock the owner out from a different IP. There is also a per-account ceiling of 100 attempts per 15 minutes across all IPs. It stops distributed brute force, but someone spraying wrong passwords from many IPs can lock the real owner out, even with the correct password, until the 15-minute window resets. That is a deliberate trade-off: letting correct passwords through would defeat the ceiling.
-  - **With `next start` exposed directly**, the client controls that header, because Next doesn't expose the socket address to server actions. The per-IP limits on signup, login and confession can then be bypassed by rotating the header. The only fixed protection left is the per-account ceiling of 100 login attempts per 15 minutes, plus scrypt's cost per guess. Always deploy behind a proxy.
-  - **Requests with no forwarding header at all** have no known IP. They skip the per-IP limits instead of sharing one bucket, which would let a single noisy client lock everyone out. In that case:
-    - logins rely on the per-account ceiling
-    - signups fall under a site-wide ceiling of 60 per hour
-    - confessions rely on the per-player limit of 3 per 10 minutes
-    - logged-out case views aren't counted
+  - **With `next start` exposed directly**, a request that carries no `X-Forwarded-For` is attributed to its connection address, but a client that sends its own header controls the value. Rotating the header bypasses the per-IP limits on signup, login and confession, and inflates logged-out view counts.
+    - The only fixed protections left are the per-player limits and the per-account login ceiling, plus scrypt's cost per guess.
+    - Someone spraying 100 wrong passwords from rotated IPs can still lock an account's owner out for 15 minutes (see above).
+    - **Always deploy behind a proxy.** This is a deployment requirement, not something the app can fix: Next doesn't give server actions the socket address.
+  - If a request has no address at all (no header and none set by the server), per-IP limits are skipped rather than lumping such clients into one shared bucket. Signups then fall under a site-wide 60/hour ceiling and logged-out views aren't counted.
 - **Moderation doesn't rewrite history.**
   - Sealing a *closed* case hides it from every public page and the archive totals, but the players' records (wins, convictions, XP) from that trial stand.
   - Striking an argument hides it from non-staff without pausing or annulling the trial; jurors who already voted keep their votes. Seal the case instead if the whole trial should stop.

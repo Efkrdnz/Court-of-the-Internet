@@ -34,6 +34,8 @@ export const gameConfig = {
   claimGraceMs: 2 * 60_000,
   maxConfessionsPerDay: 5,
   autoReviewReportThreshold: 3,
+  /** Reporters younger than this don't count towards auto-review (their reports still reach moderators). */
+  reporterMinAgeMs: 24 * 3_600_000,
 };
 
 export const appConfig = {
@@ -52,9 +54,10 @@ export const appConfig = {
   },
   get sessionSecret() {
     const secret = process.env.SESSION_SECRET;
-    if (!secret || secret.length < 32) {
+    // The .env.example placeholder ("dev-only-…") is public, so production refuses it too.
+    if (!secret || secret.length < 32 || (isProduction && secret.startsWith("dev-only-"))) {
       if (isProduction && process.env.NEXT_PHASE !== "phase-production-build") {
-        throw new Error("SESSION_SECRET must be set to at least 32 characters in production.");
+        throw new Error("SESSION_SECRET must be set to at least 32 random characters in production (not the .env.example placeholder).");
       }
       return "dev-only-insecure-session-secret-do-not-use-in-prod";
     }

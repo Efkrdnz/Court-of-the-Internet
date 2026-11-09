@@ -55,9 +55,9 @@ export function ModForm({
       <input type="hidden" name="op" value={op} />
       {caseId ? <input type="hidden" name="caseId" value={caseId} /> : null}
       {userId ? <input type="hidden" name="userId" value={userId} /> : null}
-      {withReason ? <input name="reason" placeholder={reasonPlaceholder ?? "Reason"} className="input !w-56 !py-1.5 text-sm" aria-label="Reason" /> : null}
+      {withReason ? <input name="reason" placeholder={reasonPlaceholder ?? "Reason"} className="input min-h-9 !w-56 !py-1.5 text-sm" aria-label="Reason" /> : null}
       {options ? (
-        <select name={options.name} className="select !w-56 !py-1.5 text-sm" aria-label={options.name}>
+        <select name={options.name} className="select min-h-9 !w-56 !py-1.5 text-sm" aria-label={options.name}>
           {options.values.map((v) => (
             <option key={v} value={v}>
               {v}

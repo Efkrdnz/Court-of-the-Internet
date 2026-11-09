@@ -19,6 +19,7 @@ function Board<T extends Person>({
   subtitle,
   rows,
   stat,
+  tieKey,
   detail,
   empty,
   tone,
@@ -27,6 +28,8 @@ function Board<T extends Person>({
   subtitle: string;
   rows: T[];
   stat: (r: T) => React.ReactNode;
+  /** Rows with an equal tie key share a rank (1, 1, 3…) instead of getting arbitrary distinct ones. */
+  tieKey?: (r: T) => string | number;
   detail: (r: T) => React.ReactNode;
   empty: string;
   tone: "teal" | "crimson" | "gold" | "plum";
@@ -53,19 +56,21 @@ function Board<T extends Person>({
         <ol className="space-y-1.5">
           {rows.map((r, i) => {
             const badge = r.featuredBadge ? getAchievement(r.featuredBadge) : undefined;
+            // Competition ranking on ties: the rank of the first row with the same key.
+            const rank = tieKey ? rows.findIndex((x) => tieKey(x) === tieKey(r)) + 1 : i + 1;
             return (
               <li key={r.username}>
                 <Link href={`/u/${r.username}`} className={clsx("flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-night/40", i === 0 && "bg-gold/10 ring-1 ring-gold/40")}>
                   <span className={clsx("w-7 shrink-0 text-center font-display text-lg font-black", i === 0 ? "text-gold-light" : i < 3 ? "text-parchment" : "text-parchment/50")}>
-                    {i + 1}
+                    {rank}
                   </span>
                   <Avatar config={r.avatar} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      <span className="min-w-0 font-bold leading-tight text-parchment sm:truncate">{r.displayName}</span>
+                      <span className="min-w-0 font-bold leading-tight text-parchment">{r.displayName}</span>
                       {badge ? <AchievementBadge icon={badge.icon} tier={badge.tier} className="h-5 w-4 shrink-0" title={badge.name} /> : null}
                     </span>
-                    <span className="block text-xs text-parchment/55 sm:truncate">{detail(r)}</span>
+                    <span className="block text-xs text-parchment/55">{detail(r)}</span>
                   </span>
                   <span className="shrink-0 text-right font-display text-lg font-black text-gold-light">{stat(r)}</span>
                 </Link>
@@ -120,6 +125,7 @@ export default async function LeaderboardsPage() {
           subtitle="Public confessions only · the court's most wanted"
           rows={lb.convicts}
           stat={(r) => r.convictions}
+          tieKey={(r) => r.convictions}
           detail={(r) => `${r.convictions}× guilty · ${r.acquittals}× acquitted · ${r.confessed} public confessions`}
           empty="Nobody has been convicted yet. Suspicious."
           tone="gold"
@@ -129,6 +135,7 @@ export default async function LeaderboardsPage() {
           subtitle="Best ever consecutive wins in either role"
           rows={lb.streaks}
           stat={(r) => r.streak}
+          tieKey={(r) => r.streak}
           detail={(r) => `${r.side} streak`}
           empty="No streaks yet. Be the first."
           tone="plum"
@@ -138,6 +145,7 @@ export default async function LeaderboardsPage() {
           subtitle={`Min. ${lb.thresholds.juryVotes} votes · the backbone of justice`}
           rows={lb.jurors}
           stat={(r) => r.votes}
+          tieKey={(r) => r.votes}
           detail={(r) => `${percent(r.agreement)} with the majority (decided cases)`}
           empty="The jury box is empty. Report for duty!"
           tone="gold"

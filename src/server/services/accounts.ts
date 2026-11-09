@@ -143,14 +143,14 @@ export async function deleteAccount(userId: string, password: string) {
   if (!(await verifyPassword(password, user.passwordHash))) {
     throw new CourtError("VALIDATION", "Password is incorrect.", "password");
   }
-  const tombstone = `deleted_${userId.slice(-8)}`;
   await db.$transaction(async (tx) => {
     // Free any case they were drafting so other players aren't blocked until it expires.
     await releaseClaims(tx, { userId });
     await tx.user.update({
       where: { id: userId },
       data: {
-        username: tombstone,
+        // The username stays on the row (never shown: deleted players appear as "Former Citizen"),
+        // so nobody can re-register it and inherit old /u/<name> links.
         displayName: "Former Citizen",
         bio: "",
         passwordHash: "deleted",

@@ -87,7 +87,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           <p className="eyebrow">Officers of the court only</p>
           <h1 className="font-display text-4xl font-black text-parchment sm:text-5xl">Moderation console</h1>
           <p className="mt-2 text-parchment/70">
-            {totals} open reports · {queue.length} cases need attention · signed in as {isAdmin ? "Presiding Judge (admin)" : "Court Clerk (moderator)"}
+            {totals} open reports · {queue.length} {queue.length === 1 ? "case needs" : "cases need"} attention · signed in as {isAdmin ? "Presiding Judge (admin)" : "Court Clerk (moderator)"}
           </p>
         </div>
         <JudgeOwl mood="stern" className="chr-sticker hidden w-36 md:block" />

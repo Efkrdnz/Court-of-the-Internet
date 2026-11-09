@@ -194,8 +194,9 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
     active: mineCards.filter((c) => c.status !== "CLOSED"),
     closed: mineCards.filter((c) => c.status === "CLOSED").slice(0, 6),
     stages: {
-      awaitingDefense: (counts.AWAITING_DEFENSE ?? 0) + (counts.DEFENSE_CLAIMED ?? 0),
-      awaitingProsecution: (counts.AWAITING_PROSECUTION ?? 0) + (counts.PROSECUTION_CLAIMED ?? 0),
+      // Only cases someone can pick up right now (the doors invite you to claim one).
+      awaitingDefense: counts.AWAITING_DEFENSE ?? 0,
+      awaitingProsecution: counts.AWAITING_PROSECUTION ?? 0,
       deliberation: counts.DELIBERATION ?? 0,
     },
     today: {
