@@ -88,7 +88,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
               </Link>
             </div>
             <p className="mt-5 text-sm text-parchment/55">
-              Free to play · no registration needed to browse the{" "}
+              {user ? "Catch up on past verdicts in the" : "Free to play · no registration needed to browse the"}{" "}
               <Link href="/archives" className="inline-flex min-h-9 items-center font-semibold text-gold-light underline underline-offset-2">
                 public archives
               </Link>
@@ -104,13 +104,13 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
             <div className="absolute inset-x-[10%] top-[44%] h-[14%] rounded-md border-2 border-gold/60 bg-gradient-to-b from-[#6b3a22] to-[#3d1f12] shadow-xl">
               <WaxSeal color="gold" emblem="scales" className="absolute left-1/2 top-1/2 h-[90%] -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <div className="absolute bottom-[3%] left-[-2%] w-[30%]">
+            <div className="absolute bottom-[3%] left-0 w-[30%] sm:left-[-2%]">
               <PigeonAttorney className="chr-hover chr-sticker w-full" />
             </div>
             <div className="absolute bottom-[1%] left-[33%] w-[26%]">
               <HamsterDefendant nervous className="chr-hover chr-sticker w-full" />
             </div>
-            <div className="absolute bottom-[3%] right-[-4%] w-[33%]">
+            <div className="absolute bottom-[3%] right-0 w-[33%] sm:right-[-4%]">
               <RaccoonProsecutor className="chr-hover chr-sticker w-full" />
             </div>
             <div className="doc !absolute -right-4 top-[18%] hidden w-[27%] rotate-6 p-1.5 sm:block">

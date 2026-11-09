@@ -22,6 +22,12 @@ async function lockCase(tx: Tx, caseId: string) {
   await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
 }
 
+/** Deliberation time a paused trial still had when it was paused (0 if it had been adjourned). */
+function timeLeftWhenPaused(c: { deliberationEndsAt: Date | null; deliberationPausedAt: Date | null }): number {
+  if (!c.deliberationEndsAt) return 0;
+  return c.deliberationEndsAt.getTime() - (c.deliberationPausedAt ?? clock.now()).getTime();
+}
+
 async function assertStaff(tx: Tx, userId: string) {
   const u = await tx.user.findUnique({ where: { id: userId }, select: { role: true, bannedAt: true } });
   if (!u || u.bannedAt || (u.role !== "ADMIN" && u.role !== "MODERATOR")) {
@@ -140,7 +146,18 @@ export async function restoreCase(moderatorId: string, caseId: string) {
     await lockCase(tx, caseId);
     const exists = await tx.case.findUnique({
       where: { id: caseId },
-      select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, status: true, moderationState: true },
+      select: {
+        id: true,
+        number: true,
+        slug: true,
+        accusedId: true,
+        attorneyId: true,
+        prosecutorId: true,
+        status: true,
+        moderationState: true,
+        deliberationEndsAt: true,
+        deliberationPausedAt: true,
+      },
     });
     if (!exists) throw new CourtError("NOT_FOUND", "That case could not be found.");
     // Only a sealed case can be restored (a stale console must not silently dismiss open reports).
@@ -158,7 +175,9 @@ export async function restoreCase(moderatorId: string, caseId: string) {
           await notify(tx, id, {
             type: "MODERATION",
             title: `Case No. ${formatCaseNumber(exists.number)} is back in session`,
-            body: "The seal was lifted and deliberation resumed with its remaining time.",
+            body: timeLeftWhenPaused(exists) > 0
+              ? "The seal was lifted and deliberation resumed with its remaining time."
+              : "The seal was lifted. Its time had already run out (it was adjourned), so the verdict is being read now.",
             href: casePath(exists),
           });
         }
@@ -190,14 +209,17 @@ export async function dismissReports(moderatorId: string, caseId: string) {
       // Participants of a live trial were told the clock waits for the review; tell them it's running.
       const t = await tx.case.findUniqueOrThrow({
         where: { id: caseId },
-        select: { status: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true },
+        select: { status: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, deliberationEndsAt: true },
       });
       if (t.status === "DELIBERATION") {
         for (const id of [t.accusedId, t.attorneyId, t.prosecutorId].filter(Boolean) as string[]) {
           await notify(tx, id, {
             type: "MODERATION",
             title: `Case No. ${formatCaseNumber(t.number)}: the jury is back in session`,
-            body: "The review is over and deliberation is running again with its remaining time.",
+            body:
+              t.deliberationEndsAt && t.deliberationEndsAt > clock.now()
+                ? "The review is over and deliberation is running again with its remaining time."
+                : "The review is over. Its time had already run out (it was adjourned), so the verdict is being read now.",
             href: casePath(t),
           });
         }

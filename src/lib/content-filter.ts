@@ -46,14 +46,14 @@ const SLURS = new Set(ENCODED_SLURS.split(",").map(rot13));
 /** Listed words whose past-participle form is used as the slur (ROT13). */
 const ED_SLURS = new Set(["ergneq"].map(rot13));
 
-const LEET: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "6": "g", "7": "t", "@": "a", $: "s", "!": "i" };
+const LEET: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "6": "g", "7": "t", "9": "g", "@": "a", $: "s", "!": "i" };
 
 function normaliseForWords(text: string): string[] {
   const lowered = text
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
-    .replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
+    .replace(/[01345679@$!]/g, (c) => LEET[c] ?? c);
   return lowered.split(/[^a-z]+/).filter(Boolean);
 }
 
@@ -160,6 +160,13 @@ const VIOLENCE = [
   new RegExp(`\\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|about|tr(?:y|ying|ied)|decided|need|going|gonna)\\s+(?:to\\s+)?(?:poison|drug|spike|lace)\\s+${TARGET}\\b`, "i"),
   // "I would kill my brother", but not the everyday "I could kill my brother for eating my fries".
   new RegExp(`\\bi\\s*(?:would|'d|could|should|might)\\s+(?:kill|murder|stab|shoot|poison|strangle)\\s+${TARGET}\\b${NOT_THEIR_THING}(?!\\s+for\\b)`, "i"),
+  // "Someone should shoot him": wishing harm by someone else's hand.
+  new RegExp(`\\b(?:someone|somebody|they|you|people)\\s+(?:should|needs?\\s+to|ought\\s+to)\\s+(?:kill|shoot|stab|murder|hurt|beat\\s+up|poison)\\s+${TARGET}\\b`, "i"),
+  // "I will find you and break your legs", "put my neighbour in the hospital", "make sure he never wakes up".
+  /\b(?:find|hunt\s+down|track\s+down)\s+(?:you|u|him|her|them)\s+and\s+(?:kill|hurt|break|beat|end|stab|shoot)\b/i,
+  /\bbreak\s+(?:your|his|her|their|ur)\s+(?:legs?|arms?|neck|face|jaw|kneecaps?|skull|ribs?)\b/i,
+  new RegExp(`\\bput\\s+${TARGET}\\s+in\\s+(?:the\\s+|a\\s+)?(?:hospital|icu|coma|ground|grave|morgue)\\b`, "i"),
+  new RegExp(`\\b(?:make\\s+sure|so\\s+that)\\s+${TARGET}\\s+(?:never|doesn'?t|won'?t)\\s+wakes?\\s+up\\b`, "i"),
   /\bshoot\s+up\b/i,
   /\b(?:make|build|plant)\s+a\s+bomb\b/i,
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,
@@ -199,6 +206,12 @@ const SERIOUS = [
   /\b(?:sold|sell|selling|gave|supplied)\s+(?:\w+\s+){0,3}(?:weed|cannabis|marijuana|pot|vapes?|alcohol|booze|pills|drugs)\s+to\s+(?:\w+\s+)?(?:kids|children|minors|teens|teenagers|students|underage|high[\s-]?schoolers|middle[\s-]?schoolers|freshmen)\b/i,
   // Dealing hard drugs.
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:\w+\s+){0,2}(?:cocaine|coke|heroin|meth|fentanyl|crack|mdma|ecstasy|hard\s+drugs|drugs)\b/i,
+  // Burglary (your own car or piggy bank is fine), shoplifting something big, fraud, hit-and-run.
+  /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
+  /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps5|xbox|switch|jewel\w*|watch|watches|bikes?|tools?)\b/i,
+  /\bembezzl/i,
+  /\bhit[\s-]and[\s-]run\b/i,
+  /\b(?:stole|steal|stealing|cloned|skimmed|swiped)\s+(?:\w+(?:'s|s')?\s+){0,2}(?:credit|debit|bank)\s+cards?\b|\bcredit[\s-]card\s+(?:fraud|theft)\b|\bidentity\s+theft\b/i,
   /\brap(?:e|ed|ing|ist)\b/i,
   /\bmolest/i,
   /\bpaedo|\bpedo(?:phile)?s?\b/i,
@@ -265,10 +278,15 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\s+\.\s*(?=(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|ninja)\b)/gi, ".")
     // Other stand-ins for the dot before the big three TLDs, which may be spaced out:
     // "pettyking·com", "pettyking, com", "pettyking / com", "pettyking dot c o m".
+    // "pettyking .c o m": a real dot before a TLD spelled out with spaces (one inside it at least,
+    // so "I sold it. Net profit…" stays a sentence).
+    .replace(/([a-z0-9])\s*\.\s*(c\s[o0]\s?m|c[o0]\s+m|n\s[e3]\s?t|n[e3]\s+t|[o0]\s[r]\s?g|[o0]r\s+g)(?![a-z0-9-])/gi, (_, a: string, tld: string) =>
+      `${a}.${tld.replace(/\s+/g, "").replace(/0/g, "o").replace(/3/g, "e")}`,
+    )
     .replace(/([a-z0-9])\s*(?:[·•‧∙⋅・,/|]|\s+dot\s+)\s*(c\s?[o0]\s?m|n\s?[e3]\s?t|[o0]\s?r\s?g)(?![a-z0-9-])/gi, (_, a: string, tld: string) =>
       `${a}.${tld.replace(/\s+/g, "").replace(/0/g, "o").replace(/3/g, "e")}`,
     );
-  const leet = undotted.replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
+  const leet = undotted.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c);
   // Digit-like tokens read O as 0 and I/l as 1 ("O77OO 9OO 123").
   const deLettered = text.replace(/\b[\dOoIl]*\d[\dOoIl]*\b/g, (tok) => tok.replace(/[Oo]/g, "0").replace(/[Il]/g, "1"));
   const numbered = deLettered.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
@@ -300,7 +318,9 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   if (IPV4.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(sentences(text)) || URL.test(sentences(undotted)) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
   // "@ pettyking on twitter": a detached @name next to a platform name.
   const detachedHandle = /@\s+[a-z0-9_.]{3,}\b.{0,25}\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b/i.test(text);
-  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || detachedHandle) return fail("handle");
+  // "pettyking#1234" (Discord tag), "u/pettyking" (Reddit).
+  const taggedHandle = /\b[a-z][\w.]{2,31}#\d{4}\b/i.test(text) || /(?:^|[^\w/])u\/[a-z0-9_-]{3,}\b/i.test(text);
+  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || detachedHandle || taggedHandle) return fail("handle");
 
   const words = normaliseForWords(text);
   // Plurals of listed words ("…s", "…es"), and the few whose "…ed" form is the slur itself.
@@ -323,7 +343,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     if (collapsed !== word && SLURS_COLLAPSED.has(collapsed)) return fail("hate");
   }
   // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
-  const decoded = text.replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
+  const decoded = text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c);
   if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("violence");
   if (SERIOUS.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("serious-crime");
   // Same specific message as titles get, rather than the generic spam one.

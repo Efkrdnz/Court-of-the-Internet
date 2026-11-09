@@ -51,6 +51,19 @@ export const BENIGN = [
   "I said I O U to my roommate 100 times",
   "I hacked together a costume from cereal boxes",
   "meet me @ noon at the vending machine",
+  // Near-misses of the audit 29 patterns
+  "I broke into song at my cousin's wedding",
+  "I broke into my own piggy bank for vending machine money",
+  "I broke into my car after locking the keys inside",
+  "I shoplifted a grape at the supermarket and felt bad",
+  "I used my mom's credit card to buy one pizza and told her",
+  "Someone should tell him the meeting was cancelled",
+  "I'll find you and give your stapler back, promise",
+  "Break a leg at the audition!",
+  "I sold it. Net profit was five dollars",
+  "My cat's Discord server has 3 members",
+  "I hit and ran away from the dodgeball",
+  "My tiktok is hilarious, my mom says",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -77,4 +90,18 @@ export const EVASIONS: [string, string][] = [
   ["call 555|123|4567 for legal advice", "personal-info"],
   ["visit evil.io now", "link"],
   ["go to 192.168.0.1 now", "link"],
+  // Audit 29
+  ["I broke into my neighbor's house while they were away", "serious-crime"],
+  ["I shoplifted a TV from the electronics store", "serious-crime"],
+  ["Someone should shoot him", "violence"],
+  ["I embezzled money from the charity bake sale", "serious-crime"],
+  ["It was a hit-and-run and I drove off", "serious-crime"],
+  ["I stole my coworker's credit card", "serious-crime"],
+  ["I will find you and break your legs", "violence"],
+  ["I'm going to put my neighbor in the hospital", "violence"],
+  ["I'll make sure my boss never wakes up", "violence"],
+  ["My discord is pettyking#1234", "handle"],
+  ["find me at u/pettyking on reddit", "handle"],
+  ["visit pettyking .c o m", "link"],
+  ["you fa990t", "hate"],
 ];

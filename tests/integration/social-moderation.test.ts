@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
-import { resetClock } from "@/server/clock";
+import { clock, resetClock } from "@/server/clock";
 import { castVote, claimCase, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { runMaintenanceNow } from "@/server/services/maintenance";
@@ -322,6 +322,23 @@ describe("moderation", () => {
     await deleteAccount(quitter, "objection!");
     expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).openReports).toBe(1);
     expect(await db.report.findFirstOrThrow({ where: { reporterId: quitter } })).toMatchObject({ status: "DISMISSED" });
+  });
+
+  it("a double-submitted argument is told it's already on file, and an adjourned-then-sealed trial says so on restore (audit 29 #3, #5)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("adj_seal_admin", "ADMIN");
+    const c = await makeCase(accused);
+    await claimCase(attorney, c.id, "DEFENSE");
+    await submitArgument(attorney, c.id, "DEFENSE", DEFENSE_TEXT);
+    await expect(submitArgument(attorney, c.id, "DEFENSE", DEFENSE_TEXT)).rejects.toMatchObject({ message: "Your defense is already on file." });
+    await claimCase(prosecutor, c.id, "PROSECUTION");
+    await submitArgument(prosecutor, c.id, "PROSECUTION", PROSECUTION_TEXT);
+    // Adjourned, then sealed before the close ran.
+    await db.case.update({ where: { id: c.id }, data: { deliberationEndsAt: new Date(clock.now().getTime() - 1000) } });
+    await removeCase(admin, c.id, "Checking");
+    await restoreCase(admin, c.id);
+    const note = await db.notification.findFirstOrThrow({ where: { userId: attorney, title: { contains: "back in session" } } });
+    expect(note.body).toMatch(/verdict is being read now/);
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {

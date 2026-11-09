@@ -633,3 +633,11 @@ describe("everyday confessions vs evasions corpus (audit 28 #1, #2)", async () =
     expect(screenText(text)).toMatchObject({ ok: false, issue });
   });
 });
+
+describe("stacked accents on precomposed letters (audit 29 #6)", () => {
+  it("caps marks on the decomposed form and keeps real two-mark letters", () => {
+    expect(normalizeText("á́́́").normalize("NFD")).toBe("á́");
+    expect(normalizeText("Nguyễn Thị Ệ")).toBe("Nguyễn Thị Ệ");
+    expect(normalizeText("한국어 café")).toBe("한국어 café");
+  });
+});

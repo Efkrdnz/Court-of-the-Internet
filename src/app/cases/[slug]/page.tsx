@@ -173,7 +173,8 @@ export default async function CasePage({ params, searchParams }: Props) {
       {detail.underReview ? <FormAlert kind="info" className="mb-6">This case is under review by the clerks and hidden from public listings.</FormAlert> : null}
 
       {/* Caption */}
-      <header className="doc doc-ruled relative overflow-hidden px-5 py-8 text-center sm:px-10 sm:py-10">
+      {/* Phones: extra bottom room so the category line clears the bottom corner ornaments. */}
+      <header className="doc doc-ruled relative overflow-hidden px-5 pb-16 pt-8 text-center sm:px-10 sm:py-10">
         <OrnateCorner position="tl" className="absolute left-2 top-2 w-14 text-gold-dark sm:w-20" />
         <OrnateCorner position="tr" className="absolute right-2 top-2 w-14 text-gold-dark sm:w-20" />
         <OrnateCorner position="bl" className="absolute bottom-2 left-2 w-14 text-gold-dark sm:w-20" />
@@ -185,7 +186,7 @@ export default async function CasePage({ params, searchParams }: Props) {
         <p className="mt-4 font-display text-sm font-bold uppercase tracking-[0.35em] text-burgundy">In the Court of the Internet</p>
         <p className="mt-1 font-display text-lg italic text-sepia">The People v. {c.accused.displayName.replace(/^You \(as (.*)\)$/, "$1")}</p>
         <h1 className="mx-auto mt-3 max-w-3xl text-balance font-display text-2xl font-black leading-tight text-ink min-[400px]:text-3xl sm:text-5xl">{c.title}</h1>
-        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-sepia">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-sepia">
           <CategoryIcon category={c.category} className="h-7 w-7" />
           <span className="font-bold">{cat.label}</span>
           <span className="whitespace-nowrap font-type">{cat.statute}</span>

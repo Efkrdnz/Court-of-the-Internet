@@ -719,6 +719,21 @@ Everything else held under its races: claims, votes, moderation storms, bans and
 
 Kept by design and now documented: the sealed-case page answers 200, and Next.js answers a cross-origin action POST with 500.
 
+## Twenty-ninth independent audit (fresh agent, build of commit 6a916e9)
+
+**Result: 16 PASS, 1 CONCERN (17), 0 FAIL.** No false positives: all 53 everyday texts it wrote were accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Filter misses: burglary, shoplifting a TV, embezzlement, hit-and-run, card theft, "someone should shoot him", "find you and break your legs", "put my neighbour in the hospital", "make sure my boss never wakes up", `pettyking#1234`, `u/pettyking`, "pettyking .c o m", "fa990t" | patterns for each (with benign near-misses kept: "broke into song", "broke into my own car", "shoplifted a grape", "used my mom's credit card", "break a leg", "I sold it. Net profit…"); `9` → `g` in leetspeak; README lists the screened serious-crime categories and the remaining gaps | corpus now 57 everyday sentences and 36 evasions; 341 seed texts pass |
+| 2 | Two concurrent "Assign me a random case" clicks: the loser said "the docket is empty" | it finds the claim the other click made and goes to it | — |
+| 3 | A double-submitted argument was told "The defense attorney has already filed" | the author is told "Your defense is already on file" | integration |
+| 4 | Duplicate reports used up the 10-per-hour report budget | reports reserve an attempt and give it back unless filed | — |
+| 5 | Adjourn racing a seal: on restore, counsel were told the trial "resumed with its remaining time" though it closed at once | the restore/dismiss notices say the time had run out and the verdict is being read | integration |
+| 6 | Cosmetic: the statute touched the corner ornament at 320px; hero art touched the screen edge at 360px; signed-in users saw "no registration needed"; stacked accents on a precomposed letter ("á́́́") | more bottom room on phones; side characters inside the frame on phones; signed-in wording; combining marks capped on the decomposed form (Vietnamese two-mark letters kept) | unit (accents) |
+
+Environment note from the audit: the checkout's untracked local `.env` enables demo login; production deployments leave `ENABLE_DEMO_LOGIN` unset (README), and `.env.example` leaves it off.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

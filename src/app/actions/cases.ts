@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { ArgumentRole, ReactionType, ReportReason, VoteChoice } from "@prisma/client";
 import { argumentSchema, confessionSchema, reactionSchema, reportSchema, voteSchema } from "@/lib/validation";
 import { clientIp, requireActiveUser } from "@/server/auth/current-user";
-import { enforceRateLimit } from "@/server/rate-limit";
+import { enforceRateLimit, reserveAttempt } from "@/server/rate-limit";
 import { castVote, claimCase, confess, precheckConfession, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
 import { fileReport } from "@/server/services/moderation";
@@ -123,13 +123,21 @@ export async function reportAction(_prev: ActionResult | null, formData: FormDat
     assertForm(formData);
     const user = await requireActiveUser();
     const input = reportSchema.parse(formObject(formData));
-    await enforceRateLimit(`report:${user.id}`, 10, 3600, "You've filed a lot of reports. The clerks need a minute.");
-    const { autoReview } = await fileReport(user.id, {
-      caseId: input.caseId,
-      target: input.target,
-      reason: input.reason as ReportReason,
-      details: input.details,
-    });
+    // Only reports actually filed count: a duplicate or a missing case gives its attempt back.
+    const refund = await reserveAttempt([{ key: `report:${user.id}`, limit: 10, windowSeconds: 3600, message: "You've filed a lot of reports. The clerks need a minute." }]);
+    let filed;
+    try {
+      filed = await fileReport(user.id, {
+        caseId: input.caseId,
+        target: input.target,
+        reason: input.reason as ReportReason,
+        details: input.details,
+      });
+    } catch (e) {
+      await refund();
+      throw e;
+    }
+    const { autoReview } = filed;
     refresh();
     return {
       ok: true,

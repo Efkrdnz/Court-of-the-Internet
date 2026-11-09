@@ -314,11 +314,13 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
         claimedById: true,
         claimExpiresAt: true,
         moderationState: true,
-        arguments: { where: { role }, select: { id: true } },
+        arguments: { where: { role }, select: { id: true, authorId: true } },
       },
     });
     if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
     if (c.arguments.length > 0) {
+      // A double-submit finds its own first copy: say so in the second person.
+      if (c.arguments[0].authorId === userId) throw new CourtError("ALREADY_DONE", `Your ${role === "DEFENSE" ? "defense" : "prosecution"} is already on file.`);
       throw new CourtError("ALREADY_DONE", `The ${ROLE_NOUN[role]} has already filed for this case.`);
     }
     const ineligible = eligibilityError({ ...c, prosecutorId: null }, userId, role);

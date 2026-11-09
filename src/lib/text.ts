@@ -9,8 +9,10 @@ export function normalizeText(input: string, { multiline = true }: { multiline?:
   let s = input.normalize("NFC");
   // Invisible characters: zero-width, bidi controls, soft hyphens, fillers (spoofing / filter evasion).
   s = s.replace(INVISIBLE, "").replace(STRAY_ZWJ, "");
-  // "Zalgo" text: at most two combining marks per character (real languages rarely need more).
-  s = s.replace(/(\p{M}{2})\p{M}+/gu, "$1");
+  // "Zalgo" text: at most two combining marks per character (real languages rarely need more:
+  // Vietnamese "ệ" has two). Counted on the decomposed form, so a precomposed "á" plus extra
+  // accents counts its own accent too.
+  s = s.normalize("NFD").replace(/(\p{M}{2})\p{M}+/gu, "$1").normalize("NFC");
   // ASCII control chars except tab/newline.
   s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
   s = s.replace(/\r\n?/g, "\n").replace(/\t/g, " ");
