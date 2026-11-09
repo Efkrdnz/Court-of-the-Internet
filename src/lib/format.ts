@@ -22,6 +22,11 @@ export function formatDate(iso: string | Date): string {
   return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 }
 
+export function formatMonth(iso: string | Date): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "long", timeZone: "UTC" });
+}
+
 export function formatDateTime(iso: string | Date): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;
   return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC", timeZoneName: "short" });

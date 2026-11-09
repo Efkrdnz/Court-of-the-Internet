@@ -173,7 +173,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
               <h2 id="featured-heading" className="mt-2 font-display text-4xl font-black text-parchment">
                 Today&apos;s most scandalous ruling
               </h2>
-              <p className="mt-3 text-parchment/70">Hand-picked by the bench from this week&apos;s most-discussed verdicts. Read the arguments. Agree with the jury. Or don&apos;t.</p>
+              <p className="mt-3 text-parchment/70">Hand-picked by the bench from the most-discussed verdicts. Read the arguments. Agree with the jury. Or don&apos;t.</p>
               <Link href={casePath(featured)} className="btn mt-6">
                 Read the transcript
               </Link>

@@ -7,6 +7,7 @@ import { CourtError, isUniqueViolation } from "../errors";
 import { casePath, formatCaseNumber } from "@/lib/text";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
+import { releaseClaims, sealedCaseNotice } from "./claims";
 import { getAchievement } from "@/lib/achievements";
 import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from "@/lib/cosmetics";
 
@@ -57,10 +58,9 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { id: true, number: true, accusedId: true, title: true } });
-    await tx.case.update({
-      where: { id: caseId },
-      data: { moderationState: "REMOVED", removalReason: reason.slice(0, 300), claimedById: null, claimExpiresAt: null },
-    });
+    // A sealed case can't be argued: hand any claim back so a later restore finds it on the docket.
+    await releaseClaims(tx, { caseId }, sealedCaseNotice);
+    await tx.case.update({ where: { id: caseId }, data: { moderationState: "REMOVED", removalReason: reason.slice(0, 300) } });
     await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "ACTIONED", resolvedAt: clock.now() } });
     await tx.case.update({ where: { id: caseId }, data: { openReports: 0 } });
     await notify(tx, c.accusedId, {
@@ -76,6 +76,9 @@ export async function restoreCase(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "VISIBLE", removalReason: null } });
+    // Repairs cases sealed by older versions that cleared the claimer but kept a "claimed" status.
+    await tx.case.updateMany({ where: { id: caseId, status: "DEFENSE_CLAIMED", claimedById: null }, data: { status: "AWAITING_DEFENSE", claimExpiresAt: null } });
+    await tx.case.updateMany({ where: { id: caseId, status: "PROSECUTION_CLAIMED", claimedById: null }, data: { status: "AWAITING_PROSECUTION", claimExpiresAt: null } });
     await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
     await tx.case.update({ where: { id: caseId }, data: { openReports: 0 } });
     await log(tx, moderatorId, "RESTORE_CASE", { caseId });
@@ -114,25 +117,14 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { role: true } });
     if (!target) throw new CourtError("NOT_FOUND", "User not found.");
     if (targetUserId === moderatorId) throw new CourtError("FORBIDDEN", "You cannot hold yourself in contempt.");
-    if (target.role === "ADMIN" && mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Moderators cannot ban admins.");
+    if (target.role !== "PLAYER" && mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only an admin can hold another officer of the court in contempt.");
     await tx.user.update({
       where: { id: targetUserId },
       data: banned ? { bannedAt: clock.now(), banReason: reason?.slice(0, 300) ?? "Contempt of court" } : { bannedAt: null, banReason: null },
     });
     if (banned) {
       // Release anything they were holding so other players aren't blocked.
-      const held = await tx.case.findMany({ where: { claimedById: targetUserId }, select: { id: true, status: true } });
-      for (const h of held) {
-        await tx.case.update({
-          where: { id: h.id },
-          data: {
-            status: h.status === "DEFENSE_CLAIMED" ? "AWAITING_DEFENSE" : "AWAITING_PROSECUTION",
-            claimedById: null,
-            claimExpiresAt: null,
-          },
-        });
-      }
-      await tx.caseClaim.updateMany({ where: { userId: targetUserId, outcome: "ACTIVE" }, data: { outcome: "RELEASED", resolvedAt: clock.now() } });
+      await releaseClaims(tx, { userId: targetUserId });
       await tx.session.deleteMany({ where: { userId: targetUserId } });
     }
     await log(tx, moderatorId, banned ? "BAN_USER" : "UNBAN_USER", { targetUserId, note: reason });

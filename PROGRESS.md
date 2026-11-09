@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **64/64 Playwright** and **72/72 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **66/66 Playwright** and **74/74 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **64/64 Playwright** and **72/72 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 72 Vitest + 64 Playwright tests (39 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 74 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -178,6 +178,23 @@ A fresh agent audited the final build of the third fix round against a newly see
 | 8 | View counter counted every reload and curl; "Hover a locked item" on phones; "@ghost" title for missing users | one view per viewer (account or IP) per 6h; tapping a locked item shows how to unlock it; "Player not found" title | integration test for view de-duplication |
 
 Not changed: after a third report puts a case under review, the reporter sees the "under review" page instead of the dialog's thank-you. That page is the confirmation. The cron endpoint stays disabled until `CRON_SECRET` is set (documented; deliberations also close lazily on page visits).
+
+## Fifth independent audit (fresh agent, build of commit 55fa20d)
+
+**Result: 13 PASS, 1 FAIL (item 2), 3 CONCERN (8, 13, 17).** The FAIL was a real lifecycle hole. It also confirmed that the fourth round's fixes hold: the grace period resisted steals at 60s, 119s and 200s; 17 concurrent reaction toggles caused no drift; every moderation action showed feedback; statistics matched its own SQL for all 31 users.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 (FAIL) | Sealing a claimed case cleared the claimer but kept the `*_CLAIMED` status, so after a restore nobody could ever claim it | New `releaseClaims()` (claims.ts) is used by seal, ban and account deletion: it reopens the case, marks the claim RELEASED and notifies the holder. Restore repairs legacy rows, and `claimCase` treats a holder-less claim as open | integration `sealing a claimed case releases the claim…` (fails on the old code) |
+| 2 | Anonymous confessions could be linked to their author through the exact unlock time of "Opening Statement" on the public profile | other viewers get month-level achievement dates, coarsened in the query so the page payload never has the exact time; the remaining real-time XP correlation is documented in README | profile behaviour; README "Anonymity is per case, not perfect" |
+| 3 | `/jury?case=<unknown>` said "6 cases await" and "you've voted on everything" at once | an unknown, sealed or under-review pin redirects to the next case | `§12 navigation: an unknown jury pin moves on…` |
+| 4 | "Assign me a random case" poked out of its card at 320px | `.btn` wraps between words and is capped at its container width (applies to every button) | `§12 mobile: buttons…` now covers 5 pages and clipping by cards (verified to catch the old CSS) |
+| 5 | Report dialog stayed filled after success, silently switched its target, and could file a second report; unselected radios looked selected | success view replaces the form (no submit button); a fresh form for each opening; targets frozen per opening; `.doc` paper surfaces use `color-scheme: light` | `§12 forms: a filed report shows a confirmation…` |
+| 6 | Deleting an account didn't release held claims | `deleteAccount` calls `releaseClaims` | integration `deleting an account releases its claims…` |
+| 7 | Moderators could ban other moderators | only admins can ban officers of the court | same integration test |
+| 8 | "1 juries"; "7 unread" next to a cleared bell; featured case said "this week's"; truncated leaderboard rows at 320px; 34px avatar chips; Prisma error for `/u/%00` | plural fix; "7 new since your last visit"; honest featured-case copy; rows wrap on phones; `min-h-9` chips; usernames validated before querying | visual / status checks (`/u/%00` → 404 with an empty error log) |
+
+Not changed: seeded cases dismissed under the seed's quorum of 10 show e.g. "DISMISSED 3–1" when the server runs with `COURT_QUORUM=3`. That is historical data, not a bug. The view counter does de-duplicate per viewer; the displayed number trails by one view because the page reads it before recording the visit.
 
 ## Per-phase evidence
 

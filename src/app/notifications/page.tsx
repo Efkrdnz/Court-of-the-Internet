@@ -36,7 +36,7 @@ export default async function NotificationsPage() {
         <div>
           <p className="eyebrow">Court correspondence</p>
           <h1 className="font-display text-4xl font-black text-parchment">Notifications</h1>
-          <p className="text-parchment/60">{unread ? `${unread} unread` : "All caught up."}</p>
+          <p className="text-parchment/60">{unread ? `${unread} new since your last visit` : "All caught up."}</p>
         </div>
 
       </header>

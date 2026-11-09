@@ -16,7 +16,11 @@ export async function decidedJuryVotes(userIds: string[]): Promise<Map<string, n
   return new Map(rows.map((r) => [r.userId, Number(r.n)]));
 }
 
+/** Usernames are lowercase letters, digits and underscores; anything else can't exist (and NUL bytes upset Postgres). */
+export const isPlausibleUsername = (u: string) => /^[a-z0-9_]{1,40}$/.test(u.toLowerCase());
+
 export async function getProfile(username: string, viewer: { id: string } | null) {
+  if (!isPlausibleUsername(username)) return null;
   const user = await db.user.findUnique({
     where: { username: username.toLowerCase() },
     select: {
@@ -83,7 +87,12 @@ export async function getProfile(username: string, viewer: { id: string } | null
       juryAgreement: decided ? s.juryMajorityVotes / decided : null,
       votesThisWeek: recentVotes,
     },
-    achievements: user.achievements.map((a) => ({ key: a.key, unlockedAt: a.unlockedAt.toISOString() })),
+    // Others only learn the month: an exact unlock time (e.g. "first confession") could tie a
+    // player to an anonymous case filed at that moment.
+    achievements: user.achievements.map((a) => ({
+      key: a.key,
+      unlockedAt: isSelf ? a.unlockedAt.toISOString() : new Date(Date.UTC(a.unlockedAt.getUTCFullYear(), a.unlockedAt.getUTCMonth(), 1)).toISOString(),
+    })),
     history: await toCaseCards(historyRows, viewer),
     historyTotal,
   };

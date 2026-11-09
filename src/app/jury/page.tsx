@@ -42,6 +42,8 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
     }
   }
   const focusCase = focus?.kind === "ok" ? focus.case : null;
+  // An unknown, sealed or under-review pin falls through to the next case that needs a juror.
+  if (!focusCase && queue.cards[0] && queue.cards[0].number !== pinned) redirect(`/jury?case=${queue.cards[0].number}`);
   const others = queue.cards.filter((c) => c.number !== pinned).slice(0, 6);
   const stats = user ? await db.userStats.findUnique({ where: { userId: user.id }, select: { juryVotes: true, juryMajorityVotes: true } }) : null;
   const decidedVotes = user ? ((await decidedJuryVotes([user.id])).get(user.id) ?? 0) : 0;
@@ -61,7 +63,7 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
             </p>
             {user && stats ? (
               <p className="mt-4 text-sm text-parchment/70">
-                You&apos;ve served on <strong className="text-gold-light">{stats.juryVotes}</strong> juries · sided with the majority{" "}
+                You&apos;ve served on <strong className="text-gold-light">{stats.juryVotes}</strong> {stats.juryVotes === 1 ? "jury" : "juries"} · sided with the majority{" "}
                 <strong className="text-gold-light">{percent(decidedVotes ? stats.juryMajorityVotes / decidedVotes : null)}</strong> of decided cases ·{" "}
                 <strong className="text-gold-light">{queue.total}</strong> cases await your judgement
               </p>

@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { resetClock } from "@/server/clock";
-import { castVote, claimCase } from "@/server/services/cases";
+import { castVote, claimCase, submitArgument } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
 import { bumpViewCount } from "@/server/queries/cases";
 import {
@@ -10,14 +10,15 @@ import {
   fileReport,
   grantEntitlement,
   removeCase,
+  restoreCase,
   setBan,
   strikeArgument,
 } from "@/server/services/moderation";
 import { hitRateLimit } from "@/server/rate-limit";
-import { authenticate, changePassword, updateProfile } from "@/server/services/accounts";
+import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
-import { advance, achievementKeys, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
+import { DEFENSE_TEXT, advance, achievementKeys, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
 
 beforeEach(async () => {
   await resetDb();
@@ -135,6 +136,48 @@ describe("moderation", () => {
     expect((await db.case.findUniqueOrThrow({ where: { id: other.id } })).status).toBe("AWAITING_DEFENSE");
     expect(await db.session.count({ where: { userId: player } })).toBe(0);
     await expect(castVote(player, c.id, "GUILTY")).rejects.toMatchObject({ code: "BANNED" });
+  });
+
+  it("sealing a claimed case releases the claim, so restoring it leaves the case playable (audit 5 #1)", async () => {
+    const [accused, holder, rescuer] = [await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("seal_admin", "ADMIN");
+    const c = await makeCase(accused);
+    await claimCase(holder, c.id, "DEFENSE");
+    await removeCase(admin, c.id, "Checking something");
+    let row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ status: "AWAITING_DEFENSE", claimedById: null, moderationState: "REMOVED" });
+    expect(await db.caseClaim.count({ where: { caseId: c.id, outcome: "ACTIVE" } })).toBe(0);
+    expect(await db.notification.count({ where: { userId: holder, type: "MODERATION" } })).toBe(1);
+    await expect(claimCase(rescuer, c.id, "DEFENSE")).rejects.toMatchObject({ code: "NOT_FOUND" }); // sealed
+
+    await restoreCase(admin, c.id);
+    // The old holder's claim slot is free, and anyone can now take the case and file.
+    await claimCase(rescuer, c.id, "DEFENSE");
+    await submitArgument(rescuer, c.id, "DEFENSE", DEFENSE_TEXT);
+    row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.status).toBe("AWAITING_PROSECUTION");
+
+    // Data left behind by the old bug (claimed status, no holder) is repaired / claimable.
+    const legacy = await makeCase(accused);
+    await db.case.update({ where: { id: legacy.id }, data: { status: "DEFENSE_CLAIMED", claimedById: null, claimExpiresAt: null } });
+    await claimCase(holder, legacy.id, "DEFENSE");
+    expect((await db.case.findUniqueOrThrow({ where: { id: legacy.id } })).claimedById).toBe(holder);
+  });
+
+  it("deleting an account releases its claims; moderators can't ban other officers", async () => {
+    const [accused, quitter, next] = [await makeUser(), await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await claimCase(quitter, c.id, "DEFENSE");
+    await deleteAccount(quitter, "objection!");
+    expect(await db.case.findUniqueOrThrow({ where: { id: c.id } })).toMatchObject({ status: "AWAITING_DEFENSE", claimedById: null });
+    await claimCase(next, c.id, "DEFENSE");
+
+    const [modA, modB] = [await makeUser("mod_a", "MODERATOR"), await makeUser("mod_b", "MODERATOR")];
+    const admin = await makeUser("ban_admin", "ADMIN");
+    await expect(setBan(modA, modB, true)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(setBan(modA, admin, true)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await setBan(admin, modB, true); // admins still can
+    await setBan(modA, accused, true); // and moderators can ban players
   });
 
   it("only lets admins grant cosmetics, which then unlock items", async () => {

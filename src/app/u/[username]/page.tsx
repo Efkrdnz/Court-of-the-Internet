@@ -3,11 +3,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import clsx from "clsx";
 import { getCurrentUser } from "@/server/auth/current-user";
-import { getProfile } from "@/server/queries/players";
+import { getProfile, isPlausibleUsername } from "@/server/queries/players";
 import { db } from "@/server/db";
 import { ACHIEVEMENTS, TIER_STYLE, getAchievement } from "@/lib/achievements";
 import { getTheme } from "@/lib/cosmetics";
-import { formatDate, percent } from "@/lib/format";
+import { formatDate, formatMonth, percent } from "@/lib/format";
 import { Avatar } from "@/components/art/avatar";
 import { AchievementBadge } from "@/components/art/badges";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
   if (username === "me") return { title: "Your profile" };
   const handle = username.toLowerCase();
-  const exists = await db.user.findFirst({ where: { username: handle, deletedAt: null }, select: { id: true } });
+  const exists = isPlausibleUsername(handle) && await db.user.findFirst({ where: { username: handle, deletedAt: null }, select: { id: true } });
   if (!exists) return { title: "Player not found", robots: { index: false } };
   return { title: `@${handle}`, description: `The public legal record of @${handle} at the Court of the Internet.` };
 }
@@ -172,7 +172,7 @@ export default async function ProfilePage({ params }: Props) {
                 <p className="mt-1 text-xs text-parchment/65">{a.description}</p>
                 <p className="mt-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: TIER_STYLE[a.tier].ring }}>
                   {TIER_STYLE[a.tier].label}
-                  {at ? ` · ${formatDate(at)}` : ""}
+                  {at ? ` · ${profile.isSelf ? formatDate(at) : formatMonth(at)}` : ""}
                 </p>
               </li>
             );

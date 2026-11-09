@@ -189,7 +189,11 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
         moderationState: "VISIBLE",
         accusedId: { not: userId },
         ...(role === "PROSECUTION" ? { attorneyId: { not: userId } } : {}),
-        OR: [{ status: openStatus }, { status: claimedStatus, claimExpiresAt: { lt: reclaimableBefore } }],
+        OR: [
+          { status: openStatus },
+          { status: claimedStatus, claimExpiresAt: { lt: reclaimableBefore } },
+          { status: claimedStatus, claimedById: null }, // orphaned claim: never block the case
+        ],
       },
       data: { status: claimedStatus, claimedById: userId, claimExpiresAt: expiresAt },
     });

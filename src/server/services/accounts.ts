@@ -17,6 +17,7 @@ import { levelForXp } from "@/lib/progression";
 import { getAchievement } from "@/lib/achievements";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
+import { releaseClaims } from "./claims";
 
 export async function registerUser(input: {
   username: string;
@@ -140,8 +141,10 @@ export async function deleteAccount(userId: string, password: string) {
     throw new CourtError("VALIDATION", "Password is incorrect.", "password");
   }
   const tombstone = `deleted_${userId.slice(-8)}`;
-  await db.$transaction([
-    db.user.update({
+  await db.$transaction(async (tx) => {
+    // Free any case they were drafting so other players aren't blocked until it expires.
+    await releaseClaims(tx, { userId });
+    await tx.user.update({
       where: { id: userId },
       data: {
         username: tombstone,
@@ -151,8 +154,8 @@ export async function deleteAccount(userId: string, password: string) {
         deletedAt: clock.now(),
         featuredBadge: null,
       },
-    }),
-    db.session.deleteMany({ where: { userId } }),
-    db.notification.deleteMany({ where: { userId } }),
-  ]);
+    });
+    await tx.session.deleteMany({ where: { userId } });
+    await tx.notification.deleteMany({ where: { userId } });
+  });
 }

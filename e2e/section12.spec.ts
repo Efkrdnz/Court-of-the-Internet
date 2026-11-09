@@ -448,11 +448,29 @@ test("§12 mobile: buttons and case titles fit narrow phones without mid-word br
     await page.locator('form:has(input[name="username"][value="hammy_the_accused"]) button').click();
     await page.waitForURL((u) => !u.pathname.startsWith("/login"));
 
-    await page.goto("/confess");
-    const spills = await page.locator(".btn").evaluateAll((els) =>
-      els.filter((el) => (el as HTMLElement).offsetParent && el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent?.trim()),
-    );
-    expect(spills, `buttons whose label spills out at ${width}px`).toEqual([]);
+    for (const path of ["/confess", "/defend", "/prosecute", "/court", "/leaderboards"]) {
+      await page.goto(path);
+      // No label spills out of its button, and no button pokes out of its container (audit 5 #4).
+      const spills = await page.locator(".btn").evaluateAll(
+        (els, W) =>
+        els
+          .filter((el) => {
+            if (!(el as HTMLElement).offsetParent) return false;
+            const r = el.getBoundingClientRect();
+            if (el.scrollWidth > el.clientWidth + 1 || r.right > W + 1 || r.left < -1) return true;
+            // Clipped by a card (overflow hidden/clip) even though the page doesn't scroll.
+            for (let a = el.parentElement; a; a = a.parentElement) {
+              if (getComputedStyle(a).overflowX === "visible") continue;
+              const q = a.getBoundingClientRect();
+              if (r.right > q.right + 1 || r.left < q.left - 1) return true;
+            }
+            return false;
+          })
+          .map((el) => el.textContent?.trim()),
+        width,
+      );
+      expect(spills, `buttons that overflow on ${path} at ${width}px`).toEqual([]);
+    }
 
     // Every word of the title fits on one line of the case heading (never split mid-word).
     await page.goto(`/cases/${longest.number}-${longest.slug}`);
@@ -474,4 +492,36 @@ test("§12 mobile: buttons and case titles fit narrow phones without mid-word br
     expect(fit.widest <= fit.box, `title "${longest.title}" at ${width}px: ${JSON.stringify(fit)}`).toBe(true);
     await context.close();
   }
+});
+
+test("§12 forms: a filed report shows a confirmation and can't be resubmitted (audit 5 #5)", async ({ browser }) => {
+  const c = await prisma.case.findFirstOrThrow({
+    where: { status: "CLOSED", moderationState: "VISIBLE", verdict: "GUILTY", reports: { none: {} }, accused: { username: { not: "clerk_pemberton" } } },
+    orderBy: { number: "desc" },
+    select: { id: true, number: true, slug: true },
+  });
+  const page = await demoPage(browser, "clerk_pemberton");
+  await page.goto(`/cases/${c.number}-${c.slug}`);
+  await page.getByRole("button", { name: "Report to the clerks" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Spam").check();
+  await dialog.getByLabel("Details (optional)").fill("Regression check: looks like an ad.");
+  await dialog.getByRole("button", { name: "Submit report" }).click();
+  await expect(dialog.getByRole("heading", { name: "Report filed" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Submit report" })).toHaveCount(0);
+  await expect(dialog).toBeHidden({ timeout: 5000 }); // closes itself
+  expect(await prisma.report.count({ where: { caseId: c.id } })).toBe(1);
+  // Reopening starts a clean form for what's left to report.
+  await page.getByRole("button", { name: "Report to the clerks" }).click();
+  await expect(dialog.getByLabel("Details (optional)")).toHaveValue("");
+  await expect(dialog.getByLabel("What are you reporting?")).not.toHaveValue("CASE");
+  await prisma.report.deleteMany({ where: { caseId: c.id } });
+  await prisma.case.update({ where: { id: c.id }, data: { openReports: 0 } });
+});
+
+test("§12 navigation: an unknown jury pin moves on to a real case (audit 5 #3)", async ({ browser }) => {
+  const page = await demoPage(browser, "clerk_pemberton");
+  await page.goto("/jury?case=99999");
+  await expect(page).not.toHaveURL(/case=99999/);
+  await expect(page.getByText("You've voted on everything in deliberation")).toHaveCount(0);
 });

@@ -79,7 +79,7 @@ export function ProfileForm({
               title={lock ?? undefined}
               onClick={lock ? () => setLockHint(`${label(opt)}: ${lock}`) : undefined}
               className={clsx(
-                "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition",
+                "relative inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition",
                 on ? "border-burgundy bg-burgundy text-ivory" : "border-sepia/40 bg-white/40 text-ink hover:bg-white/70",
                 lock && "cursor-not-allowed opacity-55",
               )}

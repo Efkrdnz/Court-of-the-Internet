@@ -59,13 +59,13 @@ function Board<T extends Person>({
                   <span className={clsx("w-7 shrink-0 text-center font-display text-lg font-black", i === 0 ? "text-gold-light" : i < 3 ? "text-parchment" : "text-parchment/50")}>
                     {i + 1}
                   </span>
-                  <Avatar config={r.avatar} className="h-10 w-10 shrink-0" />
+                  <Avatar config={r.avatar} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      <span className="truncate font-bold text-parchment">{r.displayName}</span>
+                      <span className="min-w-0 font-bold leading-tight text-parchment sm:truncate">{r.displayName}</span>
                       {badge ? <AchievementBadge icon={badge.icon} tier={badge.tier} className="h-5 w-4 shrink-0" title={badge.name} /> : null}
                     </span>
-                    <span className="block truncate text-xs text-parchment/55">{detail(r)}</span>
+                    <span className="block text-xs text-parchment/55 sm:truncate">{detail(r)}</span>
                   </span>
                   <span className="shrink-0 text-right font-display text-lg font-black text-gold-light">{stat(r)}</span>
                 </Link>
