@@ -201,8 +201,12 @@ test("narrow phones: long unbroken words never widen the page (audit 3 #1)", asy
   const word = `Antidisestablishmentarianismwaffle${Date.now().toString(36).slice(-1)}`;
   expect(word.length).toBe(35);
   await page.getByLabel("Case title").fill(`I hid the ${word}`);
-  await page.getByRole("button", { name: /^Submit my confession/ }).tap();
-  await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
+  // Let the first rejection settle before re-submitting (this flaked once under heavy load).
+  await page.waitForLoadState("networkidle");
+  const submit = page.getByRole("button", { name: /^Submit my confession/ });
+  await expect(submit).toBeEnabled();
+  await submit.tap();
+  await expect(page, "the 35-character title should be accepted").toHaveURL(/\/cases\/\d+-.*\?filed=1/, { timeout: 30_000 });
   await expectNoHorizontalScroll(page);
   for (const path of ["/defend", "/u/fresh_intern", "/court"]) {
     await page.goto(path);

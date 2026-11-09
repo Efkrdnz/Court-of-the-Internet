@@ -432,6 +432,8 @@ Unchanged and documented: issue 2 (lockout and spoofable IPs without a proxy) an
 
 Not changed: sealed pages return 200 (with `noindex`), and inline text links follow the WCAG inline exception.
 
+Verification note: the first full run on `36770c2` had one mobile e2e failure. The `long unbroken words` test timed out waiting for navigation while the machine was heavily loaded (that run took 3.4 min against the usual 1.8). It passed in three back-to-back reruns of the same Phase 9 command. The test now waits for the page to settle before re-submitting and fails fast with a clear message.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
