@@ -241,6 +241,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
   - A platform name followed by a plain-word handle ("on discord as pettyking") isn't caught.
   - Context-free sarcasm can't be judged automatically.
   - Reports and moderators cover the rest.
+- **Not a secret ballot.** Tallies are hidden until you vote (no anchoring), but anyone who has voted sees the live split. Public counters ("juries served", "with the majority") can therefore hint at how a specific player voted. Votes aren't sensitive in this game; a secret ballot would need hiding those counters until the verdict.
 - **Achievements are permanent.** A badge earned at a threshold (e.g. Legendary Litigator at 10 Legendary reactions) is kept even if reactions are later withdrawn. A coordinated group could therefore toggle reactions on and off to mint one. Badges carry no gameplay power, so this is accepted.
 - **No identity verification, so sockpuppets are possible.** There is no email or phone verification (no external messaging service is configured), so one person can register several accounts.
   - The per-IP signup limit (6 per hour behind a proxy) and the 24h age requirement for auto-hiding reports slow this down.

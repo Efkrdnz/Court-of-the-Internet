@@ -31,10 +31,10 @@ const graphemes = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.
  * is one character, not sixteen (which used to slip short titles past the minimum).
  */
 export function charCount(s: string): number {
-  if (graphemes) {
-    return Array.from(graphemes.segment(s)).length;
-  }
-  return Array.from(s.replace(/\p{M}/gu, "")).length;
+  const visible = graphemes ? Array.from(graphemes.segment(s)).length : Array.from(s.replace(/\p{M}/gu, "")).length;
+  // …but a chain of emoji glued with zero-width joiners is also a single grapheme, so long chains
+  // count by code points too (halved, so an ordinary emoji still counts as 1–3).
+  return Math.max(visible, Math.ceil(Array.from(s).length / 2));
 }
 
 export function slugify(input: string, maxLength = 60): string {

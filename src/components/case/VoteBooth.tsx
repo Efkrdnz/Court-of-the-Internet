@@ -129,7 +129,8 @@ export function VoteBooth({
                       ? "border-crimson/60 bg-gradient-to-br from-crimson/30 to-burgundy-dark/60 hover:border-[#ff6b6b]"
                       : "border-teal-light/60 bg-gradient-to-br from-teal/35 to-[#0e2a24]/70 hover:border-[#6fe0c4]",
                     selected === choice && "scale-[1.02] ring-4 ring-gold/60",
-                    selected && selected !== choice && "opacity-50",
+                    // Dimmed but still readable (it stays a valid choice until the vote is sealed).
+                    selected && selected !== choice && "opacity-75 saturate-50",
                   )}
                 >
                   <span className="block font-display text-3xl font-black tracking-wide text-ivory">{choice === "GUILTY" ? "GUILTY" : "NOT GUILTY"}</span>

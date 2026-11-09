@@ -439,7 +439,7 @@ export function SealedCase({ className, title }: SceneProps) {
         {/* label */}
         <rect x={66} y={70} width={104} height={34} rx={2} fill={P.ivory} stroke={P.outline} strokeWidth={2} />
         <text x={72} y={82} fontFamily={TYPEWRITER} fontSize={8} fill={P.ink}>
-          CASE No. 404-B
+          CASE SEALED
         </text>
         <rect x={72} y={87} width={70} height={5} fill={P.black} />
         <rect x={72} y={95} width={46} height={5} fill={P.black} />

@@ -13,6 +13,8 @@ export async function toggleReaction(userId: string, caseId: string, type: React
   try {
     return await db.$transaction(async (tx) => {
       await assertActiveUser(tx, userId);
+      // One toggle per player and case at a time, so each reports the state it actually left.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`react:${caseId}:${userId}`}))`;
       const c = await tx.case.findUnique({
         where: { id: caseId },
         select: { status: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true, anonymous: true },

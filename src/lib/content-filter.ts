@@ -127,7 +127,10 @@ const VIOLENCE = [
   // "I'm going to kill", "im gonna kill", "gonna kill my roommate" (the old pattern demanded a "t" after "gonna").
   /\b(?:i(?:'m|m| am)?\s*)?(?:going\s+to|gonna)\s+(?:kill|hurt|stab|shoot|murder|beat\s+up)\s+(?:my|his|her|their|your|him|them|you|someone|somebody|everyone)\b/i,
   /\bi(?:'m|m| am)?\s*(?:going\s+to|gonna)\s+(?:kill|hurt|stab|shoot|murder|beat\s+up)\b/i,
-  /\bi\s*(?:will|'ll)\s+(?:kill|hurt|stab|shoot|murder)\b/i,
+  /\bi\s*(?:will|'ll)\s+(?:kill|hurt|stab|shoot|murder|unalive)\b/i,
+  // "I will end my neighbour", "gonna unalive my flatmate".
+  // ("end"/"off" need a person after them: "end my streak" is fine.)
+  /\b(?:i\s*(?:will|'ll|would|'d)|gonna|going\s+to|want\s+to)\s+(?:end|unalive|off)\s+(?:him|them|someone|somebody|everyone|(?:my|his|her|their)\s+(?:\w+\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|friend|brother|sister|mom|mum|dad|wife|husband|partner|boyfriend|girlfriend|landlord|ex|teacher))\b/i,
   // Intent + harm + a person: "I want to kill my neighbour", "planning to poison his dog's owner".
   // Needs a human target, so "kill time", "could kill for a nap" and "mom will kill me" stay fine.
   /\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|going|gonna|about|tr(?:y|ying|ied)|decided|need)\s+to\s+(?:kill|murder|stab|shoot|poison|strangle|hurt|beat\s+up)\s+(?:my|his|her|their|our|your|him|them|someone|somebody|everyone|people|a\s+(?:man|woman|person|kid|child|cop|neighbou?r))\b/i,
@@ -145,6 +148,12 @@ const HARM_DONE = new RegExp(`\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|s
 
 const SERIOUS = [
   HARM_DONE,
+  // Dosing someone's food or drink, or spiking it.
+  /\b(?:laxatives?|eye\s*drops|sleeping\s+pills|xanax|molly)\b.{0,40}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
+  /\bspiked\b.{0,40}\b(?:with|using)\s+(?:\w+\s+)?(?:vodka|alcohol|booze|rum|gin|tequila|drugs|pills|molly|xanax|laxatives?)\b/i,
+  // Burning or vandalising someone else's things.
+  /\bset\s+(?:my|his|her|their|the|our)\s+[\w-]+(?:'s|s')\s+(?:\w+\s+)?\w+\s+on\s+fire\b|\bset\s+fire\s+to\s+(?:my|his|her|their)\s+[\w-]+(?:'s|s')\b/i,
+  /\bkeyed\s+(?:a|someone'?s|somebody'?s|his|her|their|(?:my|our)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:car|truck|van|motorcycle)\b/i,
   // Poisoning food or drink with something dangerous.
   /\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b.{0,50}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b/i,
   /\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b.{0,50}\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b/i,
@@ -157,7 +166,7 @@ const SERIOUS = [
   // Drink- or drug-driving.
   /\b(?:drove|driving|drive)\s+(?:home\s+|there\s+|back\s+)?(?:drunk|wasted|hammered|high|blackout)\b|\bdrunk[\s-]driving\b|\bDUI\b/i,
   // Anything sold to minors.
-  /\b(?:sold|sell|selling|gave|supplied)\s+(?:\w+\s+){0,3}(?:weed|cannabis|marijuana|pot|vapes?|alcohol|booze|pills|drugs)\s+to\s+(?:kids|children|minors|teens|teenagers|students|underage)\b/i,
+  /\b(?:sold|sell|selling|gave|supplied)\s+(?:\w+\s+){0,3}(?:weed|cannabis|marijuana|pot|vapes?|alcohol|booze|pills|drugs)\s+to\s+(?:\w+\s+)?(?:kids|children|minors|teens|teenagers|students|underage|high[\s-]?schoolers|middle[\s-]?schoolers|freshmen)\b/i,
   // Dealing hard drugs.
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:\w+\s+){0,2}(?:cocaine|coke|heroin|meth|fentanyl|crack|mdma|ecstasy|hard\s+drugs|drugs)\b/i,
   /\brap(?:e|ed|ing|ist)\b/i,

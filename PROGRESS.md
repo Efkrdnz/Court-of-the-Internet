@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **68/68 Playwright** and **172/172 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **68/68 Playwright** and **184/184 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **68/68 Playwright** and **172/172 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 172 Vitest + 68 Playwright tests (43 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 184 Vitest + 68 Playwright tests (43 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -496,6 +496,29 @@ It confirmed the seventeenth round:
 | 6 | Emoji ZWJ sequences (👩‍👩‍👧) were split apart | joiners are kept between emoji and stripped elsewhere | unit |
 | 7 | "The case has been returned to the docket" before maintenance had requeued it | wording says it goes back on the docket, and that the draft is kept | — |
 | 9 | Reaction buttons looked tappable to participants and banned players | visible reason text under the disabled buttons | — |
+
+## Nineteenth independent audit (fresh agent, build of commit db65766)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.**
+
+It confirmed the eighteenth round end to end:
+- 10 users × 4 concurrent votes each produced one vote apiece
+- every race (seal vs submit, ban vs votes, ban vs adjourn) stayed consistent
+- its SQL recount matched every player after each race
+- a review that outlasted the deadline resumed with the remaining time
+- the redirect, XSS, cron and robots checks held
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Emoji chained with zero-width joiners count as a single grapheme, so names, bios and confessions blew past their maximum length (a regression from the grapheme fix) | lengths count `max(graphemes, ⌈code points ÷ 2⌉)`: ordinary text and emoji are unchanged, joiner chains count properly | unit: an 800-code-point chain counts as more than 300 and is rejected as a display name; a family emoji still counts ≤ 3 |
+| 4 | Threat and harm phrasings passed: "I will end my neighbour", "unalive", laxatives in coffee, spiked punch, weed to high schoolers, setting someone's mattress on fire, keying a car | patterns for each; "end"/"off" need a person ("end my streak" is fine) | unit: 7 rejected, 4 everyday phrases accepted; seed clean |
+| 5 | The live tally plus public counters can hint at a specific player's vote | documented: it's not a secret ballot | — |
+| 6 | Concurrent toggles of the same reaction by one player reported the wrong on/off state (counters were fine) | per-player-and-case advisory lock | integration: each toggle reports what it left; **fails on the old code 3/3** |
+| 7 | "1 VOTES TODAY"; "110 / 200 XP to level 3" next to a profile saying 210 XP | singular/plural; the dashboard shows total XP and how much remains | — |
+| 8 | The sealed-case illustration read "CASE No. 404-B" | "CASE SEALED" | — |
+| 9 | The unselected vote option faded to 50% and was hard to read | 75% with desaturation | — |
+
+Unchanged and documented: issues 2 and 3 (lockout and IP spoofing without a proxy).
 
 ## Per-phase evidence
 

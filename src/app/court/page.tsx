@@ -58,13 +58,14 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
               <div className="h-full rounded-full bg-gradient-to-r from-gold-dark via-gold to-gold-light" style={{ width: `${summary.level.pct}%` }} />
             </div>
             <p className="mt-1 text-xs text-parchment/60">
-              {summary.level.current} / {summary.level.needed} XP to level {summary.level.level + 1}
+              {/* Total XP (as on the profile) and what's left, so the two pages never seem to disagree. */}
+              {summary.level.nextAt - summary.level.needed + summary.level.current} XP · {summary.level.needed - summary.level.current} more to level {summary.level.level + 1}
             </p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center md:w-72">
           <MiniStat label="XP today" value={`+${d.today.xp}`} />
-          <MiniStat label="Votes today" value={d.today.votes} />
+          <MiniStat label={d.today.votes === 1 ? "Vote today" : "Votes today"} value={d.today.votes} />
           <MiniStat label="Filed today" value={d.today.arguments} />
         </div>
       </header>

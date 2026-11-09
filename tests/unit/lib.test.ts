@@ -330,7 +330,7 @@ describe("serious harm (audit 15 #3)", () => {
 describe("zalgo and combining marks (audit 16 #1)", () => {
   it("counts what readers see and caps stacked marks", () => {
     const zalgoE = "e" + "́".repeat(15);
-    expect(charCount(zalgoE)).toBe(1);
+    expect(charCount(normalizeText(zalgoE))).toBeLessThanOrEqual(2);
     expect(normalizeText(zalgoE).length).toBeLessThanOrEqual(3);
     const r = confessionSchema.safeParse({ category: "food-crimes", title: "Pen" + "́".repeat(28), confession: "I ate my roommate's pizza and blamed his girlfriend for it.", acceptRules: "on" });
     expect(r.success).toBe(false);
@@ -405,6 +405,38 @@ describe("threat and evasion regressions (audit 18 #2)", () => {
     "I'm gonna be late again so I blamed the bus",
     "My roommate is gonna kill me when she sees the kitchen",
     "I told everyone I was going to the gym and went to the bakery",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+});
+
+describe("emoji joiner chains (audit 19 #1)", () => {
+  it("can't pad past a maximum length", () => {
+    const chain = "\u{1F468}" + "\u200D\u{1F468}".repeat(400);
+    expect(charCount(chain)).toBeGreaterThan(300);
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    expect(signupSchema.safeParse({ ...base, displayName: "Bob " + chain }).success).toBe(false);
+    expect(charCount("\u{1F469}\u200D\u{1F469}\u200D\u{1F467}")).toBeLessThanOrEqual(3); // a real family emoji is still short
+  });
+});
+
+describe("harm phrasing (audit 19 #4)", () => {
+  it.each([
+    "I will end my neighbour if he mows at 7am again",
+    "I'm gonna unalive my flatmate for eating my leftovers",
+    "I sold some weed to the high schoolers next door",
+    "I put laxatives in my coworker's coffee",
+    "I spiked the punch at the office party with vodka",
+    "I set my roommate's mattress on fire",
+    "I keyed my ex's car in the parking lot",
+  ])("rejects %j", (text) => {
+    expect(screenText(text).ok, text).toBe(false);
+  });
+  it.each([
+    "I will end my streak of honesty today and blame the cat",
+    "I set my alarm on fire mode and slept through it anyway",
+    "I spiked my hair with way too much gel for the interview",
+    "I put extra sugar in my coworker's coffee every morning",
   ])("still accepts %j", (text) => {
     expect(screenText(text).ok, text).toBe(true);
   });

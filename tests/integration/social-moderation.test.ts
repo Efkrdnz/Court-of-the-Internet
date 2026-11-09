@@ -68,6 +68,7 @@ describe("reactions", () => {
     const [accused, attorney, prosecutor, fan] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
     const c = await makeCase(accused);
     await toDeliberation(c.id, attorney, prosecutor);
+    let before = 0;
     for (let round = 0; round < 3; round++) {
       const results = await Promise.allSettled(Array.from({ length: 9 }, () => toggleReaction(fan, c.id, "LEGENDARY")));
       expect(results.filter((r) => r.status === "rejected")).toEqual([]);
@@ -76,6 +77,11 @@ describe("reactions", () => {
       expect(rows).toBeLessThanOrEqual(1);
       expect(row.legendaryCount).toBe(rows);
       expect(row.reactionScore).toBe(rows * 3);
+      // Each toggle reports the state it actually left (audit 19 #6): they alternate on/off,
+      // so the last one to run matches the final state.
+      const actives = results.flatMap((r) => (r.status === "fulfilled" ? [r.value.active] : []));
+      expect(actives.filter((a) => a).length - actives.filter((a) => !a).length).toBe(rows - before);
+      before = rows;
     }
   });
 
