@@ -121,6 +121,8 @@ test("mobile: serve on a jury and react on a phone", async ({ browser }) => {
 test("mobile: only one header menu is open at a time (audit 32 D3)", async ({ browser }) => {
   const page = await phoneLogin(browser, "counselor_coo");
   await page.goto("/court");
+  // Let the page settle (hydration, queued toasts) before tapping, as a person would.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Open menu" }).tap();
   await expect(page.locator("#mobile-nav")).toBeVisible();
   await page.getByRole("button", { name: /account menu/i }).tap();
