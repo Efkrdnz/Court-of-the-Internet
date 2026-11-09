@@ -19,18 +19,24 @@ import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
 import { releaseClaims } from "./claims";
 
+/** Letters and digits only, case- and accent-folded: "Judge Wigsworth." and "Judge\u200bWigsworth" collide. */
+const nameKey = (name: string) =>
+  name
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+
 /** Players can't take an officer of the court's display name ("Judge Wigsworth" is the real one). */
 export async function assertNotStaffName(displayName: string, selfId?: string) {
-  const clash = await db.user.findFirst({
-    where: {
-      role: { in: ["ADMIN", "MODERATOR"] },
-      deletedAt: null,
-      displayName: { equals: displayName.trim(), mode: "insensitive" },
-      ...(selfId ? { id: { not: selfId } } : {}),
-    },
-    select: { id: true },
+  const staff = await db.user.findMany({
+    where: { role: { in: ["ADMIN", "MODERATOR"] }, deletedAt: null, ...(selfId ? { id: { not: selfId } } : {}) },
+    select: { displayName: true },
+    take: 200,
   });
-  if (clash) throw new CourtError("VALIDATION", "That name belongs to an officer of the court. Pick your own.", "displayName");
+  const key = nameKey(displayName);
+  if (key && staff.some((u) => nameKey(u.displayName) === key)) {
+    throw new CourtError("VALIDATION", "That name belongs to an officer of the court. Pick your own.", "displayName");
+  }
 }
 
 export async function registerUser(input: {

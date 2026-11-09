@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import clsx from "clsx";
@@ -51,6 +52,8 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
     const qs = s.toString();
     return qs ? `/archives?${qs}` : "/archives";
   };
+  // Past the last page (an old link or a hand-edited URL): go to the last real page.
+  if (archive.page > archive.pages) redirect(href({ page: archive.pages > 1 ? String(archive.pages) : undefined }));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">

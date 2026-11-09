@@ -102,6 +102,8 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
 export async function restoreCase(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    const exists = await tx.case.findUnique({ where: { id: caseId }, select: { id: true } });
+    if (!exists) throw new CourtError("NOT_FOUND", "That case could not be found.");
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "VISIBLE", removalReason: null } });
     await resumeDeliberation(tx, caseId);
     // Repairs cases sealed by older versions that cleared the claimer but kept a "claimed" status.
@@ -155,18 +157,26 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
       // Release anything they were holding so other players aren't blocked.
       await releaseClaims(tx, { userId: targetUserId });
       // Their votes on trials still in deliberation stop counting; reached verdicts stand.
-      const open = await tx.vote.findMany({
+      // Each case row is locked first (the same lock closeDeliberation takes, in a fixed order
+      // to avoid deadlocks) and re-checked, so a trial closing at the same moment either counts
+      // the vote or loses it, never half of each.
+      const candidates = await tx.vote.findMany({
         where: { userId: targetUserId, case: { status: "DELIBERATION" } },
         select: { id: true, caseId: true, choice: true },
+        orderBy: { caseId: "asc" },
       });
-      for (const v of open) {
+      let removed = 0;
+      for (const v of candidates) {
+        const [locked] = await tx.$queryRaw<{ status: string }[]>`SELECT "status"::text FROM "Case" WHERE "id" = ${v.caseId} FOR UPDATE`;
+        if (locked?.status !== "DELIBERATION") continue; // closed meanwhile: the verdict stands
         await tx.vote.delete({ where: { id: v.id } });
         await tx.case.update({
           where: { id: v.caseId },
           data: v.choice === "GUILTY" ? { guiltyVotes: { decrement: 1 } } : { notGuiltyVotes: { decrement: 1 } },
         });
+        removed++;
       }
-      if (open.length) await tx.userStats.update({ where: { userId: targetUserId }, data: { juryVotes: { decrement: open.length } } });
+      if (removed) await tx.userStats.update({ where: { userId: targetUserId }, data: { juryVotes: { decrement: removed } } });
       await tx.session.deleteMany({ where: { userId: targetUserId } });
     }
     await log(tx, moderatorId, banned ? "BAN_USER" : "UNBAN_USER", { targetUserId, note: reason });

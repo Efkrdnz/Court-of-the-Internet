@@ -6,6 +6,7 @@ import { casePath, normalizeText, parseCaseParam, slugify } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
 import { confessionSchema, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
+import { safeNext } from "@/lib/safe-next";
 import { decideVerdict, controversyScore } from "@/server/services/verdict";
 import { isUnlocked, LOCKED_AVATAR_ITEMS } from "@/lib/cosmetics";
 
@@ -190,6 +191,16 @@ describe("audit 6 regressions", () => {
     for (let seed = 0; seed < 2000; seed++) {
       const a = randomAvatar(seed);
       for (const item of LOCKED_AVATAR_ITEMS) expect(a[item.kind as keyof typeof a]).not.toBe(item.value);
+    }
+  });
+});
+
+describe("post-login redirect (audit 10 #1)", () => {
+  it("allows same-origin paths only", () => {
+    expect(safeNext("/cases/12-x?filed=1#top")).toBe("/cases/12-x?filed=1#top");
+    expect(safeNext("/jury")).toBe("/jury");
+    for (const bad of ["//example.com", "/\\example.com", "/\texample.com", "/\t/example.com", "/\n/example.com", "https://example.com", "example.com", "", null, 42, "/%5Cexample.com".replace("%5C", "\\")]) {
+      expect(safeNext(bad), String(bad)).toBe("/court");
     }
   });
 });

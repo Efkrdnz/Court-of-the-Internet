@@ -533,3 +533,12 @@ test("§12 navigation: an unknown jury pin moves on to a real case (audit 5 #3)"
   await expect(page).not.toHaveURL(/case=99999/);
   await expect(page.getByText("You've voted on everything in deliberation")).toHaveCount(0);
 });
+
+test("§12 security: the post-login redirect never leaves the site (audit 10 #1)", async ({ browser }) => {
+  const page = await demoPage(browser, "clerk_pemberton");
+  for (const next of ["/%5Cexample.com", "/%09/example.com", "//example.com", "https://example.com"]) {
+    const res = await page.request.get(`/login?next=${next}`, { maxRedirects: 0 });
+    expect(res.status(), next).toBe(307);
+    expect(res.headers()["location"], next).toMatch(/^\/court$|^http:\/\/localhost:\d+\/court$/);
+  }
+});

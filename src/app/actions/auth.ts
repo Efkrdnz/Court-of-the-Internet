@@ -7,6 +7,7 @@ import { assertNotStaffName, authenticate, registerUser } from "@/server/service
 import { createSession, destroySession } from "@/server/auth/sessions";
 import { clearSessionCookie, clientIp, getSessionToken, setSessionCookie } from "@/server/auth/current-user";
 import { enforceRateLimit } from "@/server/rate-limit";
+import { safeNext } from "@/lib/safe-next";
 import { screenText } from "@/lib/content-filter";
 import { appConfig } from "@/server/config";
 import { CourtError } from "@/server/errors";
@@ -14,10 +15,6 @@ import { db } from "@/server/db";
 import { DEMO_PASSWORD } from "@/lib/demo";
 import { formObject, isBot, toFailure, type ActionResult } from "./_util";
 
-function safeNext(next: unknown): string {
-  if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return "/court";
-  return next;
-}
 
 export async function signupAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   let next = "/court";

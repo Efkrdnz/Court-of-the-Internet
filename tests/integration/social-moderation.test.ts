@@ -284,7 +284,35 @@ describe("moderation", () => {
     await expect(
       updateProfile(player, { displayName: "judge realname", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
+    for (const sneaky of ["Judge Realname.", "Judge\u200bRealname", "JUDGE  REALNAME", "Judge Réalname"]) {
+      await expect(
+        updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+      ).rejects.toMatchObject({ code: "VALIDATION" });
+    }
     await updateProfile(player, { displayName: "Judge Mental", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
+  });
+
+  it("a ban racing a trial's close never splits the verdict from its tally (audit 10 #2)", async () => {
+    const [accused, attorney, prosecutor, juror] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("race_ban_admin", "ADMIN");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await castVote(juror, c.id, "GUILTY");
+
+    // A close in progress: it holds the case row while it tallies, then commits CLOSED.
+    const closing = db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${c.id} FOR UPDATE`;
+      await tx.$executeRaw`SELECT pg_sleep(0.5)`;
+      await tx.case.update({ where: { id: c.id }, data: { status: "CLOSED", verdict: "GUILTY", closedAt: new Date() } });
+    });
+    await new Promise((r) => setTimeout(r, 120));
+    await Promise.all([closing, setBan(admin, juror, true, "Racing the gavel")]);
+
+    // The close won: the vote it counted stays, and the stored tally still matches the rows.
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(await db.vote.count({ where: { caseId: c.id } })).toBe(1);
+    expect(row.guiltyVotes).toBe(1);
+    expect((await stats(juror)).juryVotes).toBe(1); // (the simulated close pays no majority bonus, so no full audit here)
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {

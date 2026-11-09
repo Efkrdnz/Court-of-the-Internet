@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **66/66 Playwright** and **83/83 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **67/67 Playwright** and **85/85 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **66/66 Playwright** and **83/83 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 83 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 85 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -296,6 +296,27 @@ Not changed:
 Not changed:
 - Inline text links inside sentences ("community rules", "Sign in") fall under WCAG 2.5.8's inline exception, and case-card titles are covered by a full-card link overlay.
 - Sealed case pages stay 200 with `noindex`.
+
+## Tenth independent audit (fresh agent, build of commit 1df19df)
+
+**Result: 15 PASS, 2 CONCERN (6 statistics, 17 docs), 0 FAIL.**
+
+It confirmed the ninth round's close lock: votes racing "Adjourn now" or a natural deadline always left the tally equal to the Vote rows. It also confirmed:
+- concurrent reaction toggles keep counters exact
+- the review pause pushes deadlines correctly
+- deleted usernames can't be reused
+- anonymity holds
+- security headers are set (CSP, X-Frame-Options DENY)
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **Open redirect after login**: `/login?next=/%5Cexample.com` and `next=/%09/example.com` sent the browser to example.com | a single `safeNext()` (src/lib/safe-next.ts) used by the login page, the signup page and the auth actions: no backslashes or control characters, and the path must resolve to our own origin | unit (8 hostile inputs) + e2e `§12 security: the post-login redirect never leaves the site` |
+| 2 | **A ban racing a trial's close** removed votes the close had already counted: the verdict was announced 4–4 but 2–1 was stored, and majority bonuses no longer matched | `setBan` locks each case row (the same lock `closeDeliberation` takes, in a fixed order) and only removes votes from trials still deliberating | integration `a ban racing a trial's close never splits the verdict from its tally`: deterministic, **fails on the old code** |
+| 3 | Jury stuffing with brand-new accounts | already documented (needs an external identity-verification provider) | — |
+| 4 | The staff-name check was dodged by "Judge Wigsworth." or a zero-width space | names are compared on letters and digits only, case- and accent-folded | integration (4 variants rejected; "Judge Mental" still allowed) |
+| 5 | OG "NEEDS COUNSEL" stamp overlapped the subtitle | one word per line, sized by the longest word | rendered NEEDS COUNSEL / JURY OUT / NOT GUILTY cards reviewed |
+| 6 | Toasts covered the vote confirmation and the mobile menu on phones | phones show toasts under the header, below the menu's z-index | visual |
+| 7 | Restore of a nonexistent case logged P2025; double-submitted argument said "the case changed"; repeat "attorney has taken your case" notices; `/archives?page=999` showed a count over an empty list | NOT_FOUND; "Your defense is already on file"; one notice per stage; out-of-range pages redirect to the last page | — |
 
 ## Per-phase evidence
 

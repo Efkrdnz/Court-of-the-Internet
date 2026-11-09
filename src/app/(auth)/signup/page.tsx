@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { safeNext } from "@/lib/safe-next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { SignupForm } from "@/components/forms/AuthForms";
@@ -7,7 +8,7 @@ export const metadata: Metadata = { title: "Join the court" };
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
-  const next = typeof sp.next === "string" && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/court";
+  const next = safeNext(sp.next);
   if (await getCurrentUser()) redirect(next);
   return (
     <div className="doc doc-ruled p-6 sm:p-8">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { safeNext } from "@/lib/safe-next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/current-user";
 import { appConfig } from "@/server/config";
@@ -12,9 +13,6 @@ import { FormAlert } from "@/components/ui/FormAlert";
 
 export const metadata: Metadata = { title: "Log in" };
 
-function safeNext(v: unknown) {
-  return typeof v === "string" && v.startsWith("/") && !v.startsWith("//") ? v : "/court";
-}
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;

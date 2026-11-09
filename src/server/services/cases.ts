@@ -231,7 +231,12 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
     }
 
     await tx.caseClaim.create({ data: { caseId, userId, role, claimedAt: now, expiresAt } });
-    await notify(tx, c.accusedId, {
+    // Tell the accused once per stage, not again each time a released or expired case is re-claimed.
+    const toldAlready = await tx.notification.findFirst({
+      where: { userId: c.accusedId, type: "CASE_CLAIMED", href: casePath(c), title: role === "DEFENSE" ? "An attorney has taken your case!" : "A prosecutor is coming for you…" },
+      select: { id: true },
+    });
+    if (!toldAlready) await notify(tx, c.accusedId, {
       type: "CASE_CLAIMED",
       title: role === "DEFENSE" ? "An attorney has taken your case!" : "A prosecutor is coming for you…",
       body:
@@ -327,7 +332,12 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
             defenseFiledAt: now,
           },
     });
-    if (advanced.count === 0) throw new CourtError("CONFLICT", "The case changed while you were writing. Please refresh.");
+    if (advanced.count === 0) {
+      // A double-submit: the first copy already filed, so say so rather than "the case changed".
+      const mine = await tx.argument.findFirst({ where: { caseId, role, authorId: userId }, select: { id: true } });
+      if (mine) throw new CourtError("ALREADY_DONE", `Your ${role === "DEFENSE" ? "defense" : "prosecution"} is already on file.`);
+      throw new CourtError("CONFLICT", "The case changed while you were writing. Please refresh.");
+    }
 
     const claim = await tx.caseClaim.findFirst({
       where: { caseId, userId, role, outcome: "ACTIVE" },

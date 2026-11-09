@@ -40,6 +40,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const closed = visible && c.status === "CLOSED" && c.verdict;
   const status = visible ? shareCardStatus(c.status, c.verdict) : null;
   const stamp = { text: status?.stamp ?? "", color: status?.color ?? "#5c5254" };
+  const longestStampWord = Math.max(0, ...stamp.text.split(" ").map((w) => w.length));
   const accused = visible ? (c.anonymous ? anonymousAlias(c.aliasSeed).name : c.accused.displayName) : "";
   const art = await ogArt(visible && c.category === "food-crimes" ? "pizza" : closed ? "judge-stern" : "judge-shocked");
   const confession = visible ? (c.confession.length > 210 ? `${c.confession.slice(0, 207)}…` : c.confession) : "";
@@ -92,6 +93,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 right: 40,
                 top: 34,
                 display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
                 transform: "rotate(-10deg)",
                 border: `7px solid ${stamp.color}`,
                 borderRadius: 14,
@@ -99,13 +102,20 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 color: stamp.color,
                 fontFamily: "Playfair",
                 fontWeight: 900,
-                fontSize: stamp.text.length > 10 ? 34 : stamp.text.length > 8 ? 40 : 54,
+                // One word per line and sized by the longest word, so the stamp stays inside the
+                // 360px column reserved for it ("NEEDS COUNSEL" used to overlap the subtitle).
+                fontSize: longestStampWord >= 9 ? 40 : longestStampWord >= 7 ? 44 : 54,
+                lineHeight: 1.05,
                 letterSpacing: 3,
                 opacity: 0.88,
                 background: "rgba(239,227,200,0.6)",
               }}
             >
-              {stamp.text}
+              {stamp.text.split(" ").map((word) => (
+                <div key={word} style={{ display: "flex" }}>
+                  {word}
+                </div>
+              ))}
             </div>
           ) : null}
         </div>
