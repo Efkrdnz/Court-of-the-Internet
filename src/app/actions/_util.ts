@@ -21,6 +21,11 @@ export function toFailure(e: unknown): { ok: false; error: string; fieldErrors?:
     const digest = (e as { digest: string }).digest;
     if (digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_HTTP_ERROR_FALLBACK") || digest === "NEXT_NOT_FOUND") throw e;
   }
+  // Hand-crafted requests with NUL bytes or other invalid text in ids reach Postgres as
+  // "invalid byte sequence" (22021): that's bad input, not a server fault.
+  if (e instanceof Error && /22021|invalid byte sequence|\\u0000|0x00/i.test(e.message)) {
+    return { ok: false, error: "That request contained invalid characters." };
+  }
   console.error("[action] unexpected error", e);
   return { ok: false, error: "The court stenographer fainted. Please try again." };
 }

@@ -142,6 +142,11 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
 
       <p className="mt-6 text-sm text-parchment/60" aria-live="polite">
         {archive.total} {archive.total === 1 ? "case" : "cases"} found{q ? ` for “${q}”` : ""}
+        {viewer?.mutedCategories.length && !category ? (
+          <span className="block text-xs normal-case tracking-normal text-parchment/50">
+            Your muted categories are hidden (<Link href="/settings" className="underline">change in Settings</Link>).
+          </span>
+        ) : null}
       </p>
       {archive.cards.length === 0 ? (
         <div className="velvet mt-4 flex flex-col items-center p-10 text-center">

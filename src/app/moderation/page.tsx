@@ -248,7 +248,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 </ul>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <ModForm op="dismiss" label="Dismiss reports" caseId={c.id} tone="teal" />
-                  <ModForm op="remove" label="Remove" caseId={c.id} tone="crimson" withReason reasonPlaceholder="Reason" />
+                  <ModForm op="remove" label="Remove" caseId={c.id} tone="crimson" withReason reasonPlaceholder="Reason" confirmText="Seal this case? It disappears from all public pages." />
                 </div>
               </li>
             ))}

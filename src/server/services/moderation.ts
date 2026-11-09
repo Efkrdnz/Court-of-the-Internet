@@ -176,7 +176,24 @@ export async function dismissReports(moderatorId: string, caseId: string) {
     // Only an *under review* case is made visible again; a sealed one stays sealed.
     const madeVisible = c.moderationState === "UNDER_REVIEW";
     await tx.case.update({ where: { id: caseId }, data: { openReports: 0, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
-    if (madeVisible) await resumeDeliberation(tx, caseId);
+    if (madeVisible) {
+      await resumeDeliberation(tx, caseId);
+      // Participants of a live trial were told the clock waits for the review; tell them it's running.
+      const t = await tx.case.findUniqueOrThrow({
+        where: { id: caseId },
+        select: { status: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true },
+      });
+      if (t.status === "DELIBERATION") {
+        for (const id of [t.accusedId, t.attorneyId, t.prosecutorId].filter(Boolean) as string[]) {
+          await notify(tx, id, {
+            type: "MODERATION",
+            title: `Case No. ${formatCaseNumber(t.number)}: the jury is back in session`,
+            body: "The review is over and deliberation is running again with its remaining time.",
+            href: casePath(t),
+          });
+        }
+      }
+    }
     await log(tx, moderatorId, "DISMISS_REPORTS", { caseId });
     return { madeVisible, sealed: c.moderationState === "REMOVED" };
   });

@@ -286,10 +286,11 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
 
 function Highlight({ label, title, href, detail, art }: { label: string; title: string; href: string; detail: string; art: React.ReactNode }) {
   return (
-    <Link href={href} className="velvet velvet-hover chr-hover flex flex-col items-center p-5 text-center">
+    <Link href={href} className="velvet velvet-hover chr-hover flex min-w-0 flex-col items-center p-5 text-center">
       <div className="chr-sticker flex h-24 items-end">{art}</div>
       <p className="eyebrow mt-3">{label}</p>
-      <p className="mt-1 line-clamp-2 font-display text-lg font-bold text-parchment">{title}</p>
+      {/* w-full lets a long unbroken name wrap inside the card instead of widening the page. */}
+      <p className="mt-1 line-clamp-2 w-full break-words font-display text-lg font-bold text-parchment">{title}</p>
       <p className="text-sm text-parchment/60">{detail}</p>
     </Link>
   );

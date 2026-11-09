@@ -472,3 +472,22 @@ describe("addresses that are links (audit 21 #8)", () => {
     expect(screenText("I installed version 2.0 of the office coffee machine firmware without asking").ok).toBe(true);
   });
 });
+
+describe("audit 22 filter gaps", () => {
+  it.each([
+    ["come to 221B Baker Street at noon", "personal-info"],
+    ["the receipts are at e v i l . c o m", "link"],
+    ["follow @ pettyking on twitter for updates", "handle"],
+    ["I hacked my ex's email account", "serious-crime"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it.each(["meet me @ noon at the vending machine", "I hacked together a costume from cereal boxes"])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+  it("rejects display names that look like anonymous aliases", () => {
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    expect(signupSchema.safeParse({ ...base, displayName: "Sweaty Walrus #D89B" }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...base, displayName: "Agent 47" }).success).toBe(true);
+  });
+});

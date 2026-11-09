@@ -58,9 +58,14 @@ export const reactionSchema = z.object({
  */
 // Latin letters mixed with letters of any other script (Cyrillic і, Armenian ս, Cherokee Ꮯ…).
 const mixesConfusableScripts = (s: string) => /\p{Script=Latin}/u.test(s) && /(?![\p{Script=Latin}])\p{L}/u.test(s);
-const displayNameField = text({ ...LIMITS.displayName, label: "Display name", multiline: false }).refine((s) => !mixesConfusableScripts(s), {
-  message: "Display names can't mix Latin letters with letters from other alphabets.",
-});
+const displayNameField = text({ ...LIMITS.displayName, label: "Display name", multiline: false })
+  .refine((s) => !mixesConfusableScripts(s), {
+    message: "Display names can't mix Latin letters with letters from other alphabets.",
+  })
+  // "Sweaty Walrus #D89B" is what anonymous confessors are called; nobody may pose as one.
+  .refine((s) => !/#\s*[0-9a-f]{3,6}\s*$/i.test(s), {
+    message: "Names ending in a #tag look like an anonymous alias. Pick something else.",
+  });
 
 export const usernameSchema = z
   .string()

@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **70/70 Playwright** and **198/198 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **71/71 Playwright** and **205/205 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **70/70 Playwright** and **198/198 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 198 Vitest + 70 Playwright tests (45 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 205 Vitest + 71 Playwright tests (46 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -561,6 +561,33 @@ It confirmed the twentieth round:
 | 6 | The per-IP confession limit said "too fast, try again in a moment" (it is an hourly limit) | specific message | — |
 | 7 | The "filed" notice scrolled under the sticky header on phones | `scroll-padding-top` | — |
 | 8 | `/u/ME` gave 404 (`/u/me` redirects); the 404 page always said "Case not found"; bare IPs and `.example` domains passed the filter | case-insensitive `me`; "Page not found"; IPs and reserved TLDs caught | unit |
+
+## Twenty-second independent audit (fresh agent, build of commit 37002c7)
+
+**Result: 15 PASS, 2 CONCERN (13 mobile, 17 minor), 0 FAIL.**
+
+It confirmed the twenty-first round's ordering fix across every race it tried:
+- a filing during review starts paused
+- dismiss vs new reports is clean
+- a combined ban + double adjourn + seal closed once with consistent tallies
+- a deadline passing in review kept its remaining 12s
+
+Its SQL recount of all 54 players had 0 mismatches.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | A 32-character unbroken name as "Attorney of the Month" overflowed the home page (485px on a 412px phone) | highlight cards are `min-w-0`, and their title wraps | e2e `maximum-length display names never widen key pages`: gives every player a 32-character name and checks 7 pages at 320 and 1024px |
+| 2 | A player could take an anonymous alias as a display name ("Sweaty Walrus #D89B") | names ending in a `#tag` are refused | unit |
+| 3 | A NUL byte in a crafted action id surfaced as "stenographer fainted" with a stack trace | Postgres "invalid byte sequence" errors become "invalid characters" without a stack trace | — |
+| 4 | Filter gaps: "221B Baker Street", "e v i l . c o m", "@ pettyking on twitter", account hacking | patterns for each ("meet me @ noon" and "hacked together" still pass) | unit |
+| 5 | Muted categories silently shrank the archive count | the list says that muted categories are hidden, with a link to Settings | — |
+| 6 | Dismissing reports restarted a trial's clock without telling the participants | the accused and counsel are notified | — |
+| 8 | Report-queue "Remove" had no confirmation; axe `label-content-name-mismatch` on the logo and account button; "votes in 24h" counted sealed cases | confirmation added; the logo link's name equals the wordmark, and the crest and avatar are decorative inside their controls; the vote count is scoped to visible cases | e2e a11y suite (13 pages) |
+
+Unchanged:
+- **Sealed pages return 200 with `noindex`.**
+- **No proxy:** lockout and IP spoofing without a proxy are documented.
+- **Jury illustration at 1024px:** the reported spill on the home page's 1024px layout is cosmetic. I could not reproduce it and left it as is.
 
 ## Per-phase evidence
 

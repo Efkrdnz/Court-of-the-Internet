@@ -74,7 +74,7 @@ const URL =
 const HANDLE = /(?:^|[^\p{L}\p{N}_.%+-])@[\p{L}\p{N}_.]{3,}/u;
 // Number + Capitalised Name(s) + street suffix, e.g. "42 Wallaby Way".
 const STREET =
-  /\b\d{1,5}\s+(?:[A-Z][a-z]+\s){1,3}(?:[Ss]treet|St|[Aa]venue|Ave|[Rr]oad|Rd|[Bb]oulevard|Blvd|[Ll]ane|Ln|[Dd]rive|Dr|[Cc]ourt|Ct|[Ww]ay|[Pp]lace|Pl|[Tt]errace)\b\.?/;
+  /\b\d{1,5}[A-Za-z]?\s+(?:[A-Z][a-z]+\s){1,3}(?:[Ss]treet|St|[Aa]venue|Ave|[Rr]oad|Rd|[Bb]oulevard|Blvd|[Ll]ane|Ln|[Dd]rive|Dr|[Cc]ourt|Ct|[Ww]ay|[Pp]lace|Pl|[Tt]errace)\b\.?/;
 // Lower-case addresses ("42 wallaby way"): one or two name words that aren't everyday filler,
 // so "3 slices on the way" or "2 blocks down the road" stay fine.
 const FILLER = "(?:the|a|an|my|his|her|our|their|your|down|up|on|to|of|in|at|by|from|for|and|all|way|whole|entire|long|other)";
@@ -159,6 +159,8 @@ const SERIOUS = [
   // Poisoning food or drink with something dangerous.
   /\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b.{0,50}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b/i,
   /\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b.{0,50}\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b/i,
+  // Breaking into someone's accounts or devices.
+  /\bhacked\s+(?:into\s+)?(?:my|his|her|their|someone'?s|somebody'?s|a)\s+(?:[\w-]+(?:'s|s')\s+)?(?:email|e-mail|account|accounts|phone|instagram|facebook|bank|computer|laptop|icloud|wifi)\b/i,
   // Theft of vehicles, robbery, arson.
   /\bi\s+(?:stole|hot-?wired|jacked|carjacked)\s+(?:a|an|someone'?s|somebody'?s|his|her|their|the\s+neighbou?r'?s)\s+(?:\w+\s+)?(?:car|truck|van|motorcycle|motorbike|scooter|bike)\b/i,
   /\b(?:robbed|held\s+up|stuck\s+up)\s+(?:a|the|an)\s+(?:\w+\s+)?(?:bank|store|shop|gas\s+station|liquor\s+store|pharmacy|house|home|person|man|woman)\b|\bbank\s+robbery\b/i,
@@ -219,13 +221,17 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const numbered = text.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
   const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){3,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   if (EMAIL.test(undotted) || EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
-  // "j o h n @ g m a i l . c o m": runs of single characters, squashed back together.
-  const spacedEmail = (text.match(/(?:\S\s+){5,}\S/g) ?? []).some((run) => EMAIL.test(run.replace(/\s+/g, "")));
+  // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
+  const spacedRuns = (text.match(/(?:\S\s+){5,}\S/g) ?? []).map((run) => run.replace(/\s+/g, ""));
+  const spacedEmail = spacedRuns.some((run) => EMAIL.test(run));
+  if (spacedRuns.some((run) => URL.test(run))) return fail("link");
   if (PHONE.test(text) || PHONE.test(numbered) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
   // Bare IPv4 addresses and the reserved .example/.test/.invalid names are links too.
   if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(text) || URL.test(undotted) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
-  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text)) return fail("handle");
+  // "@ pettyking on twitter": a detached @name next to a platform name.
+  const detachedHandle = /@\s+[a-z0-9_.]{3,}\b.{0,25}\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b/i.test(text);
+  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || detachedHandle) return fail("handle");
 
   const words = normaliseForWords(text);
   // Adjacent pairs too, for slurs split by a space ("fa ggot").

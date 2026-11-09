@@ -120,7 +120,7 @@ test("§12 navigation is functional (every header link, signed in)", async ({ br
   // Footer, logo, case cards.
   await page.getByRole("link", { name: "Community rules" }).first().click();
   await expect(page).toHaveURL(/\/rules$/);
-  await page.getByRole("link", { name: "Court of the Internet: home" }).click();
+  await page.getByRole("link", { name: "Court of the Internet", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await page.locator("article.folder h3 a").first().click();
   await expect(page).toHaveURL(/\/cases\/\d+-/);
@@ -603,5 +603,23 @@ test("§12 layout: the signed-in header fits on one line on small desktops (audi
     }
     await expectNoHorizontalScroll(page);
     await context.close();
+  }
+});
+
+test("§12 layout: maximum-length display names never widen key pages (audit 22 #1)", async ({ browser }) => {
+  const users = await prisma.user.findMany({ select: { id: true, displayName: true } });
+  await prisma.$transaction(users.map((u) => prisma.user.update({ where: { id: u.id }, data: { displayName: "W".repeat(32) } })));
+  try {
+    for (const width of [320, 1024]) {
+      const context = await browser.newContext({ viewport: { width, height: 800 }, isMobile: width < 400, hasTouch: width < 400 });
+      const page = await context.newPage();
+      for (const path of ["/", "/archives", "/leaderboards", "/cases/1", "/u/counselor_coo", "/defend", "/jury"]) {
+        await page.goto(path);
+        await expectNoHorizontalScroll(page);
+      }
+      await context.close();
+    }
+  } finally {
+    await prisma.$transaction(users.map((u) => prisma.user.update({ where: { id: u.id }, data: { displayName: u.displayName } })));
   }
 });

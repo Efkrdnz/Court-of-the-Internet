@@ -58,7 +58,7 @@ export async function getCommunityStats() {
     db.vote.count({ where: { case: { moderationState: "VISIBLE" } } }), // same scope as the case totals
     db.case.count({ where: { status: "CLOSED", verdict: "GUILTY", moderationState: "VISIBLE" } }),
     db.case.count({ where: { status: "CLOSED", verdict: "NOT_GUILTY", moderationState: "VISIBLE" } }),
-    db.vote.count({ where: { createdAt: { gte: dayAgo } } }),
+    db.vote.count({ where: { createdAt: { gte: dayAgo }, case: { moderationState: "VISIBLE" } } }),
     db.case.count({ where: { status: "DELIBERATION", moderationState: "VISIBLE" } }),
     db.case.count({ where: { status: { in: ["AWAITING_DEFENSE", "AWAITING_PROSECUTION"] }, moderationState: "VISIBLE" } }),
     db.case.aggregate({ _max: { number: true } }),

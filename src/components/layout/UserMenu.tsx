@@ -50,7 +50,9 @@ export function UserMenu({
         // Starts with the visible text ("Hammy Lv 2"), so voice-control users can say what they see.
         aria-label={`${displayName} Lv ${level}, account menu`}
       >
-        <Avatar config={avatar} className="h-9 w-9" title={displayName} />
+        <span aria-hidden className="shrink-0">
+          <Avatar config={avatar} className="h-9 w-9" title={displayName} />
+        </span>
         <span className="hidden text-left leading-tight sm:block lg:hidden xl:block">
           <span className="block max-w-[9rem] truncate text-sm font-bold text-parchment">{displayName}</span>
           <span className="block text-[11px] font-semibold text-gold-light">Lv {level}</span>
