@@ -60,7 +60,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
                     on ? "border-gold bg-gold/15 ring-2 ring-gold/50" : "border-gold/20 bg-night/30 hover:border-gold/60",
                   )}
                 >
-                  <input type="radio" name="category" value={c.key} checked={on} onChange={() => setCategory(c.key)} className="sr-only" />
+                  <input type="radio" name="category" value={c.key} checked={on} onChange={() => setCategory(c.key)} className="sr-only" data-invalid={fe?.category ? "true" : undefined} />
                   <CategoryIcon category={c.key} className={clsx("h-10 w-10 shrink-0 transition-transform", on ? "scale-110 rotate-[-6deg]" : "group-hover:rotate-[-6deg]")} />
                   <span className="min-w-0">
                     <span className="block text-sm font-bold leading-tight text-parchment">{c.label}</span>

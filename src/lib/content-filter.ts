@@ -73,6 +73,10 @@ const VIOLENCE = [
   /\bkys\b/i,
   /\bi(?:'m| am)?\s*(?:going|gonna)\s+to?\s*(?:kill|hurt|stab|shoot|murder|beat up)\b/i,
   /\bi\s*(?:will|'ll)\s+(?:kill|hurt|stab|shoot|murder)\b/i,
+  // Intent + harm + a person: "I want to kill my neighbour", "planning to poison his dog's owner".
+  // Needs a human target, so "kill time", "could kill for a nap" and "mom will kill me" stay fine.
+  /\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|going|gonna|about|tr(?:y|ying|ied)|decided|need)\s+to\s+(?:kill|murder|stab|shoot|poison|strangle|hurt|beat\s+up)\s+(?:my|his|her|their|our|your|him|them|someone|somebody|everyone|people|a\s+(?:man|woman|person|kid|child|cop|neighbou?r))\b/i,
+  /\bi\s*(?:would|'d|could|should|might)\s+(?:kill|murder|stab|shoot|poison|strangle)\s+(?:my|his|her|their|him|them|someone|somebody|everyone)\b/i,
   /\bshoot\s+up\b/i,
   /\b(?:make|build|plant)\s+a\s+bomb\b/i,
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,

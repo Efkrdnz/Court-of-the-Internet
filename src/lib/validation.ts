@@ -51,6 +51,16 @@ export const reactionSchema = z.object({
   type: z.enum(["HILARIOUS", "OUTRAGEOUS", "LEGENDARY", "RELATABLE"]),
 });
 
+/**
+ * Display names can't mix Latin letters with Cyrillic or Greek ones: that mix is how look-alike
+ * impersonation works ("Judge Wіgsworth" with a Cyrillic і). Single-script names in any
+ * alphabet are fine.
+ */
+const mixesConfusableScripts = (s: string) => /\p{Script=Latin}/u.test(s) && /[\p{Script=Cyrillic}\p{Script=Greek}]/u.test(s);
+const displayNameField = text({ ...LIMITS.displayName, label: "Display name", multiline: false }).refine((s) => !mixesConfusableScripts(s), {
+  message: "Display names can't mix Latin letters with look-alike Cyrillic or Greek ones.",
+});
+
 export const usernameSchema = z
   .string()
   .trim()
@@ -72,7 +82,7 @@ export const passwordSchema = z
 export const signupSchema = z
   .object({
     username: usernameSchema,
-    displayName: text({ ...LIMITS.displayName, label: "Display name", multiline: false }),
+    displayName: displayNameField,
     password: passwordSchema,
     confirmPassword: z.string(),
     acceptRules: checkbox.refine((v) => v, { message: "You must accept the community rules." }),
@@ -88,7 +98,7 @@ export const loginSchema = z.object({
 });
 
 export const profileSchema = z.object({
-  displayName: text({ ...LIMITS.displayName, label: "Display name", multiline: false }),
+  displayName: displayNameField,
   bio: text({ max: LIMITS.bio.max, label: "Bio" }),
   avatar: avatarSchema,
   profileTheme: z.string().min(1).max(40),

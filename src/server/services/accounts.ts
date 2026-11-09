@@ -20,10 +20,15 @@ import { clock } from "../clock";
 import { releaseClaims } from "./claims";
 
 /** Letters and digits only, case- and accent-folded: "Judge Wigsworth." and "Judge\u200bWigsworth" collide. */
+const CONFUSABLES: Record<string, string> = {
+  а: "a", в: "b", е: "e", ё: "e", і: "l", ї: "l", ј: "j", к: "k", м: "m", н: "h", о: "o", р: "p", с: "c", т: "t", у: "y", х: "x", ѕ: "s", ԁ: "d", ӏ: "l",
+  α: "a", β: "b", ε: "e", η: "n", ι: "l", κ: "k", μ: "m", ν: "v", ο: "o", ρ: "p", τ: "t", υ: "u", χ: "x", ɡ: "g",
+  i: "l", "1": "l", "|": "l", "0": "o", "5": "s", "3": "e", "4": "a", "@": "a", $: "s",
+};
 const nameKey = (name: string) =>
-  name
-    .normalize("NFKD")
-    .toLowerCase()
+  [...name.normalize("NFKD").toLowerCase()]
+    .map((ch) => CONFUSABLES[ch] ?? ch)
+    .join("")
     .replace(/[^\p{L}\p{N}]+/gu, "");
 
 /** Players can't take an officer of the court's display name ("Judge Wigsworth" is the real one). */

@@ -82,7 +82,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 </div>
               </div>
             ) : (
-              <div style={{ marginTop: 40, fontFamily: "Playfair", fontWeight: 900, fontSize: 64, color: "#1a0f12" }}>This case has been sealed.</div>
+              <div style={{ marginTop: 40, fontFamily: "Playfair", fontWeight: 900, fontSize: 64, color: "#1a0f12" }}>{c.moderationState === "UNDER_REVIEW" ? "This case is under review." : "This case has been sealed."}</div>
             )}
           </div>
           <img src={art} width={250} height={271} style={{ position: "absolute", right: 34, bottom: 22 }} alt="" />

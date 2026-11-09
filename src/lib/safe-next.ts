@@ -12,7 +12,11 @@ export function safeNext(value: unknown, fallback = "/court"): string {
     const base = "http://court.invalid";
     const url = new URL(value, base);
     if (url.origin !== base) return fallback;
-    return `${url.pathname}${url.search}${url.hash}`;
+    const path = `${url.pathname}${url.search}${url.hash}`;
+    // Re-check after normalisation: "/..//evil.example" resolves to "//evil.example", which a
+    // browser would treat as another host.
+    if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) return fallback;
+    return path;
   } catch {
     return fallback;
   }

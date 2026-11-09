@@ -419,10 +419,12 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
 
     // Row-locking conditional update: serialises against the closing transaction.
     const counted = await tx.case.updateMany({
-      where: { id: caseId, status: "DELIBERATION", deliberationEndsAt: { gt: now } },
+      // Re-checks visibility under the row lock: a case sealed or put under review while this vote
+      // was in flight must not count it.
+      where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE", deliberationEndsAt: { gt: now } },
       data: choice === "GUILTY" ? { guiltyVotes: { increment: 1 } } : { notGuiltyVotes: { increment: 1 } },
     });
-    if (counted.count === 0) throw new CourtError("INVALID_STATE", "Deliberation has closed. The verdict is being read.");
+    if (counted.count === 0) throw new CourtError("INVALID_STATE", "This case stopped taking votes a moment ago (closed or paused for review).");
     try {
       await tx.vote.create({ data: { caseId, userId, choice, createdAt: now } });
     } catch (e) {

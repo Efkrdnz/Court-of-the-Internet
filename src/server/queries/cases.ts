@@ -424,6 +424,9 @@ export async function relatedCases(caseId: string, category: string, viewer: { i
 
 export type ArchiveSort = "recent" | "popular" | "controversial" | "funniest";
 
+/** Prisma passes `contains` to ILIKE as-is, so "%" or "_" in a search would match everything. */
+const likeLiteral = (q: string) => q.replace(/[\\%_]/g, (c) => `\\${c}`);
+
 export async function listArchive(opts: {
   q?: string;
   category?: string;
@@ -442,9 +445,9 @@ export async function listArchive(opts: {
     ...(q
       ? {
           OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { confession: { contains: q, mode: "insensitive" } },
-            ...(/^\d+$/.test(q) ? [{ number: Number(q) }] : []),
+            { title: { contains: likeLiteral(q), mode: "insensitive" } },
+            { confession: { contains: likeLiteral(q), mode: "insensitive" } },
+            ...(/^\d{1,9}$/.test(q) ? [{ number: Number(q) }] : []), // longer would overflow INT
           ],
         }
       : {}),

@@ -199,8 +199,35 @@ describe("post-login redirect (audit 10 #1)", () => {
   it("allows same-origin paths only", () => {
     expect(safeNext("/cases/12-x?filed=1#top")).toBe("/cases/12-x?filed=1#top");
     expect(safeNext("/jury")).toBe("/jury");
-    for (const bad of ["//example.com", "/\\example.com", "/\texample.com", "/\t/example.com", "/\n/example.com", "https://example.com", "example.com", "", null, 42, "/%5Cexample.com".replace("%5C", "\\")]) {
+    for (const bad of ["//example.com", "/\\example.com", "/\texample.com", "/\t/example.com", "/\n/example.com", "https://example.com", "example.com", "", null, 42, "/%5Cexample.com".replace("%5C", "\\"), "/..//evil.example/phish", "/./..//evil.example", "/a/../..//evil.example"]) {
       expect(safeNext(bad), String(bad)).toBe("/court");
     }
+  });
+});
+
+describe("threat screening (audit 11 #4)", () => {
+  it("rejects stated intent to harm a person", () => {
+    for (const t of [
+      "I want to kill my neighbour because his dog keeps barking all night long",
+      "I'm planning to poison my roommate's coffee this weekend for real",
+      "I would stab him if he touches my leftovers again, honestly",
+    ]) expect(screenText(t).ok, t).toBe(false);
+  });
+  it("keeps everyday hyperbole", () => {
+    for (const t of [
+      "I needed to kill time so I alphabetised the whole spice rack by vibes",
+      "My mom will kill me when she finds out I ate the last slice of cake",
+      "I could kill for a nap after that meeting, so I napped in the supply closet",
+      "This group chat is killing me, so I muted it for a week and said nothing",
+    ]) expect(screenText(t).ok, t).toBe(true);
+  });
+});
+
+describe("display names (audit 11 #3)", () => {
+  it("rejects Latin mixed with look-alike Cyrillic or Greek letters, but allows single-script names", () => {
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    expect(signupSchema.safeParse({ ...base, displayName: "Judge W\u0456gsworth" }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...base, displayName: "Иван Петров" }).success).toBe(true);
+    expect(signupSchema.safeParse({ ...base, displayName: "Judge Mental" }).success).toBe(true);
   });
 });

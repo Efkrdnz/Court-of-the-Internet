@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **67/67 Playwright** and **85/85 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **67/67 Playwright** and **90/90 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **67/67 Playwright** and **85/85 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 85 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 90 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -317,6 +317,26 @@ It confirmed the ninth round's close lock: votes racing "Adjourn now" or a natur
 | 5 | OG "NEEDS COUNSEL" stamp overlapped the subtitle | one word per line, sized by the longest word | rendered NEEDS COUNSEL / JURY OUT / NOT GUILTY cards reviewed |
 | 6 | Toasts covered the vote confirmation and the mobile menu on phones | phones show toasts under the header, below the menu's z-index | visual |
 | 7 | Restore of a nonexistent case logged P2025; double-submitted argument said "the case changed"; repeat "attorney has taken your case" notices; `/archives?page=999` showed a count over an empty list | NOT_FOUND; "Your defense is already on file"; one notice per stage; out-of-range pages redirect to the last page | — |
+
+## Eleventh independent audit (fresh agent, build of commit ba6bfb4)
+
+**Result: 14 PASS, 3 CONCERN (10 forms, 14 one 500, 17 docs), 0 FAIL.** It confirmed the tenth round:
+- every race it scripted (ban, seal and votes against the close) left tallies equal to the Vote and Reaction rows
+- its SQL recompute matched all 29 players
+- the seal → deadline → restore pause worked
+- per-case anonymity held
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **Open redirect via dot segments**: `/login?next=/..//evil.example` normalised to `//evil.example` and was used for signed-in visitors | `safeNext()` re-checks the *normalised* path (must start with a single `/`, with no backslash) | unit: 3 dot-segment variants added to the hostile-input list |
+| 2 | `/jury?case=2147483648` returned 500 (INT overflow) | case pins, the moderation lookup and numeric archive search use the 9-digit `parseCaseParam` rule; archive page numbers are capped | integration (`99999999999999` search returns nothing, no error) |
+| 3 | Look-alike impersonation ("Judge Wіgsworth" with a Cyrillic і) | display names can't mix Latin with Cyrillic or Greek letters; the staff-name comparison folds confusables (Cyrillic and Greek look-alikes, 1/l/i, 0/o) | unit + integration (Cyrillic е and "Rea1name" rejected) |
+| 4 | "I want to kill my neighbour…" passed the threat filter | intent + harm + human-target patterns | unit: 3 threats rejected, 4 everyday hyperboles ("kill time", "mom will kill me"…) still allowed |
+| 5 | A vote in flight while a case was sealed or put under review still counted | the vote's locked conditional update also requires `moderationState = VISIBLE` | — |
+| 6 | `%` / `_` in archive search matched everything | LIKE wildcards escaped | integration `archive search treats % and _ literally…` |
+| 7 | Achievements can be minted by toggling reactions | documented: achievements are permanent and carry no gameplay power | — |
+| 8 | Under-review OG card said "sealed"; striking left `openReports` stale; home vote total included sealed cases; banned players kept jury XP for removed votes | "under review" card; report count recomputed after a strike; totals use the same scope; removed votes' XP is reversed (still paid only once per case) | integration (strike → openReports 2 → 1); ban tests still pass the full stats audit |
+| 9 | After an empty confession, focus skipped the category error | radio groups mark themselves `data-invalid`, and focus goes to the first invalid control in document order | — |
 
 ## Per-phase evidence
 

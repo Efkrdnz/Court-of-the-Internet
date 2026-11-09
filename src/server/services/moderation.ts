@@ -138,6 +138,9 @@ export async function strikeArgument(moderatorId: string, caseId: string, role: 
       where: { caseId, target: role, status: "OPEN" },
       data: { status: "ACTIONED", resolvedAt: clock.now() },
     });
+    // Keep the queue's "N reporters" in step with the reports still open.
+    const stillOpen = await tx.report.findMany({ where: { caseId, status: "OPEN" }, select: { reporterId: true }, distinct: ["reporterId"] });
+    await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length } });
     await log(tx, moderatorId, stricken ? `STRIKE_${role}` : `UNSTRIKE_${role}`, { caseId });
   });
 }
@@ -170,6 +173,12 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
         const [locked] = await tx.$queryRaw<{ status: string }[]>`SELECT "status"::text FROM "Case" WHERE "id" = ${v.caseId} FOR UPDATE`;
         if (locked?.status !== "DELIBERATION") continue; // closed meanwhile: the verdict stands
         await tx.vote.delete({ where: { id: v.id } });
+        // The jury XP for a vote that no longer counts goes too (re-voting after an unban pays it once).
+        const xp = await tx.xpEvent.findMany({ where: { userId: targetUserId, caseId: v.caseId, reason: "jury-vote" }, select: { id: true, amount: true } });
+        if (xp.length) {
+          await tx.xpEvent.deleteMany({ where: { id: { in: xp.map((e) => e.id) } } });
+          await tx.userStats.update({ where: { userId: targetUserId }, data: { xp: { decrement: xp.reduce((n, e) => n + e.amount, 0) } } });
+        }
         await tx.case.update({
           where: { id: v.caseId },
           data: v.choice === "GUILTY" ? { guiltyVotes: { decrement: 1 } } : { notGuiltyVotes: { decrement: 1 } },

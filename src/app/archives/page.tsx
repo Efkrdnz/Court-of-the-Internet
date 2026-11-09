@@ -41,7 +41,7 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
   const category = sp.category && isCategoryKey(sp.category) ? sp.category : undefined;
   const verdict = VERDICTS.find((v) => v.key === sp.verdict)?.key;
   const sort = SORTS.find((s) => s.key === sp.sort)?.key ?? "recent";
-  const page = Math.max(1, Number(sp.page) || 1);
+  const page = Math.min(100_000, Math.max(1, Math.floor(Number(sp.page)) || 1));
   const [archive, featured] = await Promise.all([listArchive({ q, category, verdict, sort, page, viewer }), page === 1 && !q ? getFeaturedCase(viewer) : null]);
   const vc = archive.verdictCounts;
   const decided = vc.GUILTY + vc.NOT_GUILTY + vc.MISTRIAL + vc.DISMISSED;

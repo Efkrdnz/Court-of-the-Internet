@@ -20,8 +20,10 @@ export function useFormAction<T = undefined>(
   // usually scrolled off-screen above the submit button.
   useEffect(() => {
     if (!state || state.ok || !ref.current) return;
+    // First invalid control in document order. Radio groups mark themselves with data-invalid,
+    // since aria-invalid isn't allowed on radios.
     const target =
-      ref.current.querySelector<HTMLElement>('[aria-invalid="true"]') ?? ref.current.querySelector<HTMLElement>('[role="alert"]');
+      ref.current.querySelector<HTMLElement>('[aria-invalid="true"], [data-invalid="true"]') ?? ref.current.querySelector<HTMLElement>('[role="alert"]');
     target?.scrollIntoView({ block: "center", behavior: "smooth" });
     target?.focus({ preventScroll: true });
   }, [state]);

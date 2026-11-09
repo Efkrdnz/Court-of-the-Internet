@@ -284,7 +284,7 @@ describe("moderation", () => {
     await expect(
       updateProfile(player, { displayName: "judge realname", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
-    for (const sneaky of ["Judge Realname.", "Judge\u200bRealname", "JUDGE  REALNAME", "Judge Réalname"]) {
+    for (const sneaky of ["Judge Realname.", "Judge\u200bRealname", "JUDGE  REALNAME", "Judge Réalname", "Judge Rea1name", "Judge Rеalname" /* Cyrillic е */]) {
       await expect(
         updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
       ).rejects.toMatchObject({ code: "VALIDATION" });
@@ -313,6 +313,19 @@ describe("moderation", () => {
     expect(await db.vote.count({ where: { caseId: c.id } })).toBe(1);
     expect(row.guiltyVotes).toBe(1);
     expect((await stats(juror)).juryVotes).toBe(1); // (the simulated close pays no majority bonus, so no full audit here)
+  });
+
+  it("striking an argument updates the queue's open-report count (audit 11 #8)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const mod = await makeUser("strike_clerk", "MODERATOR");
+    const reporters = await makeUsers(2, "strk");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await fileReport(reporters[0], { caseId: c.id, target: "DEFENSE", reason: "SPAM" });
+    await fileReport(reporters[1], { caseId: c.id, target: "CASE", reason: "SPAM" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).openReports).toBe(2);
+    await strikeArgument(mod, c.id, "DEFENSE");
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).openReports).toBe(1); // only the CASE report is still open
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {

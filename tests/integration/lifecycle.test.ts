@@ -4,7 +4,7 @@ import { resetClock } from "@/server/clock";
 import { castVote, claimCase, confess, releaseClaim, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { expireStaleClaims, runMaintenanceNow } from "@/server/services/maintenance";
-import { listJuryCases, listQueue } from "@/server/queries/cases";
+import { listArchive, listJuryCases, listQueue } from "@/server/queries/cases";
 import { auditStats } from "@/server/services/stats";
 import {
   DEFENSE_TEXT,
@@ -398,6 +398,24 @@ describe("confession rules", () => {
     // 2–2 including the in-flight vote: a mistrial, not a 2–1 guilty verdict.
     expect([row.guiltyVotes, row.notGuiltyVotes]).toEqual([2, 2]);
     expect(row.verdict).toBe("MISTRIAL");
+  });
+
+  it("archive search treats % and _ literally and survives huge numbers (audit 11 #6)", async () => {
+    process.env.COURT_QUORUM = "3";
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const jurors = await makeUsers(3, "srch");
+    const pct = await makeCase(accused, { title: "I gave 100% effort to avoiding the dishes" });
+    const plain = await makeCase(accused, { title: "I hid the remote inside the couch cushions" });
+    for (const c of [pct, plain]) {
+      await toDeliberation(c.id, attorney, prosecutor);
+      await voteAll(c.id, jurors, 2);
+      await closeNow(c.id);
+    }
+    const ids = async (q: string) => (await listArchive({ q, viewer: null })).cards.map((c) => c.id);
+    expect(await ids("%")).toEqual([pct.id]);
+    expect(await ids("100%")).toEqual([pct.id]);
+    expect(await ids("_")).toEqual([]);
+    expect(await ids("99999999999999")).toEqual([]); // no INT overflow
   });
 
   it("orders the jury queue by total votes, never revealing the hidden split (audit 6 #7)", async () => {

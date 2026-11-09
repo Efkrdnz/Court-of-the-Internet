@@ -49,7 +49,7 @@ export async function getCommunityStats() {
     db.user.count({ where: { deletedAt: null } }),
     db.case.count({ where: { moderationState: { not: "REMOVED" } } }),
     db.case.count({ where: { status: "CLOSED", moderationState: "VISIBLE" } }),
-    db.vote.count(),
+    db.vote.count({ where: { case: { moderationState: "VISIBLE" } } }), // same scope as the case totals
     db.case.count({ where: { status: "CLOSED", verdict: "GUILTY", moderationState: "VISIBLE" } }),
     db.case.count({ where: { status: "CLOSED", verdict: "NOT_GUILTY", moderationState: "VISIBLE" } }),
     db.vote.count({ where: { createdAt: { gte: dayAgo } } }),

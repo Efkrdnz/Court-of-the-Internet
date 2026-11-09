@@ -7,7 +7,7 @@ import { refreshCase, runMaintenance } from "@/server/services/maintenance";
 import { gameConfig } from "@/server/config";
 import { db } from "@/server/db";
 import { decidedJuryVotes } from "@/server/queries/players";
-import { formatCaseNumber, casePath } from "@/lib/text";
+import { formatCaseNumber, casePath, parseCaseParam } from "@/lib/text";
 import { getCategory } from "@/lib/categories";
 import { percent } from "@/lib/format";
 import { ArgumentPanel } from "@/components/case/ArgumentPanel";
@@ -30,7 +30,8 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
   const queue = await listJuryCases(viewer);
 
   // Pin the case being judged in the URL so the tally reveal survives the post-vote refresh.
-  const pinned = sp.case ? Number(sp.case) : null;
+  // Same parser as case URLs: at most 9 digits, so huge numbers can't overflow the INT column (500).
+  const pinned = sp.case ? parseCaseParam(String(sp.case)) : null;
   if (!pinned && queue.cards[0]) redirect(`/jury?case=${queue.cards[0].number}`);
 
   let focus = null as Awaited<ReturnType<typeof getCaseDetail>>;
