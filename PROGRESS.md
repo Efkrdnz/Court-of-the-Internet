@@ -734,6 +734,20 @@ Kept by design and now documented: the sealed-case page answers 200, and Next.js
 
 Environment note from the audit: the checkout's untracked local `.env` enables demo login; production deployments leave `ENABLE_DEMO_LOGIN` unset (README), and `.env.example` leaves it off.
 
+## Thirtieth independent audit (fresh agent, build of commit dfda632)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.**
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | Filter false positives: Chinese/Japanese/Thai text over 35 characters (no spaces) read as one long word; "beat my dad at chess", "shot my sister with a water pistol", "killed my brother at Fortnite", "sold the last Coke", "underage" in any context, "30 minutes each way", "2 diet Dr Peppers", bowling/basketball score lists, price lists, "$1,500,000,000", counting in words, "TikTok until 12am", "YouTube in 1080p", "hungry.so i ate", "chink in my armor", "Dick Van Dyke", "Spic and Span", rows of emoji, "honestly...i...ate" | the long-word rule counts only letters and digits and skips scripts written without spaces; games, toys and "to the" are exempt from harm patterns; "coke" only when bare; "underage" only with sexual context; time and measure words aren't street names (and "dr" is no longer a street abbreviation); comma-separated lists of short numbers, well-formed money amounts and counting up aren't phone numbers; times and resolutions aren't handles; English-word two-letter "TLDs" before another word are a missing space; idioms and names containing a listed word are skipped | corpus: 88 everyday sentences (31 new) |
+| D2 | Filter misses: threats against a named person ("kill Kevin", "murder Sarah", "stab Dave"), "I will end you", strangle/shank, asterisk-masked and "-z" slurs, drowning a cat, slashing tyres, punching a roommate, kicking a dog, "to death", burning or torching property, hit-and-run phrasings, mugging, `petty_king_99 on insta` | case-sensitive named-target threat pattern; more verbs; masked-letter slur matching; assault on housemates, colleagues and pets; arson/vandalism/mugging patterns; reverse "<handle> on <platform>" | corpus: 56 evasions (20 new), including "555, 123, 4567" so the new number rules don't open a phone gap; 341 seed texts pass |
+| D2 (docs) | README overstated the filter | README now describes it as phrase patterns with known misses *and* known false positives, and points to the corpus | — |
+| D3 | A claim holder got a 404 on their own editor while the case was under review (though filing is allowed then) | the live claim holder counts as a participant | integration |
+| D4 | Simultaneous bans (or unbans) all succeeded and logged | the player's row is locked before the ban state is read | integration: 3 concurrent bans → 1 succeeds, 1 log entry |
+| D5 | In the grace period the editor said "expires in now: file quickly" and other pages "Time's up" | claim countdowns switch to "Your claim time is up. You're in a short grace period: file now…" | — |
+| D6 | README said 72 e2e tests; symbol-only display names | count removed (it drifts); names need a letter or digit; framework SyntaxError for non-JSON action bodies documented | unit |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

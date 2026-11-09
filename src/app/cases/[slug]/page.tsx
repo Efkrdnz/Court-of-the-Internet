@@ -19,7 +19,7 @@ import { ShareBar } from "@/components/case/ShareBar";
 import { ReportDialog } from "@/components/case/ReportDialog";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { FormAlert } from "@/components/ui/FormAlert";
-import { Countdown } from "@/components/ui/Countdown";
+import { ClaimCountdown } from "@/components/ui/Countdown";
 import { CategoryIcon, OrnateCorner } from "@/components/art/props";
 import { SealedCase, SleepingBailiff } from "@/components/art/scenes";
 import { BailiffBulldog } from "@/components/art/characters";
@@ -237,7 +237,7 @@ export default async function CasePage({ params, searchParams }: Props) {
                 <p className="text-parchment/70">
                   {c.viewer.holdsClaim ? (
                     <>
-                      Your claim expires in <Countdown to={c.claimExpiresAt!} className="font-bold text-gold-light" />.
+                      <ClaimCountdown to={c.claimExpiresAt!} />
                     </>
                   ) : (
                     "The bailiff is guarding the case file. If they run out of time, it returns to the docket."

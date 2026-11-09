@@ -5,7 +5,7 @@ import { castVote, claimCase, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { runMaintenanceNow } from "@/server/services/maintenance";
 import { toggleReaction } from "@/server/services/reactions";
-import { bumpViewCount, listQueue } from "@/server/queries/cases";
+import { bumpViewCount, getCaseDetail, listQueue } from "@/server/queries/cases";
 import {
   adjournNow,
   dismissReports,
@@ -289,6 +289,11 @@ describe("moderation", () => {
     await setBan(admin, rogue, false);
     // Lifting contempt twice (or banning twice) is refused rather than logged again (audit 28 #6).
     await expect(setBan(admin, rogue, false)).rejects.toMatchObject({ code: "INVALID_STATE" });
+    // …also when the requests arrive together (audit 30 D4): one ban, one log entry.
+    const bans = await Promise.allSettled([setBan(admin, rogue, true, "A"), setBan(admin, rogue, true, "B"), setBan(admin, rogue, true, "C")]);
+    expect(bans.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await db.moderationAction.count({ where: { action: "BAN_USER", targetUserId: rogue } })).toBe(2); // the earlier ban + this one
+    await setBan(admin, rogue, false);
     await castVote(rogue, open.id, "GUILTY");
     expect(await db.xpEvent.count({ where: { userId: rogue, caseId: open.id, reason: "jury-vote" } })).toBe(1);
     expect((await auditStats(rogue)).ok).toBe(true);
@@ -339,6 +344,18 @@ describe("moderation", () => {
     await restoreCase(admin, c.id);
     const note = await db.notification.findFirstOrThrow({ where: { userId: attorney, title: { contains: "back in session" } } });
     expect(note.body).toMatch(/verdict is being read now/);
+  });
+
+  it("a claim holder keeps their editor while the case is under review (audit 30 D3)", async () => {
+    const [accused, attorney, holder, stranger] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await claimCase(attorney, c.id, "DEFENSE");
+    await submitArgument(attorney, c.id, "DEFENSE", DEFENSE_TEXT);
+    await claimCase(holder, c.id, "PROSECUTION");
+    await db.case.update({ where: { id: c.id }, data: { moderationState: "UNDER_REVIEW" } });
+    expect((await getCaseDetail(c.number, { id: holder, role: "PLAYER" }))?.kind).toBe("ok");
+    expect((await getCaseDetail(c.number, { id: stranger, role: "PLAYER" }))?.kind).toBe("review");
+    await submitArgument(holder, c.id, "PROSECUTION", PROSECUTION_TEXT);
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {

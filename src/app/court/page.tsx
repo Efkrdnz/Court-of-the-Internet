@@ -15,7 +15,7 @@ import { CategoryIcon } from "@/components/art/props";
 import { TumbleweedDocket } from "@/components/art/scenes";
 import { StatusPill } from "@/components/case/StatusPill";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
-import { Countdown } from "@/components/ui/Countdown";
+import { ClaimCountdown, Countdown } from "@/components/ui/Countdown";
 import { FormAlert } from "@/components/ui/FormAlert";
 
 export const metadata: Metadata = { title: "Your courtroom" };
@@ -89,7 +89,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                         Finish your {c.status === "DEFENSE_CLAIMED" ? "defense" : "prosecution"}: “{c.title}”
                       </p>
                       <p className="text-sm text-parchment/70">
-                        Claim expires in <Countdown to={c.claimExpiresAt!} className="font-bold text-gold-light" />
+                        <ClaimCountdown to={c.claimExpiresAt!} prefix="Claim expires in" />
                       </p>
                     </div>
                     <Link href={`/${c.status === "DEFENSE_CLAIMED" ? "defend" : "prosecute"}/${c.id}`} className="btn btn-sm">

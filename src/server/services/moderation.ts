@@ -250,6 +250,8 @@ export async function strikeArgument(moderatorId: string, caseId: string, role: 
 export async function setBan(moderatorId: string, targetUserId: string, banned: boolean, reason?: string) {
   return db.$transaction(async (tx) => {
     const mod = await assertStaff(tx, moderatorId);
+    // Lock the player's row first, so simultaneous bans (or unbans) see each other: one acts, the rest are no-ops.
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${targetUserId} FOR UPDATE`;
     const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { role: true, bannedAt: true } });
     if (!target) throw new CourtError("NOT_FOUND", "User not found.");
     if (banned === !!target.bannedAt) {

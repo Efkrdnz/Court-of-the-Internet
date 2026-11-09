@@ -15,7 +15,7 @@ import { TumbleweedDocket } from "@/components/art/scenes";
 import { CaseFileCard } from "./CaseFileCard";
 import { AssignMeButton, ClaimButton } from "./ClaimButton";
 import { Pagination } from "@/components/ui/Pagination";
-import { Countdown } from "@/components/ui/Countdown";
+import { ClaimCountdown } from "@/components/ui/Countdown";
 import { FormAlert } from "@/components/ui/FormAlert";
 
 const COPY = {
@@ -101,8 +101,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
       {myClaim ? (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/40 bg-gold/10 px-5 py-4">
           <p className="min-w-0 flex-[1_1_14rem] break-words text-parchment">
-            You&apos;re on <strong className="text-gold-light">“{myClaim.title}”</strong>. Your claim expires in{" "}
-            <Countdown to={myClaim.claimExpiresAt!} className="font-bold text-gold-light" />.
+            You&apos;re on <strong className="text-gold-light">“{myClaim.title}”</strong>. <ClaimCountdown to={myClaim.claimExpiresAt!} />
           </p>
           <Link href={`${copy.path}/${myClaim.id}`} className="btn btn-sm">
             Back to the editor

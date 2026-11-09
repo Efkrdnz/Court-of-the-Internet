@@ -344,7 +344,8 @@ export async function getCaseDetail(number: number, viewer: { id: string; role: 
   });
   if (!row) return null;
   const staff = viewer?.role === "ADMIN" || viewer?.role === "MODERATOR";
-  const isParticipant = !!viewer && [row.accusedId, row.attorneyId, row.prosecutorId].includes(viewer.id);
+  // The player holding the claim counts too: they may still file while the clerks review the case.
+  const isParticipant = !!viewer && [row.accusedId, row.attorneyId, row.prosecutorId, row.claimedById].includes(viewer.id);
   if (row.moderationState === "REMOVED" && !staff) {
     return { kind: "removed" as const, number: row.number, title: row.title, reason: row.removalReason };
   }

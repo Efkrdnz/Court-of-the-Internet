@@ -66,6 +66,7 @@ const foldFullWidth = (s: string) =>
 
 const displayNameField = text({ ...LIMITS.displayName, label: "Display name", multiline: false })
   .transform(foldFullWidth)
+  .refine((s) => /[\p{L}\p{N}]/u.test(s), { message: "Display names need at least one letter or number." })
   .refine((s) => !mixesConfusableScripts(s), {
     message: "Display names can't mix Latin letters with letters from other alphabets.",
   })

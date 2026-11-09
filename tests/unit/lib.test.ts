@@ -641,3 +641,11 @@ describe("stacked accents on precomposed letters (audit 29 #6)", () => {
     expect(normalizeText("한국어 café")).toBe("한국어 café");
   });
 });
+
+describe("symbol-only display names (audit 30 D6)", () => {
+  it("needs at least one letter or number", () => {
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    expect(signupSchema.safeParse({ ...base, displayName: "@".repeat(32) }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...base, displayName: "★ Nova ★" }).success).toBe(true);
+  });
+});

@@ -7,7 +7,7 @@ import { useFormAction } from "@/components/ui/useFormAction";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FieldError, FormAlert } from "@/components/ui/FormAlert";
 import { CharCounter } from "@/components/ui/CharCounter";
-import { Countdown } from "@/components/ui/Countdown";
+import { ClaimCountdown } from "@/components/ui/Countdown";
 import { LIMITS } from "@/lib/limits";
 import { charCount } from "@/lib/text";
 
@@ -78,10 +78,7 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
     <div className="space-y-5">
       <div className={clsx("flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3", isDefense ? "bg-teal/25 ring-1 ring-teal-light/40" : "bg-crimson/20 ring-1 ring-crimson/40")}>
         <p className="text-sm font-semibold text-parchment">
-          You hold this case. Your claim expires in{" "}
-          <strong className="text-gold-light">
-            <Countdown to={expiresAt} expiredLabel="now: file quickly or lose it!" />
-          </strong>
+          You hold this case. <ClaimCountdown to={expiresAt} />
         </p>
         <button
           type="button"
