@@ -13,7 +13,7 @@ export function utcDay(d: Date = clock.now()): string {
  * Featured Case of the Day: pinned by staff, or the best case closed in the last 7 days
  * (persisted on first view so it stays stable all day).
  */
-export async function getFeaturedCase(viewer: { id: string } | null) {
+export async function getFeaturedCase(viewer: { id: string; mutedCategories?: string[] } | null) {
   const day = utcDay();
   let featured = await db.featuredCase.findUnique({ where: { day }, select: { case: { select: { ...caseCardSelect, moderationState: true } } } });
   // A confessor who has since opted out of featuring is respected even for today's pin.
@@ -43,6 +43,8 @@ export async function getFeaturedCase(viewer: { id: string } | null) {
     if (!featured) return null;
   }
   const [card] = await toCaseCards([featured.case], viewer);
+  // Muted categories are hidden from the archives and home page, the featured slot included.
+  if (viewer?.mutedCategories?.includes(card.category)) return null;
   return card;
 }
 
@@ -165,7 +167,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
           moderationState: "VISIBLE",
           deliberationEndsAt: { gt: now },
           accusedId: { not: viewer.id },
-          accused: { bannedAt: null },
+          AND: [{ OR: [{ anonymous: true }, { accused: { bannedAt: null } }] }], // see queueWhere
           attorneyId: { not: viewer.id },
           prosecutorId: { not: viewer.id },
           votes: { none: { userId: viewer.id } },
@@ -179,7 +181,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
         where: {
           moderationState: "VISIBLE",
           accusedId: { not: viewer.id },
-          accused: { bannedAt: null },
+          AND: [{ OR: [{ anonymous: true }, { accused: { bannedAt: null } }] }], // see queueWhere
           OR: [{ status: "AWAITING_DEFENSE" }, { status: "DEFENSE_CLAIMED", claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
           ...muted,
         },
@@ -191,7 +193,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
         where: {
           moderationState: "VISIBLE",
           accusedId: { not: viewer.id },
-          accused: { bannedAt: null },
+          AND: [{ OR: [{ anonymous: true }, { accused: { bannedAt: null } }] }], // see queueWhere
           attorneyId: { not: viewer.id },
           OR: [{ status: "AWAITING_PROSECUTION" }, { status: "PROSECUTION_CLAIMED", claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
           ...muted,

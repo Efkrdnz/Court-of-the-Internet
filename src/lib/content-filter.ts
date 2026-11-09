@@ -123,7 +123,19 @@ const VIOLENCE = [
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,
 ];
 
+// A person (or pet) on the receiving end, for the past-tense harm patterns below. Objects stay
+// fine: "I killed it at karaoke", "I shot a video", "I stabbed the pizza box".
+const VICTIM =
+  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex))";
+const HARM_DONE = new RegExp(`\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|strangled|assaulted|beat\\s+up|drugged|kidnapped|ran\\s+over)\\s+${VICTIM}\\b`, "i");
+
 const SERIOUS = [
+  HARM_DONE,
+  // Poisoning food or drink with something dangerous.
+  /\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b.{0,50}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b/i,
+  /\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b.{0,50}\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b/i,
+  // Dealing hard drugs.
+  /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:\w+\s+){0,2}(?:cocaine|coke|heroin|meth|fentanyl|crack|mdma|ecstasy|hard\s+drugs|drugs)\b/i,
   /\brap(?:e|ed|ing|ist)\b/i,
   /\bmolest/i,
   /\bpaedo|\bpedo(?:phile)?s?\b/i,
@@ -163,7 +175,9 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const text = skeleton(raw);
 
   if (EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text)) return fail("personal-info");
-  if (PHONE.test(text) || EMAIL_SPELLED.test(text) || spelledPhone(text)) return fail("personal-info");
+  // "j o h n @ g m a i l . c o m": runs of single characters, squashed back together.
+  const spacedEmail = (text.match(/(?:\S\s+){5,}\S/g) ?? []).some((run) => EMAIL.test(run.replace(/\s+/g, "")));
+  if (PHONE.test(text) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
   if (URL.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
   if (HANDLE.test(text) || PLATFORM_HANDLE.test(text)) return fail("handle");

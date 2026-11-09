@@ -192,13 +192,15 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
         claimedById: true,
         claimExpiresAt: true,
         moderationState: true,
+        anonymous: true,
       },
     });
     if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
     if (c.moderationState === "UNDER_REVIEW") {
       throw new CourtError("INVALID_STATE", "This case is under review by the court clerks and can't be claimed right now.");
     }
-    const accused = await tx.user.findUnique({ where: { id: c.accusedId }, select: { bannedAt: true } });
+    // Anonymous cases aren't held (that would reveal the banned confessor).
+    const accused = c.anonymous ? null : await tx.user.findUnique({ where: { id: c.accusedId }, select: { bannedAt: true } });
     if (accused?.bannedAt) throw new CourtError("INVALID_STATE", "The accused has been held in contempt of court, so this case is on hold.");
     const ineligible = eligibilityError(c, userId, role);
     if (ineligible) throw new CourtError("INELIGIBLE", ineligible);

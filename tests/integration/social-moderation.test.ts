@@ -5,7 +5,7 @@ import { castVote, claimCase, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { runMaintenanceNow } from "@/server/services/maintenance";
 import { toggleReaction } from "@/server/services/reactions";
-import { bumpViewCount } from "@/server/queries/cases";
+import { bumpViewCount, listQueue } from "@/server/queries/cases";
 import {
   adjournNow,
   dismissReports,
@@ -291,6 +291,14 @@ describe("moderation", () => {
         updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
       ).rejects.toMatchObject({ code: "VALIDATION" });
     }
+    // Multi-letter look-alikes: "vv" for "w", "rn" for "m" (audit 15 #4).
+    await makeUser("real_marshal", "MODERATOR");
+    await db.user.update({ where: { username: "real_marshal" }, data: { displayName: "Marshal Wigsworth Mumford" } });
+    for (const sneaky of ["Marshal Wigsvvorth Mumford", "Marshal Wigsworth Murnford"]) {
+      await expect(
+        updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+      ).rejects.toMatchObject({ code: "VALIDATION" });
+    }
     await updateProfile(player, { displayName: "Judge Mental", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 
@@ -372,8 +380,33 @@ describe("moderation", () => {
     expect((await auditStats(prosecutor)).ok).toBe(true);
 
     const open = await makeCase(accused);
+    const anon = await makeCase(accused, { anonymous: true });
     await setBan(admin, accused, true, "Contempt");
     await expect(claimCase(lawyer, open.id, "DEFENSE")).rejects.toMatchObject({ code: "INVALID_STATE" });
+    // …except anonymous ones: holding them would reveal who confessed (audit 15 #2).
+    expect((await listQueue({ role: "DEFENSE", viewer: null })).cards.map((x) => x.id)).toContain(anon.id);
+    await claimCase(lawyer, anon.id, "DEFENSE");
+  });
+
+  it("a seal racing the holder's filing never sends a filed case back to the docket (audit 15 #1)", async () => {
+    const [accused, attorney] = [await makeUser(), await makeUser()];
+    const admin = await makeUser("seal_race_admin", "ADMIN");
+    const c = await makeCase(accused);
+    await claimCase(attorney, c.id, "DEFENSE");
+
+    // The filing is mid-commit: the case row already says "defense filed" in an open transaction.
+    const filing = db.$transaction(async (tx) => {
+      await tx.case.update({ where: { id: c.id }, data: { status: "AWAITING_PROSECUTION", attorneyId: attorney, claimedById: null, claimExpiresAt: null } });
+      await tx.argument.create({ data: { caseId: c.id, authorId: attorney, role: "DEFENSE", body: DEFENSE_TEXT, createdAt: new Date() } });
+      await tx.$executeRaw`SELECT pg_sleep(0.5)`;
+    });
+    await new Promise((r) => setTimeout(r, 120));
+    await Promise.all([filing, removeCase(admin, c.id, "Checking")]);
+
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ status: "AWAITING_PROSECUTION", attorneyId: attorney, moderationState: "REMOVED" });
+    await restoreCase(admin, c.id);
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("AWAITING_PROSECUTION");
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {

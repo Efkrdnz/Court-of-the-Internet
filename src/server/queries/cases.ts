@@ -201,8 +201,12 @@ function queueWhere(role: "DEFENSE" | "PROSECUTION", now: Date): Prisma.CaseWher
   const claimed: CaseStatus = role === "DEFENSE" ? "DEFENSE_CLAIMED" : "PROSECUTION_CLAIMED";
   return {
     moderationState: "VISIBLE",
-    accused: { bannedAt: null }, // a banned player's open cases are on hold
-    OR: [{ status: open }, { status: claimed, claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
+    // A banned player's public open cases are on hold. Anonymous ones stay: hiding them the
+    // moment someone is banned would reveal which anonymous cases were theirs.
+    AND: [
+      { OR: [{ anonymous: true }, { accused: { bannedAt: null } }] },
+      { OR: [{ status: open }, { status: claimed, claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }] },
+    ],
   };
 }
 

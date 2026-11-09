@@ -299,3 +299,27 @@ describe("spelled-out evasions (audit 14 #3)", () => {
     expect(screenText(text).ok).toBe(true);
   });
 });
+
+describe("serious harm (audit 15 #3)", () => {
+  it.each([
+    "I poisoned the office coffee machine with bleach and two people went to hospital",
+    "I sold cocaine to kids behind the school",
+    "I stabbed my coworker with a kitchen knife",
+    "I shot my roommate during an argument",
+    "I killed my neighbour last night",
+  ])("rejects %j", (text) => {
+    expect(screenText(text).ok, text).toBe(false);
+  });
+  it.each([
+    "I killed it at karaoke and refused to give anyone else the microphone",
+    "I shot a video of my cat and pretended it was a nature documentary",
+    "I stabbed the pizza box to let the steam out and called it ventilation",
+    "I sold my brother's old comics and bought snacks with the money",
+    "I put salt in the sugar bowl at the office coffee machine",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+  it("catches a spaced-out email address", () => {
+    expect(screenText("my email is j o h n @ g m a i l . c o m if you want it").ok).toBe(false);
+  });
+});

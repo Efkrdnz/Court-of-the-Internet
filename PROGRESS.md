@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **67/67 Playwright** and **126/126 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **67/67 Playwright** and **138/138 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **67/67 Playwright** and **126/126 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 126 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 138 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -416,6 +416,21 @@ It confirmed the thirteenth round end to end:
 | 12 | Reacting on an under-review case said "not found" | "Reactions are paused while the clerks review this case." | — |
 
 Unchanged and documented: issue 2 (lockout and spoofable IPs without a proxy) and sealed pages returning 200.
+
+## Fifteenth independent audit (fresh agent, build of commit 6969112)
+
+**Result: 13 PASS, 1 FAIL (5 claims), 3 CONCERN (10, 15, 17).**
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 (FAIL) | **A seal or ban racing the holder's filing** sent a case with a filed defense back to the docket (`AWAITING_DEFENSE` with an argument on file): unplayable after restore, or immediately after a ban. Reproduced 2 of 9 and 2 of 5 times | `releaseClaims` updates conditionally on the state it read (status + holder). A filing that commits first makes the release match nothing, so the filed case is left alone. Used by seal, ban and account deletion | integration `a seal racing the holder's filing never sends a filed case back to the docket`: the filing is held mid-commit with `pg_sleep`. **Fails on the old code** |
+| 2 | Banning a player hid their *anonymous* open cases too, revealing which were theirs | anonymous cases stay claimable; only public ones are held (documented) | ban integration test: the anonymous case is still queued and claimable |
+| 3 | Violent and serious-crime confessions passed ("I poisoned the office coffee machine with bleach…", "I sold cocaine to kids", "I stabbed/shot/killed my …"); a spaced-out email passed | past-tense harm against a person or pet, poisoning food or drink with a dangerous substance, drug dealing; single-character runs squashed and checked as emails | unit: 6 rejected, 5 everyday phrases ("killed it at karaoke", "shot a video", "stabbed the pizza box") still accepted; seed clean |
+| 4 | "Judge Wigsvvorth" ("vv" for "w") passed the officer-name check | "vv" → "w" and "rn" → "m" are folded too | integration |
+| 5 | The featured case ignored muted categories | hidden when its category is muted | — |
+| 7 | A missing or placeholder `SESSION_SECRET` only failed per request | `src/instrumentation.ts` refuses to start the production server | manual: start without the secret → "Refusing to start" |
+
+Not changed: sealed pages return 200 (with `noindex`), and inline text links follow the WCAG inline exception.
 
 ## Per-phase evidence
 

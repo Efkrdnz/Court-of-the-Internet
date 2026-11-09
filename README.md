@@ -174,7 +174,7 @@ The app is a standard Node.js Next.js server and needs one PostgreSQL database.
 1. Provision Postgres (Neon, Supabase, RDS, Railway, Fly…).
 2. Set environment variables (see `.env.example`):
    - `DATABASE_URL`: production database
-   - `SESSION_SECRET`: **required**, ≥ 32 random characters
+   - `SESSION_SECRET`: **required**, ≥ 32 random characters. The production server refuses to start without one, or with the `.env.example` placeholder
    - `SITE_URL`: e.g. `https://court.example.com` (share links, OG URLs, sitemap). Read at runtime, so no rebuild is needed to change it. `NEXT_PUBLIC_SITE_URL` still works as a build-time fallback.
    - `TRUST_PROXY_HOPS`: the number of reverse proxies in front of the app (default `1`). Rate limits use the client IP that your own proxy appended to `X-Forwarded-For` (counted from the right), so spoofed left-most entries are ignored.
    - `CRON_SECRET`: enables the maintenance endpoint
@@ -234,6 +234,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
     - Someone spraying 100 wrong passwords from rotated IPs can still lock an account's owner out for 15 minutes (see above).
     - **Always deploy behind a proxy.** This is a deployment requirement, not something the app can fix: Next doesn't give server actions the socket address.
   - If a request has no address at all (no header and none set by the server), per-IP limits are skipped rather than lumping such clients into one shared bucket. Signups then fall under a site-wide 60/hour ceiling and logged-out views aren't counted.
+- **Bans and anonymity.** A ban puts the banned player's *public* open cases on hold. Their anonymous cases stay claimable, because holding them would reveal who confessed.
 - **Display names aren't unique; usernames are.** Two players can share a display name, except that officers' names are reserved. Profiles and links use the unique `@username`, which leaderboards also show on screens 400px and wider.
 - **Achievements are permanent.** A badge earned at a threshold (e.g. Legendary Litigator at 10 Legendary reactions) is kept even if reactions are later withdrawn. A coordinated group could therefore toggle reactions on and off to mint one. Badges carry no gameplay power, so this is accepted.
 - **No identity verification, so sockpuppets are possible.** There is no email or phone verification (no external messaging service is configured), so one person can register several accounts.

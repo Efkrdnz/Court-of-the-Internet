@@ -23,15 +23,21 @@ export async function releaseClaims(
     select: { id: true, number: true, status: true, claimedById: true },
   });
   const now = clock.now();
+  let released = 0;
   for (const h of held) {
-    await tx.case.update({
-      where: { id: h.id },
+    // Conditional on the state we read: if the holder's filing commits in the meantime, this
+    // update re-checks after the row lock, matches nothing, and leaves the filed case alone.
+    // (An unconditional write here once sent cases with a filed defense back to the docket.)
+    const res = await tx.case.updateMany({
+      where: { id: h.id, status: h.status, claimedById: h.claimedById },
       data: { status: h.status === "DEFENSE_CLAIMED" ? "AWAITING_DEFENSE" : "AWAITING_PROSECUTION", claimedById: null, claimExpiresAt: null },
     });
+    if (res.count === 0) continue;
+    released++;
     await tx.caseClaim.updateMany({ where: { caseId: h.id, outcome: "ACTIVE" }, data: { outcome: "RELEASED", resolvedAt: now } });
     if (holderNotice && h.claimedById) await notify(tx, h.claimedById, { type: "MODERATION", ...holderNotice(h.number) });
   }
-  return held.length;
+  return released;
 }
 
 export const sealedCaseNotice = (n: number) => ({

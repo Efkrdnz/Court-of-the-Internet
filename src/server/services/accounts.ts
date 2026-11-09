@@ -23,7 +23,8 @@ import { releaseClaims } from "./claims";
 /** Letters and digits only, case- and accent-folded: "Judge Wigsworth." and "Judge\u200bWigsworth" collide. */
 const DIGIT_LOOKALIKES: Record<string, string> = { i: "l", "1": "l", "|": "l", "0": "o", "5": "s", "3": "e", "4": "a", "@": "a", $: "s" };
 const nameKey = (name: string) =>
-  [...skeleton(name).toLowerCase().normalize("NFKD")]
+  // Multi-letter look-alikes first: "vv" reads as "w", "rn" as "m".
+  [...skeleton(name).toLowerCase().normalize("NFKD").replace(/vv/g, "w").replace(/rn/g, "m")]
     .map((ch) => DIGIT_LOOKALIKES[ch] ?? ch)
     .join("")
     .replace(/[^\p{L}\p{N}]+/gu, "");
