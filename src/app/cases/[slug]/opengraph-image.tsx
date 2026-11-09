@@ -12,6 +12,23 @@ export const contentType = "image/png";
 
 
 
+/** Width of the text column left of the stamp and art, in pixels. */
+const COLUMN = 650;
+/** Special Elite is a typewriter face: about 0.6em per character at 22px. */
+const QUOTE_CHARS_PER_LINE = Math.floor(COLUMN / (22 * 0.6));
+
+/** Rough rendered width in em: wide capitals count more than narrow lower-case letters. */
+function emWidth(text: string): number {
+  let em = 0;
+  for (const ch of text) em += /[WM@%]/.test(ch) ? 1 : /[wm]/.test(ch) ? 0.8 : /[A-Z0-9]/.test(ch) ? 0.72 : ch === " " ? 0.28 : /[iljtf.,'’!:;|]/.test(ch) ? 0.3 : 0.55;
+  return em;
+}
+
+/** Lines `text` takes at `size` px (with optional letter spacing), allowing for word wrapping slack. */
+function lineCount(text: string, size: number, letterSpacing = 0): number {
+  return Math.max(1, Math.ceil((emWidth(text) * size + [...text].length * letterSpacing) / (COLUMN * 0.92)));
+}
+
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const number = parseCaseParam(slug);
@@ -43,9 +60,19 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const longestStampWord = Math.max(0, ...stamp.text.split(" ").map((w) => w.length));
   const accused = visible ? (c.anonymous ? anonymousAlias(c.aliasSeed).name : c.accused.displayName) : "";
   const art = await ogArt(visible && c.category === "food-crimes" ? "pizza" : closed ? "judge-stern" : "judge-shocked");
-  // A long (two- or three-line) title leaves less room: shorten the quote so it never reaches the footer.
-  const quoteMax = c.title.length > 60 ? 110 : c.title.length > 40 ? 160 : 210;
-  const confession = visible ? (c.confession.length > quoteMax ? `${c.confession.slice(0, quoteMax - 3).trimEnd()}…` : c.confession) : "";
+  // Lay the text out by its estimated width (not its length: 90 W's are far wider than 90 i's),
+  // so the subtitle, title and quote always fit above the footer.
+  const subtitle = `THE PEOPLE v. ${accused.toUpperCase()} · ${getCategory(c.category).label.toUpperCase()}`;
+  const subtitleSize = lineCount(subtitle, 22, 2) <= 1 ? 22 : 18;
+  const subtitleHeight = Math.min(2, lineCount(subtitle, subtitleSize, 2)) * subtitleSize * 1.3;
+  const titleSize = [48, 42, 36, 32, 28].find((size) => lineCount(c.title, size) <= 3) ?? 26;
+  const titleHeight = lineCount(c.title, titleSize) * titleSize * 1.08;
+  // Card body height, minus the header row, margins and the footer line.
+  // (36px of slack: Satori wraps wide words a little less tightly than estimated.)
+  const quoteRoom = 470 - 52 - 10 - subtitleHeight - 14 - titleHeight - 18 - 44 - 36;
+  const quoteLines = Math.max(0, Math.floor(quoteRoom / (22 * 1.45)));
+  const quoteMax = quoteLines * QUOTE_CHARS_PER_LINE - 4;
+  const confession = !visible || quoteLines === 0 ? "" : c.confession.length > quoteMax ? `${c.confession.slice(0, Math.max(0, quoteMax - 3)).trimEnd()}…` : c.confession;
 
   return new ImageResponse(
     (
@@ -74,11 +101,11 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             </div>
             {visible ? (
               <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                <div style={{ marginTop: 10, fontFamily: "Playfair", fontWeight: 700, fontSize: 22, color: "#5a4632", letterSpacing: 2 }}>
-                  {`THE PEOPLE v. ${accused.toUpperCase()} · ${getCategory(c.category).label.toUpperCase()}`}
+                <div style={{ marginTop: 10, fontFamily: "Playfair", fontWeight: 700, fontSize: subtitleSize, color: "#5a4632", letterSpacing: 2, wordBreak: "break-word" }}>
+                  {subtitle}
                 </div>
-                <div style={{ marginTop: 14, fontFamily: "Playfair", fontWeight: 900, fontSize: c.title.length > 60 ? 40 : 48, lineHeight: 1.08, color: "#1a0f12", wordBreak: "break-word" }}>{c.title}</div>
-                <div style={{ marginTop: 18, fontFamily: "Elite", fontSize: 22, lineHeight: 1.45, color: "#2a1c16", wordBreak: "break-word" }}>{`“${confession}”`}</div>
+                <div style={{ marginTop: 14, fontFamily: "Playfair", fontWeight: 900, fontSize: titleSize, lineHeight: 1.08, color: "#1a0f12", wordBreak: "break-word" }}>{c.title}</div>
+                {confession ? <div style={{ marginTop: 18, fontFamily: "Elite", fontSize: 22, lineHeight: 1.45, color: "#2a1c16", wordBreak: "break-word" }}>{`“${confession}”`}</div> : null}
                 <div style={{ marginTop: "auto", display: "flex", gap: 24, fontSize: 24, color: "#5a4632", fontWeight: 700 }}>
                   {closed ? <span>{`Final tally: ${c.guiltyVotes} guilty · ${c.notGuiltyVotes} not guilty`}</span> : <span>{status?.footer}</span>}
                 </div>

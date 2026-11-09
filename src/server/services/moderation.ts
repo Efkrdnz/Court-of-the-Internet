@@ -228,8 +228,11 @@ export async function strikeArgument(moderatorId: string, caseId: string, role: 
 export async function setBan(moderatorId: string, targetUserId: string, banned: boolean, reason?: string) {
   return db.$transaction(async (tx) => {
     const mod = await assertStaff(tx, moderatorId);
-    const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { role: true } });
+    const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { role: true, bannedAt: true } });
     if (!target) throw new CourtError("NOT_FOUND", "User not found.");
+    if (banned === !!target.bannedAt) {
+      throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
+    }
     if (targetUserId === moderatorId) throw new CourtError("FORBIDDEN", "You cannot hold yourself in contempt.");
     if (target.role !== "PLAYER" && mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only an admin can hold another officer of the court in contempt.");
     await tx.user.update({
@@ -297,6 +300,10 @@ export async function adjournNow(moderatorId: string, caseId: string) {
   await db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await lockCase(tx, caseId);
+    // Already adjourned (or simply due) by someone else a moment ago: nothing to change or log,
+    // the close below reports what happened.
+    const due = await tx.case.count({ where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE", deliberationEndsAt: { lte: clock.now() } } });
+    if (due) return;
     const res = await tx.case.updateMany({
       where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE" },
       data: { deliberationEndsAt: clock.now() },

@@ -52,6 +52,7 @@ export async function updatePreferencesAction(_prev: ActionResult | null, formDa
       allowFeaturing: formData.get("allowFeaturing"),
       mutedCategories: formData.getAll("mutedCategories").map(String),
     });
+    await enforceRateLimit(`preferences:${user.id}`, 30, 600);
     await updatePreferences(user.id, input);
     refresh();
     return { ok: true, message: "Preferences saved." };

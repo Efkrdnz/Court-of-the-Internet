@@ -694,3 +694,34 @@ test("§12 a crafted demo-login call without a form body is refused cleanly, not
     expect(res.status(), body).toBeLessThan(500);
   }
 });
+
+test("§12 visual assets: character art stays inside its card at desktop widths (audit 25 D9, audit 28 #4)", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.locator(`form:has(input[name="username"][value="fresh_intern"]) button`).click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  const spills: string[] = [];
+  for (const width of [1024, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const path of ["/", "/court", "/archives", "/leaderboards"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      const found = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const card of document.querySelectorAll<HTMLElement>(".velvet, .doc")) {
+          const box = card.getBoundingClientRect();
+          for (const svg of card.querySelectorAll("svg")) {
+            const r = svg.getBoundingClientRect();
+            if (r.width < 40) continue; // icons
+            if (r.left < box.left - 2 || r.right > box.right + 2) out.push(`${svg.getAttribute("aria-label") ?? svg.closest("[class]")?.className ?? "svg"} ${Math.round(r.width)}px in ${Math.round(box.width)}px`);
+          }
+        }
+        return out;
+      });
+      spills.push(...found.map((f) => `${width} ${path}: ${f}`));
+    }
+  }
+  await context.close();
+  expect(spills).toEqual([]);
+});

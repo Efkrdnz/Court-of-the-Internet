@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { requireUserOrRedirect } from "@/server/auth/current-user";
 import { db } from "@/server/db";
 import { grantableItems } from "@/server/services/moderation";
+import { cosmeticLabel } from "@/lib/cosmetics";
+
+const ROLE_LABEL: Record<string, string> = { PLAYER: "Player", MODERATOR: "Moderator", ADMIN: "Admin" };
 import { casePath, cleanQuery, formatCaseNumber, parseCaseParam, pluralize } from "@/lib/text";
 import { formatDateTime, MODERATION_STATE_LABEL, moderationActionLabel, relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
 import { REPORT_REASONS } from "@/lib/validation";
@@ -148,7 +151,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           {focusCase.arguments.map((a) => (
             <div key={a.role} className="rounded-lg bg-night/40 p-3">
               <p className="text-xs font-bold uppercase tracking-widest text-gold-light">
-                {a.role} {a.stricken ? "(stricken)" : ""}
+                {a.role === "DEFENSE" ? "Defense" : "Prosecution"} {a.stricken ? "(stricken)" : ""}
               </p>
               <p className="font-type text-sm text-parchment/85">{a.body}</p>
               <div className="mt-2">
@@ -184,7 +187,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               {focusUser.displayName}
             </Link>{" "}
             <span className="text-base text-parchment/60">
-              @{focusUser.username} · {focusUser.role} · joined {relativeTime(focusUser.createdAt)}
+              @{focusUser.username} · {ROLE_LABEL[focusUser.role] ?? focusUser.role} · joined {relativeTime(focusUser.createdAt)}
             </span>
           </h2>
           {focusUser.bannedAt ? <p className="text-[#ff9d9d]">Banned {relativeTime(focusUser.bannedAt)}: {focusUser.banReason}</p> : null}
@@ -207,9 +210,9 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 <ModForm op="make-mod" label="Appoint as moderator" userId={focusUser.id} />
               )
             ) : null}
-            {isAdmin ? <ModForm op="grant" label="Grant cosmetic" userId={focusUser.id} options={{ name: "itemKey", values: grantableItems() }} /> : null}
+            {isAdmin ? <ModForm op="grant" label="Grant cosmetic" userId={focusUser.id} options={{ name: "itemKey", label: "Cosmetic to grant", values: grantableItems().map((value) => ({ value, label: cosmeticLabel(value) })) }} /> : null}
             {focusUser.entitlements.length ? (
-              <p className="text-xs text-parchment/60">Entitlements: {focusUser.entitlements.map((e) => e.itemKey).join(", ")}</p>
+              <p className="text-xs text-parchment/60">Entitlements: {focusUser.entitlements.map((e) => cosmeticLabel(e.itemKey)).join(", ")}</p>
             ) : null}
           </div>
         </section>

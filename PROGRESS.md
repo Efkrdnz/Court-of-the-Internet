@@ -702,6 +702,23 @@ It confirmed the twenty-sixth round:
 
 The sealed-case page answering 200 (noindex, content-neutral, so participants see the notice) is kept by design.
 
+## Twenty-eighth independent audit (fresh agent, build of commit 856e9e2)
+
+**Result: 13 PASS, 3 CONCERN (11, 17, and the documented trade-offs), 1 FAIL (10: the content filter).**
+
+Everything else held under its races: claims, votes, moderation storms, bans and deletions, stats recomputed with 0 mismatches, 195 links crawled.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **The filter blocked ordinary confessions**: names ("Molly", "Senna"), hyperbole ("gonna kill it at the talent show", "murder this burger", "kill for a nap", "could murder a pizza"), "shot my brother a dirty look", "killed my brother's high score", "kicked my dad out of his recliner", score lists, dates and times, counting to 10, "firmware 2.10.3.1", "it.It" | threats need a person (or "you") as the target, or nothing at all after the verb; a possession that isn't alive ("brother's high score") and gestures ("shot him a look/text") are exempt; dosing needs the act or "in/into" a drink; everyday numbers (dates, times, score lists, counting) are blanked before the phone check; version numbers aren't IPs; a capitalised word after a dot is a new sentence | new shared corpus `tests/unit/filter-corpus.ts`: 45 everyday sentences must pass |
+| 2 | Missed: dotless ı, "niqqer", "I hope you die", "go die", "dot c0m", "johnsmith@gmail" | ı folded; q-for-g word variant; death-wish patterns; leet TLDs after a dot stand-in; webmail addresses without ".com" | same corpus: 23 evasions must be rejected; 341 seed texts still pass |
+| 3 | Share card text overlapped with a 90-character all-W title and a 32-character name | title, subtitle and quote are sized from an estimated rendered width, not character count, with the quote shortened to the room left | rendered extreme and normal cards and checked them by eye |
+| 4 | Home "Jury duty" art spilled out of its card at 1024px | role and highlight art scale to fit | new e2e: no art wider than its card on 4 pages at 1024/1280 (fails on the old code) |
+| 5 | README and comments claimed scores and counting were safe | now true; README lists the hyperbole trade-off and the remaining phone gap | — |
+| 6 | Minor: draft message after a lost claim; double "Adjourn now" logged twice; unbanning a non-banned player "succeeded"; raw names in the moderation user panel; no limit on preference saves | neutral draft wording; a second adjourn finds the case already due and logs nothing; ban/unban refuse no-ops; readable role, argument and cosmetic labels; 30 preference saves per 10 minutes | integration: concurrent adjourns → 1 log entry, both see the verdict; repeated unban refused |
+
+Kept by design and now documented: the sealed-case page answers 200, and Next.js answers a cross-origin action POST with 500.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

@@ -66,8 +66,9 @@ const SLURS_COLLAPSED = new Set(Array.from(SLURS).map(collapseRepeats));
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // 7+ digits possibly separated by spaces, dots, dashes, parentheses: phone-ish.
 // Any script's digits (Arabic-Indic too), with the separators people use to dodge filters.
-// 9+ digits: real numbers (with area code) are caught, while years ("2019-2020"), scores and
-// counting ("1 2 3 4 5 6 7 8") are not. Bare 7-digit local numbers are a known gap (see README).
+// 9+ digits: real numbers (with area code) are caught. Shorter runs like years ("2019-2020") never
+// match, and dates, times, score lists and counting are blanked out first (withoutEverydayNumbers).
+// Bare 7-digit local numbers are a known gap (see README).
 const PHONE = /(?:\+?\p{Nd}[\s()./_,\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
 // Explicit URLs, or a domain with any two-letter country TLD or a common generic TLD.
 const URL =
@@ -126,35 +127,56 @@ function spacedOutWords(text: string): string[] {
   return out;
 }
 
+// A person (or pet) on the receiving end, for the past-tense harm patterns below. Objects stay
+// fine: "I killed it at karaoke", "I shot a video", "I stabbed the pizza box".
+const VICTIM =
+  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex))";
+// Who a threat is aimed at: a person (VICTIM) or "you"/"everyone".
+const TARGET = `(?:you|ya|u|y'all|everyone|everybody|people|${VICTIM})`;
+// "…my brother's high score" is about a thing, unless the possession is alive ("my brother's cat").
+const NOT_THEIR_THING = "(?!['’]s\\s+(?!(?:\\w+\\s+)?(?:cat|dog|puppy|kitten|pet|hamster|parrot|rabbit|bird|horse|baby|kid|son|daughter|wife|husband)\\b))";
+// "shot my brother a dirty look", "shot my boss a text": a gesture or message, not a gun.
+const NOT_A_GESTURE = "(?!\\s+(?:a|an|the|some|another)\\s+(?:\\w+\\s+){0,2}(?:look|looks|glance|text|message|email|e-mail|smile|wink|grin|stare|dm|photo|pic|picture|video|selfie|reply|question|warning|eyebrow|thumbs)\\b)";
+
 const VIOLENCE = [
   /\bkill\s+(?:your\s*self|urself|yourselves)\b/i,
   /\bkys\b/i,
-  // "I'm going to kill", "im gonna kill", "gonna kill my roommate" (the old pattern demanded a "t" after "gonna").
-  /\b(?:i(?:'m|m| am)?\s*)?(?:going\s+to|gonna)\s+(?:kill|hurt|stab|shoot|murder|beat\s+up)\s+(?:my|his|her|their|your|him|them|you|someone|somebody|everyone)\b/i,
-  /\bi(?:'m|m| am)?\s*(?:going\s+to|gonna)\s+(?:kill|hurt|stab|shoot|murder|beat\s+up)\b/i,
-  /\bi\s*(?:will|'ll)\s+(?:kill|hurt|stab|shoot|murder|unalive)\b/i,
+  // Wishing death on someone: "I hope you die", "go die", "you should die".
+  /\b(?:i\s+)?hope\s+(?:you|u|ya|he|she|they|y'all)\s+(?:die|dies|get\s+hit\s+by|rot|burn)\b|\bgo\s+die\b|\b(?:you|u)\s+should\s+(?:die|just\s+die)\b/i,
+  // "I'm going to kill my roommate", "gonna stab the neighbour": intent plus a person.
+  new RegExp(`\\b(?:going\\s+to|gonna)\\s+(?:kill|hurt|stab|shoot|murder|beat\\s+up)\\s+${TARGET}\\b${NOT_THEIR_THING}`, "i"),
+  // "I'm going to kill." / "I will kill!" with nothing after it. With an object ("kill it at the
+  // talent show", "murder this burger", "kill for a nap") it's an idiom.
+  /\bi(?:'m|m| am)?\s*(?:going\s+to|gonna)\s+(?:kill|hurt|stab|shoot|murder)\s*(?:[.!?]|$)/i,
+  new RegExp(`\\bi\\s*(?:will|'ll)\\s+(?:kill|hurt|stab|shoot|murder|unalive)\\s+${TARGET}\\b${NOT_THEIR_THING}`, "i"),
+  /\bi\s*(?:will|'ll)\s+(?:kill|hurt|stab|shoot|murder|unalive)\s*(?:[.!?]|$)/i,
   // "I will end my neighbour", "gonna unalive my flatmate".
   // ("end"/"off" need a person after them: "end my streak" is fine.)
   /\b(?:i\s*(?:will|'ll|would|'d)|gonna|going\s+to|want\s+to)\s+(?:end|unalive|off)\s+(?:him|them|someone|somebody|everyone|(?:my|his|her|their)\s+(?:\w+\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|friend|brother|sister|mom|mum|dad|wife|husband|partner|boyfriend|girlfriend|landlord|ex|teacher))\b/i,
-  // Intent + harm + a person: "I want to kill my neighbour", "planning to poison his dog's owner".
+  // Intent + harm + a person: "I want to kill my neighbour", "planning to poison his dog".
   // Needs a human target, so "kill time", "could kill for a nap" and "mom will kill me" stay fine.
-  /\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|going|gonna|about|tr(?:y|ying|ied)|decided|need)\s+to\s+(?:kill|murder|stab|shoot|poison|strangle|hurt|beat\s+up)\s+(?:my|his|her|their|our|your|him|them|someone|somebody|everyone|people|a\s+(?:man|woman|person|kid|child|cop|neighbou?r))\b/i,
-  /\bi\s*(?:would|'d|could|should|might)\s+(?:kill|murder|stab|shoot|poison|strangle)\s+(?:my|his|her|their|him|them|someone|somebody|everyone)\b/i,
+  new RegExp(`\\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|about|tr(?:y|ying|ied)|decided|need)\\s+to\\s+(?:kill|murder|stab|shoot|poison|strangle|hurt|beat\\s+up)\\s+${TARGET}\\b${NOT_THEIR_THING}`, "i"),
+  // Poisoning or drugging someone's food or drink is aimed at them ("poison my roommate's coffee").
+  new RegExp(`\\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|about|tr(?:y|ying|ied)|decided|need|going|gonna)\\s+(?:to\\s+)?(?:poison|drug|spike|lace)\\s+${TARGET}\\b`, "i"),
+  // "I would kill my brother", but not the everyday "I could kill my brother for eating my fries".
+  new RegExp(`\\bi\\s*(?:would|'d|could|should|might)\\s+(?:kill|murder|stab|shoot|poison|strangle)\\s+${TARGET}\\b${NOT_THEIR_THING}(?!\\s+for\\b)`, "i"),
   /\bshoot\s+up\b/i,
   /\b(?:make|build|plant)\s+a\s+bomb\b/i,
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,
 ];
 
-// A person (or pet) on the receiving end, for the past-tense harm patterns below. Objects stay
-// fine: "I killed it at karaoke", "I shot a video", "I stabbed the pizza box".
-const VICTIM =
-  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex))";
-const HARM_DONE = new RegExp(`\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|strangled|assaulted|beat\\s+up|drugged|kidnapped|ran\\s+over)\\s+${VICTIM}\\b`, "i");
+const HARM_DONE = new RegExp(
+  `\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|strangled|assaulted|beat\\s+up|drugged|kidnapped|ran\\s+over)\\s+${VICTIM}\\b${NOT_THEIR_THING}${NOT_A_GESTURE}`,
+  "i",
+);
 
 const SERIOUS = [
   HARM_DONE,
   // Dosing someone's food or drink, or spiking it.
-  /\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\b.{0,40}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
+  // Needs the act ("put", "slipped"…) or "in/into" the drink, so "Molly spilled her coffee" and
+  // "Senna and I drink coffee" (people's names) stay fine.
+  /\b(?:put|putting|slipped|slip|added|adding|dropped|mixed|crushed|stirred|poured|laced|dosed|spiked)\b.{0,30}\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\b.{0,40}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
+  /\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\s+(?:in|into)\s+(?:\w+\s+){0,3}(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
   /\bspiked\b.{0,40}\b(?:with|using)\s+(?:\w+\s+)?(?:vodka|alcohol|booze|rum|gin|tequila|drugs|pills|molly|xanax|laxatives?)\b/i,
   // Burning or vandalising someone else's things.
   /\bset\s+(?:my|his|her|their|the|our)\s+[\w-]+(?:'s|s')\s+(?:\w+\s+)?\w+\s+on\s+fire\b|\bset\s+fire\s+to\s+(?:my|his|her|their)\s+[\w-]+(?:'s|s')\b/i,
@@ -169,7 +191,8 @@ const SERIOUS = [
   /\b(?:robbed|held\s+up|stuck\s+up)\s+(?:a|the|an)\s+(?:\w+\s+)?(?:bank|store|shop|gas\s+station|liquor\s+store|pharmacy|house|home|person|man|woman)\b|\bbank\s+robbery\b/i,
   /\barson\b|\bburn(?:ed|t)\s+down\s+(?:a|the|my|his|her|their|our)\b|\bset\s+fire\s+to\s+(?:a|the|my|his|her|their|our)\s+(?:\w+\s+)?(?:house|home|car|building|school|shop|store|apartment|flat|office|garage)\b/i,
   // Domestic violence (siblings' pillow fights stay petty).
-  /\bi\s+(?:hit|punched|slapped|kicked|choked|beat)\s+(?:my|his|her)\s+(?:wife|husband|girlfriend|boyfriend|partner|kid|kids|child|children|son|daughter|baby|mom|mum|mother|dad|father|grandma|grandpa)\b/i,
+  // ("kicked my dad out of his recliner", "hit my dad up for cash" are something else.)
+  /\bi\s+(?:hit|punched|slapped|kicked|choked|beat)\s+(?:my|his|her)\s+(?:wife|husband|girlfriend|boyfriend|partner|kid|kids|child|children|son|daughter|baby|mom|mum|mother|dad|father|grandma|grandpa)\b(?!['’]s|\s+(?:out|off|up)\b)/i,
   // Drink- or drug-driving.
   /\b(?:drove|driving|drive)\s+(?:home\s+|there\s+|back\s+)?(?:drunk|wasted|hammered|high|blackout)\b|\bdrunk[\s-]driving\b|\bDUI\b/i,
   // Anything sold to minors.
@@ -185,7 +208,8 @@ const SERIOUS = [
   /\b(?:commit(?:ted|ting)?|attempt(?:ed)?)\s+suicide\b/i,
   /\bself[-\s]?harm\b/i,
   /\bheroin\b|\bmeth(?:amphetamine)?\b|\bfentanyl\b/i,
-  /\bmurder(?:ed)?\s+(?:a|my|the|someone|somebody)\b/i,
+  // A person, not "I could murder a pizza".
+  new RegExp(`\\bmurder(?:ed)?\\s+${VICTIM}\\b${NOT_THEIR_THING}`, "i"),
 ];
 
 const LONG_WORD = /[^\s]{36,}/;
@@ -208,6 +232,25 @@ function looksLikeSpam(text: string): boolean {
   return false;
 }
 
+/**
+ * Dates, times, score lists and counting are numbers people mention all the time; blank them out
+ * before looking for phone numbers ("21-19, 21-17", "12/03/1998 10:30", "1 2 3 … 10 cookies").
+ * A letter is left in their place so neighbouring digits don't join up.
+ */
+function withoutEverydayNumbers(t: string): string {
+  return t
+    .replace(/\b\d{1,2}\/\d{1,2}\/(?:\d{4}|\d{2})\b|\b\d{1,2}[.-]\d{1,2}[.-]\d{4}\b|\b\d{4}-\d{1,2}-\d{1,2}\b/g, " X ")
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, " X ")
+    .replace(/\b\d{1,2}\s*[-–]\s*\d{1,2}(?:\s*[,;]\s*\d{1,2}\s*[-–]\s*\d{1,2})+\b/g, " X ")
+    .replace(/\b\d+(?:[\s,]+\d+){3,}\b/g, (run) => {
+      const n = run.split(/[\s,]+/).map(Number);
+      return n.every((x, i) => i === 0 || x === n[i - 1] + 1) ? " X " : run;
+    });
+}
+
+// Webmail addresses with the ".com" left off ("johnsmith@gmail").
+const EMAIL_PROVIDER = /\b[\w.+-]{2,}\s*@\s*(?:gmail|googlemail|yahoo|hotmail|outlook|icloud|protonmail|proton|aol|msn|gmx|yandex)\b/i;
+
 export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCheck?: boolean } = {}): FilterResult {
   const fail = (issue: FilterIssue): FilterResult => ({ ok: false, issue, message: MESSAGES[issue] });
   // Screen what a reader *sees*: full-width digits folded to ASCII, invisible characters dropped,
@@ -222,13 +265,15 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\s+\.\s*(?=(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|ninja)\b)/gi, ".")
     // Other stand-ins for the dot before the big three TLDs, which may be spaced out:
     // "pettyking·com", "pettyking, com", "pettyking / com", "pettyking dot c o m".
-    .replace(/([a-z0-9])\s*(?:[·•‧∙⋅・,/|]|\s+dot\s+)\s*(c\s?o\s?m|n\s?e\s?t|o\s?r\s?g)(?![a-z0-9-])/gi, (_, a: string, tld: string) => `${a}.${tld.replace(/\s+/g, "")}`);
+    .replace(/([a-z0-9])\s*(?:[·•‧∙⋅・,/|]|\s+dot\s+)\s*(c\s?[o0]\s?m|n\s?[e3]\s?t|[o0]\s?r\s?g)(?![a-z0-9-])/gi, (_, a: string, tld: string) =>
+      `${a}.${tld.replace(/\s+/g, "").replace(/0/g, "o").replace(/3/g, "e")}`,
+    );
   const leet = undotted.replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
   // Digit-like tokens read O as 0 and I/l as 1 ("O77OO 9OO 123").
   const deLettered = text.replace(/\b[\dOoIl]*\d[\dOoIl]*\b/g, (tok) => tok.replace(/[Oo]/g, "0").replace(/[Il]/g, "1"));
   const numbered = deLettered.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
   const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
-  if (EMAIL.test(undotted) || EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
+  if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").
   const spacedRuns: string[] = [];
@@ -244,11 +289,15 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   if (spacedRuns.some((run) => URL.test(run))) return fail("link");
   // Digits separated by anything that isn't a letter or digit ("555|123|4567", "555🍕123🍕4567"),
   // and keycap emoji digits ("5️⃣5️⃣5️⃣").
-  const phoneish = numbered.replace(/[\uFE0F\u20E3]/g, "").replace(/[^\p{L}\p{Nd}\s+]/gu, " ");
-  if (PHONE.test(text) || PHONE.test(numbered) || PHONE.test(phoneish) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
+  const phoneish = withoutEverydayNumbers(numbered).replace(/[\uFE0F\u20E3]/g, "").replace(/[^\p{L}\p{Nd}\s+]/gu, " ");
+  if (PHONE.test(withoutEverydayNumbers(text)) || PHONE.test(withoutEverydayNumbers(numbered)) || PHONE.test(phoneish) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
   // Bare IPv4 addresses and the reserved .example/.test/.invalid names are links too.
-  if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(text) || URL.test(undotted) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
+  // A missing space between sentences ("I ate it.It was great", "Wait.So") isn't a domain.
+  const sentences = (t: string) => t.replace(/([a-z0-9])\.(?=[A-Z][a-z])(?!(?:Com|Net|Org|Info|App|Dev|Xyz)\b)/g, "$1. ");
+  // Version numbers ("firmware 2.10.3.1") look like IP addresses.
+  const IPV4 = /(?<!\b(?:v|ver|version|firmware|update|build|release|patch|ios|android|windows|macos|python|node|chrome|firefox)\s?)\b(?:\d{1,3}\.){3}\d{1,3}\b/i;
+  if (IPV4.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(sentences(text)) || URL.test(sentences(undotted)) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
   // "@ pettyking on twitter": a detached @name next to a platform name.
   const detachedHandle = /@\s+[a-z0-9_.]{3,}\b.{0,25}\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b/i.test(text);
   if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || detachedHandle) return fail("handle");
@@ -264,7 +313,9 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   ]);
   // Adjacent pairs too, for slurs split by a space ("fa ggot").
   const pairs = words.slice(1).map((w, i) => words[i] + w);
-  for (const word of [...words, ...stems, ...pairs, ...spacedOutWords(text)]) {
+  // "q" drawn for "g" ("niqqer").
+  const qForG = words.filter((w) => w.includes("q")).map((w) => w.replace(/q/g, "g"));
+  for (const word of [...words, ...stems, ...qForG, ...pairs, ...spacedOutWords(text)]) {
     if (SLURS.has(word)) return fail("hate");
     // Stretched spellings ("fooooo") are compared in collapsed form, but only when the word
     // actually has repeated letters, so ordinary words like "con" or "niger" never match.

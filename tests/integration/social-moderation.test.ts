@@ -156,8 +156,10 @@ describe("moderation", () => {
 
     const jurors = await makeUsers(10);
     await voteAll(c.id, jurors, 7);
-    const outcome = await adjournNow(admin, c.id);
-    expect(outcome).toMatchObject({ kind: "closed", verdict: "GUILTY" });
+    // Two moderators adjourning at once: one close, one audit entry, both told the verdict (audit 28 #6).
+    const outcomes = await Promise.all([adjournNow(admin, c.id), adjournNow(admin, c.id)]);
+    for (const outcome of outcomes) expect(outcome).toMatchObject({ kind: "closed", verdict: "GUILTY" });
+    expect(await db.moderationAction.count({ where: { action: "ADJOURN_NOW", caseId: c.id } })).toBe(1);
 
     await removeCase(admin, c.id, "Names a real person");
     const removed = await db.case.findUniqueOrThrow({ where: { id: c.id } });
@@ -285,6 +287,8 @@ describe("moderation", () => {
     expect((await auditStats(rogue)).ok).toBe(true);
     // Unban and vote again: no second jury-vote XP for the same case (audit 9 #3).
     await setBan(admin, rogue, false);
+    // Lifting contempt twice (or banning twice) is refused rather than logged again (audit 28 #6).
+    await expect(setBan(admin, rogue, false)).rejects.toMatchObject({ code: "INVALID_STATE" });
     await castVote(rogue, open.id, "GUILTY");
     expect(await db.xpEvent.count({ where: { userId: rogue, caseId: open.id, reason: "jury-vote" } })).toBe(1);
     expect((await auditStats(rogue)).ok).toBe(true);

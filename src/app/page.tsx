@@ -155,7 +155,8 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
         <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {modes.map((m) => (
             <Link key={m.href} href={m.href} className={`velvet velvet-hover chr-hover group flex flex-col items-center bg-gradient-to-b ${m.tone} p-6 text-center`}>
-              <div className="chr-sticker flex h-40 items-end transition-transform duration-300 group-hover:-translate-y-1">{m.art}</div>
+              {/* Art shrinks to fit the card (four across at 1024px) instead of spilling over its edges. */}
+              <div className="chr-sticker flex h-40 w-full items-end justify-center transition-transform duration-300 group-hover:-translate-y-1 [&>svg]:max-w-full">{m.art}</div>
               <h3 className="mt-4 font-display text-2xl font-black text-parchment">{m.title}</h3>
               <p className="mt-1 text-sm text-parchment/70">{m.blurb}</p>
               <span className="btn btn-sm mt-5">{m.cta} →</span>
@@ -287,7 +288,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
 function Highlight({ label, title, href, detail, art }: { label: string; title: string; href: string; detail: string; art: React.ReactNode }) {
   return (
     <Link href={href} className="velvet velvet-hover chr-hover flex min-w-0 flex-col items-center p-5 text-center">
-      <div className="chr-sticker flex h-24 items-end">{art}</div>
+      <div className="chr-sticker flex h-24 w-full items-end justify-center [&>svg]:max-w-full">{art}</div>
       <p className="eyebrow mt-3">{label}</p>
       {/* w-full lets a long unbroken name wrap inside the card instead of widening the page. */}
       <p className="mt-1 line-clamp-2 w-full break-words font-display text-lg font-bold text-parchment">{title}</p>

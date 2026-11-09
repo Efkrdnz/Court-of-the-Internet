@@ -27,7 +27,7 @@ export function ModForm({
   tone?: "ghost" | "crimson" | "teal" | "gold";
   withReason?: boolean;
   reasonPlaceholder?: string;
-  options?: { name: string; values: string[] };
+  options?: { name: string; label: string; values: { value: string; label: string }[] };
   confirmText?: string;
 }) {
   const flash = useModFlash();
@@ -57,10 +57,10 @@ export function ModForm({
       {userId ? <input type="hidden" name="userId" value={userId} /> : null}
       {withReason ? <input name="reason" placeholder={reasonPlaceholder ?? "Reason"} className="input min-h-9 !w-56 !py-1.5 text-sm" aria-label="Reason" /> : null}
       {options ? (
-        <select name={options.name} className="select min-h-9 !w-56 !py-1.5 text-sm" aria-label={options.name}>
+        <select name={options.name} className="select min-h-9 !w-56 !py-1.5 text-sm" aria-label={options.label}>
           {options.values.map((v) => (
-            <option key={v} value={v}>
-              {v}
+            <option key={v.value} value={v.value}>
+              {v.label}
             </option>
           ))}
         </select>

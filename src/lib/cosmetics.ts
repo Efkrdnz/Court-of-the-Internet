@@ -105,6 +105,17 @@ export function avatarItemKey(item: Pick<AvatarItem, "kind" | "value">): string 
   return `avatar:${item.kind}:${item.value}`;
 }
 
+/** Human name for an entitlement key: "theme:gilded" → "Gilded … (profile theme)", "avatar:headwear:judge-wig" → "Judge wig (headwear)". */
+export function cosmeticLabel(itemKey: string): string {
+  const [kind, a, b] = itemKey.split(":");
+  if (kind === "theme") return `${PROFILE_THEMES.find((t) => t.key === a)?.label ?? a} (profile theme)`;
+  if (kind === "avatar" && a && b) {
+    const name = b.replace(/-/g, " ");
+    return `${name.charAt(0).toUpperCase()}${name.slice(1)} (${a})`;
+  }
+  return itemKey;
+}
+
 export function themeItemKey(themeKey: string): string {
   return `theme:${themeKey}`;
 }

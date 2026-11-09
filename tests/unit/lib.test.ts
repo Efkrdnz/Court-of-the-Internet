@@ -622,3 +622,14 @@ describe("crafted values get human messages (audit 27 #6)", () => {
     for (const m of messages) expect(m).not.toMatch(/expected|Invalid option|Too big/);
   });
 });
+
+describe("everyday confessions vs evasions corpus (audit 28 #1, #2)", async () => {
+  const { BENIGN, EVASIONS } = await import("./filter-corpus");
+  it.each(BENIGN)("accepts %j", (text) => {
+    const result = screenText(text);
+    expect(result.ok, `${text} → ${result.ok ? "" : result.issue}`).toBe(true);
+  });
+  it.each(EVASIONS)("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+});

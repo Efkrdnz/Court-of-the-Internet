@@ -238,7 +238,8 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 - **Very long words break mid-word.** Words of up to 35 characters are allowed (longer ones are refused as keyboard-mash). A large heading can't fit that many letters on one line (on phones, and in big display headings even on desktop), so the word wraps instead of overflowing.
 - **Display names aren't unique; usernames are.** Two players can share a display name, except that officers' names are reserved. Profiles and links use the unique `@username`, which leaderboards also show on screens 400px and wider.
 - **The content filter is a first line of defence, not a guarantee.** It sees through invisible characters, look-alike letters (Cyrillic, Greek, full-width, small capitals, flag letters), leetspeak, plurals, letters spaced out with symbols or emoji, phone numbers written with O for 0, keycap emoji or odd separators, dots written as "·", "," or "dot", abbreviated street names, and spelled-out addresses. Known gaps:
-  - Bare 7-digit local phone numbers are allowed, so years and scores aren't flagged.
+  - Bare 7-digit local phone numbers are allowed (so is "867-5309, area code 555"), so years and short numbers aren't flagged. Dates, times, score lists and counting are recognised as such and never read as phone numbers.
+  - The filter errs toward letting everyday hyperbole through ("I could murder a pizza", "I'm gonna kill it at the talent show", "I shot my boss a text"), so an oddly phrased real threat can slip past; reports cover it.
   - A number broken up by ordinary words ("555 and then 123 and then 4567") isn't recognised as a phone number.
   - Only plurals of listed slurs are matched, not every inflection (most "-ed"/"-ing" forms are ordinary words, like "spiced").
   - A platform name followed by a plain-word handle ("on discord as pettyking") isn't caught.
@@ -264,6 +265,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 - **Private courtrooms** for friend groups and **paid memberships** are designed (see `docs/MONETIZATION.md`) but not built. The Patron perks section is explicitly labelled "not on sale yet"; admins can grant cosmetics for testing.
 - **No email:** there's no password reset by email. Admins can't reset passwords from the console yet; players can change their own in Settings.
 - **Search:** archive search uses case-insensitive `ILIKE`. For very large archives, add a Postgres full-text or trigram index.
+- **Framework status codes.** A cross-origin server-action POST is refused by Next.js's own CSRF check, which answers 500 ("Invalid Server Actions request"); nothing runs. A sealed case's URL answers 200 with a content-free "sealed" notice (noindex), so its participants can see what happened.
 - **Not real-time:** there are no websockets. Pages refresh after your own actions, countdowns refresh when they expire, and other players' activity appears on the next navigation.
 
 ## Credits & licences
