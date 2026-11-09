@@ -113,7 +113,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
             <div className="absolute bottom-[3%] right-[-4%] w-[33%]">
               <RaccoonProsecutor className="chr-hover chr-sticker w-full" />
             </div>
-            <div className="doc absolute -right-4 top-[18%] hidden w-[27%] rotate-6 p-1.5 sm:block">
+            <div className="doc !absolute -right-4 top-[18%] hidden w-[27%] rotate-6 p-1.5 sm:block">
               <VerdictStamp verdict="GUILTY" animate className="w-full" />
             </div>
             <div className="absolute -left-4 top-[24%] hidden w-[22%] -rotate-12 sm:block">

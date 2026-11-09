@@ -37,7 +37,6 @@ export default defineConfig({
       DATABASE_URL,
       COURT_QUORUM: "3",
       COURT_DELIBERATION_HOURS: "24",
-      DISABLE_RATE_LIMITS: "1",
       ENABLE_DEMO_LOGIN: "true",
       SESSION_SECRET: "e2e-session-secret-e2e-session-secret-1234",
       NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,

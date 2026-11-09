@@ -57,7 +57,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 - [x] Monetization architecture (`PaymentProvider`, entitlements, fairness test)
 
 ## Phase 9: Integration testing, accessibility, responsive polish
-- [x] Playwright e2e (51 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
+- [x] Playwright e2e (54 tests): full trial across 5 browser contexts, guards, reactions, reports, rendered leaderboard rankings
 - [x] axe accessibility checks on 13 pages (no serious/critical violations)
 - [x] Mobile (Pixel 7): 13 pages fit the *device* width (checker fixed to compare against the device, not the layout viewport), plus touch flows for confess, claim/defend, vote, react, settings and menu with ≥36px tap targets
 - [x] Bugs found & fixed by e2e: Zod 4 optional checkbox keys, React 19 form reset wiping inputs, grid overflow on mobile, streaming redirects
@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **51/51 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **54/54 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -91,6 +91,39 @@ Last full run: **51/51 Playwright** and **67/67 Vitest** passing; `tsc`, ESLint 
 | Important gameplay flows have automated tests | 67 Vitest + 43 Playwright tests |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
+
+## Verification history (honest account)
+
+Not every phase was test-verified at the moment it was marked done. What actually happened:
+- **Phases 1–3:** verified as they were built. 57 Vitest unit and integration tests were written and passing before any UI existed, including a mutation check proving the concurrent-claim test can fail.
+- **Phases 4–8:** at the time, verified only by `tsc`, lint, `next build`, HTTP status checks and manually reviewed screenshots. Automated e2e coverage for them came in Phase 9. Those e2e runs then found real defects in this earlier work:
+  - unchecked checkboxes failing validation (Zod 4)
+  - React 19 wiping form inputs after a failed submit
+  - mobile overflow, the mobile menu trapped inside the header, and small tap targets
+  - status codes broken by streamed redirects
+  - OG CSS that satori rejected
+  - a missing aria label
+  - tally bars filling too early, and toast confetti covering text
+- **Final state:** every phase was re-verified separately by `scripts/verify-phases.sh` on the final commit, and an independent audit (below) was run by a separate agent that did not see these documents.
+
+## Independent audit
+
+A separate agent, which saw neither these documents nor the test results, audited all 17 §12 items hands-on against a fresh production build and its own database. It played two full trials (one entirely on a Pixel 7), replayed server actions with other users' cookies, raced claims and votes, crawled 90 pages and recomputed every player's stats in SQL.
+
+**Result: 15 PASS, 2 CONCERN, 0 FAIL.** It reported eight defects (A–H). Every one is fixed and has a regression test:
+
+| # | Defect | Fix | Regression test |
+| --- | --- | --- | --- |
+| A | Invalid confession attempts used up the rate limit | validate before rate-limiting (confess, argue, report, signup) | `§12 forms: invalid submissions don't use up the rate limit` (e2e now runs with real rate limits) |
+| B | Phone header collapsed when the account menu opened | **Root cause:** unlayered component CSS beat Tailwind utilities, so the dropdown's `absolute` was ignored. Component classes moved to `@layer components`; `.velvet` keeps its base colour | mobile test asserts the logo box is unchanged and the menu sits below the header |
+| C | Disabled claim-button text overflowed | same root cause (`whitespace-normal` was ignored), plus wrapping | `§12 claim buttons…` asserts no overflow |
+| D | Small tap targets (footer, chips, links) | `min-h-9` / chip min-height 36px | tap-target check now includes chips, pagination and footer links |
+| E | A rejected stale-tab vote left voting buttons | refresh on failure; server props take over | stale-tab test asserts the sealed state |
+| F | Misleading messages ("Too slow" on closed cases, "8/3 votes", stale "filed" banner) | stage-specific errors, "quorum reached", banner shown only while true | integration test asserts the new messages |
+| G | `/defend/<bad id>` soft 404 (200) | removed the streaming `loading.tsx` that wrapped the editor routes | `§12 navigation: unknown editor ids are real 404s` |
+| H | Cramped vote-booth heading on phones | jury art hidden below `sm` | visual |
+
+Logs also show `prisma:error` lines for unique-constraint hits that the app handles correctly. This is noise and was left as is.
 
 ## Per-phase evidence
 

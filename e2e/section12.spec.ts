@@ -56,6 +56,9 @@ test("§12 users cannot vote multiple times (stale second tab is rejected)", asy
   await tabB.getByRole("button", { name: /^NOT GUILTY/ }).click();
   await tabB.getByRole("button", { name: "Seal my vote" }).click();
   await expect(tabB.getByText(/You've already voted on this case/)).toBeVisible();
+  // …and the stale tab refreshes into the sealed state instead of offering the buttons again.
+  await expect(tabB.getByText("Your vote is sealed.")).toBeVisible();
+  await expect(tabB.getByRole("button", { name: /^NOT GUILTY/ })).toHaveCount(0);
 
   expect(await prisma.vote.count({ where: { caseId: target.id } })).toBe(before + 1);
   expect(await prisma.vote.count({ where: { caseId: target.id, userId: juror.id } })).toBe(1);
@@ -321,4 +324,42 @@ test("§12 visual assets render correctly (rasterised pixels, all art)", async (
   expect(new Set(categoryIcons).size, "all 12 category icons rendered").toBeGreaterThanOrEqual(12);
   const missingBadges = ACHIEVEMENTS.map((a) => a.name).filter((name) => !seen.has(name));
   expect(missingBadges, "all 20 achievement badges rendered").toEqual([]);
+});
+
+test("§12 forms: invalid submissions don't use up the rate limit (audit defect A)", async ({ browser }) => {
+  const page = await demoPage(browser, "hammy_the_accused");
+  await page.goto("/confess");
+  await page.locator(`label:has(input[value="pet-related"])`).click();
+  const sfx = Date.now().toString(36).slice(-5);
+  await page.getByLabel("Case title").fill(`I taught the parrot to say my sister's ringtone ${sfx}`);
+  await page.getByLabel("The confession").fill(`Every time it chirps she checks her phone. She has checked it four hundred times this week. The parrot is thriving (${sfx}).`);
+  // Four failed attempts (rules not accepted) — more than the 3-per-10-minutes limit.
+  for (let i = 0; i < 4; i++) {
+    await page.getByRole("button", { name: "Submit my confession to the court" }).click();
+    await expect(page.getByText("You must accept the community rules.")).toBeVisible();
+  }
+  await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).check();
+  await page.getByRole("button", { name: "Submit my confession to the court" }).click();
+  await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
+});
+
+test("§12 navigation: unknown editor ids are real 404s (audit defect G)", async ({ browser }) => {
+  const page = await demoPage(browser, "counselor_coo");
+  for (const path of ["/defend/zzz", "/prosecute/zzz", "/cases/999999", "/u/no_such_player"]) {
+    const res = await page.goto(path);
+    expect(res?.status(), path).toBe(404);
+  }
+});
+
+test("§12 claim buttons explain why they're disabled without overflowing (audit defects C, F)", async ({ browser }) => {
+  const page = await demoPage(browser, "fresh_intern");
+  const own = await prisma.case.findFirstOrThrow({
+    where: { accused: { username: "fresh_intern" }, status: "AWAITING_DEFENSE" },
+    select: { number: true, slug: true },
+  });
+  await page.goto(`/cases/${own.number}-${own.slug}`);
+  const btn = page.getByRole("button", { name: "You can't defend your own case." });
+  await expect(btn).toBeDisabled();
+  const fits = await btn.evaluate((b) => b.scrollWidth <= b.clientWidth + 1);
+  expect(fits).toBe(true);
 });

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useReduceMotion } from "@/components/ui/useReduceMotion";
@@ -43,8 +44,12 @@ export function VoteBooth({
 }) {
   const reduce = useReduceMotion();
   const [selected, setSelected] = useState<Choice | null>(null);
-  const [vote, setVote] = useState<Choice | null>(initialVote);
-  const [tallies, setTallies] = useState(initialTallies);
+  const router = useRouter();
+  const [localVote, setVote] = useState<Choice | null>(initialVote);
+  const [localTallies, setTallies] = useState(initialTallies);
+  // Server props win once they know about a vote (e.g. after a refresh from a stale tab).
+  const vote = localVote ?? initialVote;
+  const tallies = localTallies ?? initialTallies;
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const total = tallies ? tallies.guilty + tallies.notGuilty : votesCast;
@@ -60,6 +65,7 @@ export function VoteBooth({
       } else if (!result.ok) {
         setError(result.error);
         setSelected(null);
+        router.refresh(); // state may have changed elsewhere (another tab, deliberation closed)
       }
     });
   }
@@ -76,11 +82,11 @@ export function VoteBooth({
             {vote ? "Your vote is sealed." : "How does the jury find the defendant?"}
           </h2>
           <p className="mt-1 text-sm text-parchment/70">
-            {total} of {quorum} votes needed for a verdict · closes in{" "}
+            {total >= quorum ? `${total} votes · quorum reached` : `${total} of ${quorum} votes needed for a verdict`} · closes in{" "}
             <Countdown to={endsAt} className="font-bold text-gold-light" expiredLabel="moments" />
           </p>
         </div>
-        {!compact ? <CatJury mood={juryMood} count={6} className="chr-hover chr-sticker -mb-2 w-48 shrink-0 sm:w-56" /> : null}
+        {!compact ? <CatJury mood={juryMood} count={6} className="chr-hover chr-sticker -mb-2 hidden w-48 shrink-0 sm:block sm:w-56" /> : null}
       </div>
 
       <div className="relative mt-6">

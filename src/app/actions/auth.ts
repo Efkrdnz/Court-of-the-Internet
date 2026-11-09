@@ -22,9 +22,9 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
   let next = "/court";
   try {
     if (isBot(formData)) throw new CourtError("VALIDATION", "The bailiff suspects you are a robot.");
+    const input = signupSchema.parse(formObject(formData));
     const ip = await clientIp();
     await enforceRateLimit(`signup:${ip}`, 6, 3600, "Too many new identities from here. Try again later.");
-    const input = signupSchema.parse(formObject(formData));
     next = safeNext(formData.get("next"));
     const user = await registerUser({ username: input.username, displayName: input.displayName, password: input.password });
     const ua = (await headers()).get("user-agent");

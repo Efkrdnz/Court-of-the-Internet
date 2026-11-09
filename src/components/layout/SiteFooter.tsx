@@ -15,12 +15,12 @@ export function SiteFooter() {
             </p>
           </div>
           <nav aria-label="Footer" className="grid grid-cols-2 gap-2">
-            <Link className="hover:text-gold-light" href="/archives">Public archives</Link>
-            <Link className="hover:text-gold-light" href="/leaderboards">Leaderboards</Link>
-            <Link className="hover:text-gold-light" href="/jury">Jury duty</Link>
-            <Link className="hover:text-gold-light" href="/confess">Confess a crime</Link>
-            <Link className="hover:text-gold-light" href="/rules">Community rules</Link>
-            <Link className="hover:text-gold-light" href="/#how-it-works">How it works</Link>
+            <Link className="inline-flex min-h-9 items-center hover:text-gold-light" href="/archives">Public archives</Link>
+            <Link className="inline-flex min-h-9 items-center hover:text-gold-light" href="/leaderboards">Leaderboards</Link>
+            <Link className="inline-flex min-h-9 items-center hover:text-gold-light" href="/jury">Jury duty</Link>
+            <Link className="inline-flex min-h-9 items-center hover:text-gold-light" href="/confess">Confess a crime</Link>
+            <Link className="inline-flex min-h-9 items-center hover:text-gold-light" href="/rules">Community rules</Link>
+            <Link className="inline-flex min-h-9 items-center hover:text-gold-light" href="/#how-it-works">How it works</Link>
           </nav>
           <div className="space-y-2">
             <p>

@@ -18,10 +18,11 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
   try {
     const user = await requireActiveUser();
     if (isBot(formData)) throw new CourtError("VALIDATION", "The bailiff suspects you are a robot.");
+    // Validate first: rejected (invalid) submissions must not use up the rate-limit budget.
+    const input = confessionSchema.parse(formObject(formData));
     const ip = await clientIp();
     await enforceRateLimit(`confess:${user.id}`, 3, 600, "Slow down! The stenographer can only type so fast.");
     await enforceRateLimit(`confess-ip:${ip}`, 15, 3600);
-    const input = confessionSchema.parse(formObject(formData));
     const created = await confess(user.id, input);
     path = `${casePath(created)}?filed=1`;
   } catch (e) {
@@ -66,8 +67,8 @@ export async function submitArgumentAction(
     const user = await requireActiveUser();
     // `role` is bound on the client, so never trust it without checking.
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
-    await enforceRateLimit(`argue:${user.id}`, 10, 600);
     const input = argumentSchema.parse(formObject(formData));
+    await enforceRateLimit(`argue:${user.id}`, 10, 600);
     const result = await submitArgument(user.id, input.caseId, role, input.body);
     target = `${casePath(result)}?filed=${role === "DEFENSE" ? "defense" : "prosecution"}`;
   } catch (e) {
@@ -110,8 +111,8 @@ export async function reactAction(
 export async function reportAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
     const user = await requireActiveUser();
-    await enforceRateLimit(`report:${user.id}`, 10, 3600, "You've filed a lot of reports. The clerks need a minute.");
     const input = reportSchema.parse(formObject(formData));
+    await enforceRateLimit(`report:${user.id}`, 10, 3600, "You've filed a lot of reports. The clerks need a minute.");
     const { autoReview } = await fileReport(user.id, {
       caseId: input.caseId,
       target: input.target,

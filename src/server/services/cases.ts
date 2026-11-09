@@ -169,6 +169,15 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
     }
     const ineligible = eligibilityError(c, userId, role);
     if (ineligible) throw new CourtError("INELIGIBLE", ineligible);
+    if (c.status !== openStatus && c.status !== claimedStatus) {
+      const ahead = role === "DEFENSE" || (c.status !== "AWAITING_DEFENSE" && c.status !== "DEFENSE_CLAIMED");
+      throw new CourtError(
+        "INVALID_STATE",
+        ahead
+          ? `This case has already moved past the ${ROLE_NOUN[role]} stage.`
+          : "This case still needs a defense before a prosecutor can take it.",
+      );
+    }
 
     const expiresAt = new Date(now.getTime() + gameConfig.claimMs);
     const result = await tx.case.updateMany({

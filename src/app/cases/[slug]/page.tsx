@@ -132,7 +132,13 @@ export default async function CasePage({ params, searchParams }: Props) {
             ? "You're the prosecutor, so you can't vote. Glare at the jury meaningfully instead."
             : null;
   const reactionReason = !user ? "signin" : viewerRole ? "You can't react to your own case." : undefined;
-  const filedMessage = typeof sp.filed === "string" ? FILED_MESSAGES[sp.filed] : undefined;
+  // The "just filed" banner only shows while it is still accurate (not on a later, closed case).
+  const FILED_STAGE: Record<string, string[]> = {
+    "1": ["AWAITING_DEFENSE", "DEFENSE_CLAIMED"],
+    defense: ["AWAITING_PROSECUTION", "PROSECUTION_CLAIMED"],
+    prosecution: ["DELIBERATION"],
+  };
+  const filedMessage = typeof sp.filed === "string" && FILED_STAGE[sp.filed]?.includes(c.status) ? FILED_MESSAGES[sp.filed] : undefined;
 
   return (
     <article className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-6">
@@ -261,7 +267,7 @@ export default async function CasePage({ params, searchParams }: Props) {
             </p>
             {c.status === "DELIBERATION" ? (
               <p>
-                <span className="text-parchment/50">Jurors so far:</span> {c.votesCast} / {detail.quorum}
+                <span className="text-parchment/50">Jurors so far:</span> {c.votesCast >= detail.quorum ? `${c.votesCast} (quorum reached)` : `${c.votesCast} / ${detail.quorum}`}
                 {c.extensionsUsed ? " (extended)" : ""}
               </p>
             ) : null}

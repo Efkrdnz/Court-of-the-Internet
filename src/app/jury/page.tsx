@@ -145,7 +145,7 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
                 c={c}
                 footer={
                   <Link href={`/jury?case=${c.number}`} className="btn btn-sm w-full">
-                    Judge this case ({c.votesCast}/{gameConfig.quorum} votes)
+                    Judge this case ({c.votesCast >= gameConfig.quorum ? `${c.votesCast} votes, quorum reached` : `${c.votesCast}/${gameConfig.quorum} votes`})
                   </Link>
                 }
               />

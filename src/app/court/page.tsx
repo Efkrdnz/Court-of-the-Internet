@@ -100,7 +100,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-parchment">The jury needs you: “{c.title}”</p>
                       <p className="text-sm text-parchment/70">
-                        {c.votesCast}/{d.quorum} votes · closes in <Countdown to={c.deliberationEndsAt!} className="text-gold-light" />
+                        {c.votesCast >= d.quorum ? `${c.votesCast} votes (quorum reached)` : `${c.votesCast}/${d.quorum} votes`} · closes in <Countdown to={c.deliberationEndsAt!} className="text-gold-light" />
                       </p>
                     </div>
                     <Link href={`/jury?case=${c.number}`} className="btn btn-ghost btn-sm">
@@ -136,7 +136,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
               <h2 id="mine-heading" className="font-display text-2xl font-bold text-parchment">
                 Your active cases
               </h2>
-              <Link href={`/u/${user.username}`} className="text-sm font-semibold text-gold-light hover:underline">
+              <Link href={`/u/${user.username}`} className="inline-flex min-h-9 items-center text-sm font-semibold text-gold-light hover:underline">
                 Full history →
               </Link>
             </div>

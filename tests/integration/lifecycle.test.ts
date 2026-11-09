@@ -220,7 +220,10 @@ describe("role restrictions", () => {
   it("enforces the stage order", async () => {
     const [accused, a, b] = [await makeUser(), await makeUser(), await makeUser()];
     const c = await makeCase(accused);
-    await expect(claimCase(a, c.id, "PROSECUTION")).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(claimCase(a, c.id, "PROSECUTION")).rejects.toMatchObject({
+      code: "INVALID_STATE",
+      message: "This case still needs a defense before a prosecutor can take it.",
+    });
     await expect(submitArgument(a, c.id, "DEFENSE", DEFENSE_TEXT)).rejects.toMatchObject({ code: "INVALID_STATE" });
     await expect(castVote(b, c.id, "GUILTY")).rejects.toMatchObject({ code: "INVALID_STATE" });
     await claimCase(a, c.id, "DEFENSE");
@@ -229,7 +232,10 @@ describe("role restrictions", () => {
     await submitArgument(a, c.id, "DEFENSE", DEFENSE_TEXT);
     // Exactly one defense.
     await expect(submitArgument(a, c.id, "DEFENSE", DEFENSE_TEXT)).rejects.toMatchObject({ code: "ALREADY_DONE" });
-    await expect(claimCase(b, c.id, "DEFENSE")).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(claimCase(b, c.id, "DEFENSE")).rejects.toMatchObject({
+      code: "INVALID_STATE",
+      message: "This case has already moved past the defense attorney stage.",
+    });
   });
 
   it("stops participants from voting and enforces one vote per account", async () => {

@@ -56,7 +56,7 @@ export function UserMenu({
         </span>
       </button>
       {open ? (
-        <div role="menu" className="velvet absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden p-2">
+        <div role="menu" className="velvet !absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden p-2">
           <div className="px-3 py-2">
             <p className="font-display font-bold text-parchment">{displayName}</p>
             <p className="text-xs text-gold-light">

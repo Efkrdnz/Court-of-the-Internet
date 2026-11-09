@@ -35,7 +35,7 @@ export function ClaimButton({
             if (result && !result.ok) setError(result.error);
           })
         }
-        className={clsx("btn w-full", role === "DEFENSE" ? "btn-teal" : "btn-crimson", className)}
+        className={clsx("btn h-auto w-full whitespace-normal py-2.5 text-center leading-snug", role === "DEFENSE" ? "btn-teal" : "btn-crimson", className)}
       >
         {pending ? <Spinner /> : null}
         {pending ? "Filing the paperwork…" : disabledReason ?? text}

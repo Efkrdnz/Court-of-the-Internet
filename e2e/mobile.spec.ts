@@ -41,8 +41,16 @@ async function phoneLogin(browser: import("@playwright/test").Browser, username:
 
 async function expectTapTargets(page: import("@playwright/test").Page) {
   // Every visible button and button-styled link is at least 36px tall and fully on screen.
-  const bad = await page.locator("button:visible, a.btn:visible").evaluateAll((els) =>
+  const bad = await page.locator("button:visible, a.btn:visible, a.chip:visible, footer nav a:visible, nav[aria-label=Pagination] a:visible").evaluateAll((els) =>
     els
+      // Items inside a horizontal scroller (e.g. the category chip row) are reachable by swiping.
+      .filter((el) => {
+        for (let a = el.parentElement; a; a = a.parentElement) {
+          const ox = getComputedStyle(a).overflowX;
+          if (ox === "auto" || ox === "scroll") return false;
+        }
+        return true;
+      })
       .map((el) => {
         const r = el.getBoundingClientRect();
         return { text: (el.textContent ?? "").trim().slice(0, 40), h: r.height, left: r.left, right: r.right };
@@ -100,8 +108,16 @@ test("mobile: dashboard, queues and settings are usable on a phone", async ({ br
     await expectTapTargets(page);
     await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
   }
-  // The account menu works on touch.
+  // The account menu works on touch and doesn't break the header (audit defect B).
+  const logo = page.getByRole("link", { name: "Court of the Internet: home" });
+  const before = (await logo.boundingBox())!;
   await page.getByRole("button", { name: /Account menu/ }).tap();
+  const after = (await logo.boundingBox())!;
+  expect(after.width).toBeCloseTo(before.width, 0);
+  expect(after.height).toBeCloseTo(before.height, 0);
+  const header = (await page.locator("header").first().boundingBox())!;
+  const menu = (await page.getByRole("menu").boundingBox())!;
+  expect(menu.y).toBeGreaterThanOrEqual(header.y + header.height - 2);
   await page.getByRole("menuitem", { name: "Settings" }).tap();
   await expect(page).toHaveURL(/\/settings$/);
   // Settings form submits on mobile.
