@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/server/auth/current-user";
 import { getCommunityStats, getFeaturedCase, getHighlights, getRecentVerdicts } from "@/server/queries/community";
 import { runMaintenance } from "@/server/services/maintenance";
 import { gameConfig } from "@/server/config";
-import { casePath, formatCaseNumber } from "@/lib/text";
+import { casePath, formatCaseNumber, pluralize } from "@/lib/text";
 import { compact, percent } from "@/lib/format";
 import { JudgeOwl, PigeonAttorney, RaccoonProsecutor, HamsterDefendant, CatJury, BailiffBulldog, CryingPizza } from "@/components/art/characters";
 import { FlourishDivider, VerdictStamp, WaxSeal, Gavel } from "@/components/art/props";
@@ -142,7 +142,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
           ))}
         </dl>
         <p className="mt-3 text-center text-sm text-parchment/60">
-          Right now: {stats.inDeliberation} cases before a jury · {stats.awaiting} awaiting counsel · {stats.todayVotes} votes in the last 24h
+          Right now: {pluralize(stats.inDeliberation, "case")} before a jury · {stats.awaiting.toLocaleString("en-US")} awaiting counsel · {pluralize(stats.todayVotes, "vote")} in the last 24h
         </p>
       </section>
 

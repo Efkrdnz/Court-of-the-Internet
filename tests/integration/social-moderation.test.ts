@@ -20,7 +20,7 @@ import {
 import { hitRateLimit } from "@/server/rate-limit";
 import { loginWithLimits } from "@/server/services/login";
 import { auditStats } from "@/server/services/stats";
-import { getFeaturedCase, utcDay } from "@/server/queries/community";
+import { getCommunityStats, getFeaturedCase, utcDay } from "@/server/queries/community";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
@@ -340,7 +340,15 @@ describe("moderation", () => {
         updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
       ).rejects.toMatchObject({ code: "VALIDATION" });
     }
-    await updateProfile(player, { displayName: "Judge Mental", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
+    // The officer's distinctive name word alone, with another title, or one typo away (audit 27 #5).
+    for (const sneaky of ["Realname", "Your Honour Realname", "Judgee Reallname", "Mumford", "Sir Mumfort"]) {
+      await expect(
+        updateProfile(player, { displayName: sneaky, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+      ).rejects.toMatchObject({ code: "VALIDATION" });
+    }
+    for (const fine of ["Judge Mental", "Marshal Law", "Wordsworth Fan"]) {
+      await updateProfile(player, { displayName: fine, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
+    }
   });
 
   it("a ban racing a trial's close never splits the verdict from its tally (audit 10 #2)", async () => {
@@ -422,7 +430,10 @@ describe("moderation", () => {
 
     const open = await makeCase(accused);
     const anon = await makeCase(accused, { anonymous: true });
+    const awaitingBefore = (await getCommunityStats()).awaiting;
     await setBan(admin, accused, true, "Contempt");
+    // The held case no longer counts as awaiting counsel on the home page (audit 27 #8).
+    expect((await getCommunityStats()).awaiting).toBe(awaitingBefore - 1);
     await expect(claimCase(lawyer, open.id, "DEFENSE")).rejects.toMatchObject({ code: "INVALID_STATE" });
     // …except anonymous ones: holding them would reveal who confessed (audit 15 #2).
     expect((await listQueue({ role: "DEFENSE", viewer: null })).cards.map((x) => x.id)).toContain(anon.id);
@@ -583,6 +594,9 @@ describe("rate limiting", () => {
     expect(checked).toBe(8); // the per-account-per-IP limit
     const row = await db.rateLimit.findUniqueOrThrow({ where: { key: "login-user-ip:burst_target:10.66.0.1" } });
     expect(row.count).toBe(8); // refused attempts were given back
+    // …and the burst never touched more than its own share of the IP's allowance (audit 27 #7).
+    expect(refused.every((r) => r.status === "rejected" && /that account/.test((r.reason as Error).message))).toBe(true);
+    expect((await db.rateLimit.findUniqueOrThrow({ where: { key: "login:10.66.0.1" } })).count).toBe(8);
     // The correct password from the same IP is refused too while the window lasts…
     await expect(loginWithLimits("burst_target", "objection!", "10.66.0.1")).rejects.toMatchObject({ code: "RATE_LIMITED" });
     // …but from another IP it works, and a success doesn't count against anyone.

@@ -149,7 +149,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
             <span>
               <span className="block font-bold text-parchment">Confess anonymously</span>
               <span className="block text-sm text-parchment/65">
-                Your name is replaced by a random alias like “{previewAlias}”. The case won&apos;t appear on your public profile, but you can still follow it from your
+                Your name is replaced by a random alias such as “{previewAlias}” (the real one is drawn when you file). The case won&apos;t appear on your public profile, but you can still follow it from your
                 courtroom. Anonymous cases are off the record: they earn you no XP or achievements, because those would give you away.
               </span>
             </span>
@@ -186,7 +186,9 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
             <span className="pill bg-teal/15 text-teal ring-1 ring-teal/40">Awaiting Defense</span>
           </div>
           <p className="mt-5 text-center font-display text-xs font-bold uppercase tracking-[0.3em] text-burgundy">In the Court of the Internet</p>
-          <p className="text-center font-display italic text-sepia">The People v. {anonymous ? previewAlias : displayName}</p>
+          <p className="text-center font-display italic text-sepia">
+            The People v. {anonymous ? <>a secret alias <span className="text-xs not-italic">(drawn at random when you file)</span></> : displayName}
+          </p>
           <h2 className="mt-3 text-balance text-center font-display text-2xl font-black leading-tight">{title.trim() || "Your case title appears here"}</h2>
           {cat ? (
             <p className="mt-2 flex items-center justify-center gap-2 text-sm text-sepia">

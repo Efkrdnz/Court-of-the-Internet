@@ -6,6 +6,7 @@ const LETTERS: Record<string, string> = {
   а: "a", в: "b", е: "e", ё: "e", з: "3", і: "i", ї: "i", ј: "j", к: "k", м: "m", н: "h", о: "o", р: "p", с: "c", т: "t", у: "y", х: "x", ѕ: "s", ԁ: "d", ӏ: "l", ɡ: "g",
   // Small capitals ("ꜰᴀɢ…").
   ᴀ: "a", ʙ: "b", ᴄ: "c", ᴅ: "d", ᴇ: "e", ꜰ: "f", ɢ: "g", ʜ: "h", ɪ: "i", ᴊ: "j", ᴋ: "k", ʟ: "l", ᴍ: "m", ɴ: "n", ᴏ: "o", ᴘ: "p", ʀ: "r", ꜱ: "s", ᴛ: "t", ᴜ: "u", ᴠ: "v", ᴡ: "w", ʏ: "y", ᴢ: "z",
+  ɾ: "r", ɹ: "r", ǝ: "e", ə: "e", đ: "d", ħ: "h", ł: "l", ø: "o", ß: "ss",
   α: "a", β: "b", ε: "e", η: "n", ι: "i", κ: "k", μ: "m", ν: "v", ο: "o", ρ: "p", τ: "t", υ: "u", χ: "x",
 };
 
@@ -20,6 +21,9 @@ export const STRAY_ZWJ = /(?<!\p{Extended_Pictographic}️?)‍|‍(?!\p{Extende
 export function skeleton(input: string): string {
   return [...input.normalize("NFKC").replace(INVISIBLE, "").replace(/\u200D/g, "")]
     .map((ch) => {
+      // Regional-indicator letters (🇷🇪🇹…) read as plain letters.
+      const cp = ch.codePointAt(0)!;
+      if (cp >= 0x1f1e6 && cp <= 0x1f1ff) return String.fromCharCode(0x61 + cp - 0x1f1e6);
       const lower = ch.toLowerCase();
       const latin = LETTERS[lower];
       return latin ? (lower === ch ? latin : latin.toUpperCase()) : ch;

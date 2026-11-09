@@ -43,6 +43,8 @@ function rot13(s: string): string {
 }
 
 const SLURS = new Set(ENCODED_SLURS.split(",").map(rot13));
+/** Listed words whose past-participle form is used as the slur (ROT13). */
+const ED_SLURS = new Set(["ergneq"].map(rot13));
 
 const LEET: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "6": "g", "7": "t", "@": "a", $: "s", "!": "i" };
 
@@ -85,7 +87,7 @@ const STREET_SPELLED = new RegExp(
   "i",
 );
 const STREET_LOWER = new RegExp(
-  `\\b\\d{1,5}\\s+(?!${FILLER}\\b)[a-z]+(?:\\s+(?!${FILLER}\\b)[a-z]+)?\\s+(?:street|avenue|road|boulevard|lane|drive|terrace|way)\\b`,
+  `\\b\\d{1,5}\\s+(?!${FILLER}\\b)[a-z]+(?:\\s+(?!${FILLER}\\b)[a-z]+)?\\s+(?:street|avenue|road|boulevard|lane|drive|terrace|way|st|ave|rd|blvd|ln|dr|ct|pl)\\b`,
   "i",
 );
 const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
@@ -217,12 +219,15 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const undotted = text
     .replace(/[\u3002\uFF0E\uFF61]/g, ".") // ideographic / fullwidth full stops
     .replace(/\s*[[({]\s*(?:\.|dot)\s*[\])}]\s*/gi, ".")
-    .replace(/\s+\.\s+(?=(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|ninja)\b)/gi, ".");
+    .replace(/\s+\.\s*(?=(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|ninja)\b)/gi, ".")
+    // Other stand-ins for the dot before the big three TLDs, which may be spaced out:
+    // "pettyking·com", "pettyking, com", "pettyking / com", "pettyking dot c o m".
+    .replace(/([a-z0-9])\s*(?:[·•‧∙⋅・,/|]|\s+dot\s+)\s*(c\s?o\s?m|n\s?e\s?t|o\s?r\s?g)(?![a-z0-9-])/gi, (_, a: string, tld: string) => `${a}.${tld.replace(/\s+/g, "")}`);
   const leet = undotted.replace(/[0134567@$!]/g, (c) => LEET[c] ?? c);
   // Digit-like tokens read O as 0 and I/l as 1 ("O77OO 9OO 123").
   const deLettered = text.replace(/\b[\dOoIl]*\d[\dOoIl]*\b/g, (tok) => tok.replace(/[Oo]/g, "0").replace(/[Il]/g, "1"));
   const numbered = deLettered.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
-  const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){3,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
+  const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   if (EMAIL.test(undotted) || EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").
@@ -249,8 +254,14 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || detachedHandle) return fail("handle");
 
   const words = normaliseForWords(text);
-  // Plurals of listed words ("…s", "…es").
-  const stems = words.flatMap((w) => (w.endsWith("es") ? [w.slice(0, -1), w.slice(0, -2)] : w.endsWith("s") ? [w.slice(0, -1)] : []));
+  // Plurals of listed words ("…s", "…es"), and the few whose "…ed" form is the slur itself.
+  // (Not "…ed"/"…ing" in general: "spiced" or "chinking" are ordinary words.)
+  const stems = words.flatMap((w) => [
+    // "-es" only after s/x/z/ch/sh, as in English, so "spices" stays "spice".
+    ...(w.endsWith("s") ? [w.slice(0, -1)] : []),
+    ...(/(?:[sxz]|ch|sh)es$/.test(w) ? [w.slice(0, -2)] : []),
+    ...(w.endsWith("ed") && ED_SLURS.has(w.slice(0, -2)) ? [w.slice(0, -2)] : []),
+  ]);
   // Adjacent pairs too, for slurs split by a space ("fa ggot").
   const pairs = words.slice(1).map((w, i) => words[i] + w);
   for (const word of [...words, ...stems, ...pairs, ...spacedOutWords(text)]) {

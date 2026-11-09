@@ -2,7 +2,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { CategoryIcon, VerdictStamp } from "@/components/art/props";
 import { getCategory } from "@/lib/categories";
-import { casePath, formatCaseNumber } from "@/lib/text";
+import { casePath, formatCaseNumber, pluralize } from "@/lib/text";
 import { relativeTime } from "@/lib/format";
 import type { CaseCardDTO } from "@/server/queries/cases";
 import { PersonChip } from "./PersonChip";
@@ -61,7 +61,7 @@ export function CaseFileCard({
         <PersonChip person={c.accused} role="The accused" size="sm" className="relative z-10" />
         <div className="flex flex-wrap items-center gap-2 text-xs text-sepia">
           <StatusPill status={c.status} verdict={c.verdict} light />
-          {c.status === "DELIBERATION" ? <span>{c.votesCast} votes</span> : null}
+          {c.status === "DELIBERATION" ? <span>{pluralize(c.votesCast, "vote")}</span> : null}
           {c.status === "CLOSED" && c.tallies ? (
             <span className="font-type">
               {c.tallies.guilty}–{c.tallies.notGuilty}

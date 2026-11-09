@@ -237,8 +237,10 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 - **Bans and anonymity.** A ban puts the banned player's *public* open cases on hold. Their anonymous cases stay claimable, because holding them would reveal who confessed.
 - **Very long words break mid-word.** Words of up to 35 characters are allowed (longer ones are refused as keyboard-mash). A large heading can't fit that many letters on one line (on phones, and in big display headings even on desktop), so the word wraps instead of overflowing.
 - **Display names aren't unique; usernames are.** Two players can share a display name, except that officers' names are reserved. Profiles and links use the unique `@username`, which leaderboards also show on screens 400px and wider.
-- **The content filter is a first line of defence, not a guarantee.** It sees through invisible characters, look-alike letters (Cyrillic, Greek, full-width, small capitals), leetspeak, plurals, letters spaced out with symbols or emoji, phone numbers written with O for 0, keycap emoji or odd separators, and spelled-out addresses. Known gaps:
+- **The content filter is a first line of defence, not a guarantee.** It sees through invisible characters, look-alike letters (Cyrillic, Greek, full-width, small capitals, flag letters), leetspeak, plurals, letters spaced out with symbols or emoji, phone numbers written with O for 0, keycap emoji or odd separators, dots written as "·", "," or "dot", abbreviated street names, and spelled-out addresses. Known gaps:
   - Bare 7-digit local phone numbers are allowed, so years and scores aren't flagged.
+  - A number broken up by ordinary words ("555 and then 123 and then 4567") isn't recognised as a phone number.
+  - Only plurals of listed slurs are matched, not every inflection (most "-ed"/"-ing" forms are ordinary words, like "spiced").
   - A platform name followed by a plain-word handle ("on discord as pettyking") isn't caught.
   - Context-free sarcasm can't be judged automatically, and new coinages or misspellings it has never seen get through.
   - Reports and moderators cover the rest.

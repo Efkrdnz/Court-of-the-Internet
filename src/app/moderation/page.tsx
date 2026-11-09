@@ -169,7 +169,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             )}
             {focusCase.moderationState === "UNDER_REVIEW" ? <ModForm op="dismiss" label="Dismiss reports & make visible" caseId={focusCase.id} tone="teal" /> : null}
             {focusCase.status === "DELIBERATION" && focusCase.moderationState === "VISIBLE" ? (
-              <ModForm op="adjourn" label={`Adjourn now (${focusCase.guiltyVotes + focusCase.notGuiltyVotes} votes; quorum rules apply)`} caseId={focusCase.id} confirmText="End deliberation now?" />
+              <ModForm op="adjourn" label={`Adjourn now (${pluralize(focusCase.guiltyVotes + focusCase.notGuiltyVotes, "vote")}; quorum rules apply)`} caseId={focusCase.id} confirmText="End deliberation now?" />
             ) : null}
             {focusCase.status === "CLOSED" && focusCase.moderationState === "VISIBLE" ? <ModForm op="feature" label="Pin as featured case of the day" caseId={focusCase.id} /> : null}
           </div>

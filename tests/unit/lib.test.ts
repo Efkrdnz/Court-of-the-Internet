@@ -581,3 +581,44 @@ describe("alias look-alikes without a hash (audit 26 #8)", () => {
     expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
   });
 });
+
+describe("inflections, dot stand-ins, street abbreviations, rare look-alikes (audit 27 #2)", () => {
+  it.each([
+    ["the most retarded intern", "hate"],
+    ["visit pettyking·com for receipts", "link"],
+    ["visit pettyking, com for receipts", "link"],
+    ["visit pettyking dot c o m for receipts", "link"],
+    ["visit pettyking .co for receipts", "link"],
+    ["I live at 42 wallaby st", "personal-info"],
+    ["meet me at 9 maple ave tonight", "personal-info"],
+    ["just k y s already", "violence"],
+    ["you ǝvil fagɡot", "hate"],
+    ["🇫🇦🇬🇬🇴🇹", "hate"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it.each([
+    "I went w/ co-workers to the comedy club",
+    "My grades were A B C and I hid the report",
+    "I stole 2 slices on the way home",
+    "We cheered for 🇫🇷 and 🇮🇹 in the final",
+    "My boss, Tom, came in late",
+    "I invited Smith, Jones and co. to my party",
+    "I hid the spices from my roommate",
+    "I spiced up the chili and blamed the intern",
+    "the chinking of glasses woke the office",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+});
+
+describe("crafted values get human messages (audit 27 #6)", () => {
+  it("replaces Zod's built-in wording", async () => {
+    const { fieldErrors, reportSchema } = await import("@/lib/validation");
+    const parsed = reportSchema.safeParse({ caseId: "x", target: "NOPE", reason: 42 });
+    expect(parsed.success).toBe(false);
+    const messages = Object.values(fieldErrors(parsed.error!)).flat();
+    expect(messages.length).toBeGreaterThan(0);
+    for (const m of messages) expect(m).not.toMatch(/expected|Invalid option|Too big/);
+  });
+});

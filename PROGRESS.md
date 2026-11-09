@@ -679,6 +679,29 @@ It confirmed the twenty-fifth round:
 | 7 | Header nav links 33px tall at 1024px; inline archive link 17px on phones | 44px nav links; the inline link is 36px | — |
 | 8 | "sworn in November 9"; a deleted account's open reports kept counting; "Sneaky Pigeon D577" accepted | "sworn in on"; deletion withdraws open reports (shared helper with bans); alias-critter + 4-hex names refused | integration (deletion), unit (3 rejected; "Big Tony 2024" and "Pigeon Fan 1999" accepted) |
 
+## Twenty-seventh independent audit (fresh agent, build of commit 5c5a3fb)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.**
+
+It confirmed the twenty-sixth round:
+- concurrent login bursts get exactly 8 password checks
+- its SQL recompute of every UserStats field matched after every race
+- no horizontal scroll on 16 pages from 320 to 1440px, tap targets ≥36px
+- fuzzed actions and URLs never produced a 500
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | "1 votes", "1 cases await your judgement" and similar counts | every dynamic count in the UI goes through `pluralize` (case cards, courtroom, jury, home, archives, moderation) | e2e archive total still matches |
+| 2 | Filter gaps: "retarded", "pettyking·com" (and `,` `/` "dot c o m" " .co"), "42 wallaby st", rare look-alikes (ɾ ǝ đ, flag letters), "k y s" | listed "-ed" slur forms; dot stand-ins before com/net/org; lower-case street abbreviations; more look-alikes and regional-indicator letters; 3-letter spaced runs for threats. Also fixed a false positive from round 25: "spices" was read as a plural slur ("-es" is now stripped only after s/x/z/ch/sh) | unit (10 rejected; 9 benign sentences accepted incl. "spices", "w/ co-workers", flag emoji); 341 seed texts pass |
+| 3 | The anonymous preview showed an alias that differed from the one assigned | the preview says the alias is drawn at random when you file | — |
+| 4 | Up to 3 queued toasts covered the top of the page on phones | compact phone toast (smaller art, two-line body) and a "Dismiss all (N)" button | — |
+| 5 | "Wigsworth", "Your Honour Wigsworth", "Judgee Wiggsworth" accepted | an officer's distinctive name words (5+ letters, not titles) are protected anywhere in a name, one typo included | integration (5 rejected; "Judge Mental", "Marshal Law", "Wordsworth Fan" accepted) |
+| 6 | Raw Zod wording reached crafted calls | built-in messages are replaced with a plain "That value isn't valid" | unit |
+| 7 | A one-account login burst briefly used up the shared per-IP allowance | limits are reserved most-specific first, so the burst is stopped at its own account+IP limit | integration: the IP's count stays at 8 and every refusal names the account |
+| 8 | Home and courtroom "awaiting counsel" counts included cases on hold after a ban | counts exclude held cases (deliberating trials still count) | integration |
+
+The sealed-case page answering 200 (noindex, content-neutral, so participants see the notice) is kept by design.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

@@ -1,4 +1,5 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { db } from "../db";
 import { clock } from "../clock";
 import { gameConfig } from "../config";
@@ -48,6 +49,9 @@ export async function getFeaturedCase(viewer: { id: string; mutedCategories?: st
   return card;
 }
 
+/** A banned player's public open cases are on hold (anonymous ones stay, so bans don't reveal them). */
+const NOT_ON_HOLD = { OR: [{ anonymous: true }, { accused: { bannedAt: null } }] } satisfies Prisma.CaseWhereInput;
+
 export async function getCommunityStats() {
   const now = clock.now();
   const dayAgo = new Date(now.getTime() - 86_400_000);
@@ -60,7 +64,8 @@ export async function getCommunityStats() {
     db.case.count({ where: { status: "CLOSED", verdict: "NOT_GUILTY", moderationState: "VISIBLE" } }),
     db.vote.count({ where: { createdAt: { gte: dayAgo }, case: { moderationState: "VISIBLE" } } }),
     db.case.count({ where: { status: "DELIBERATION", moderationState: "VISIBLE" } }),
-    db.case.count({ where: { status: { in: ["AWAITING_DEFENSE", "AWAITING_PROSECUTION"] }, moderationState: "VISIBLE" } }),
+    // Cases on hold (a banned player's public cases) aren't awaiting anyone.
+    db.case.count({ where: { status: { in: ["AWAITING_DEFENSE", "AWAITING_PROSECUTION"] }, moderationState: "VISIBLE", ...NOT_ON_HOLD } }),
     db.case.aggregate({ _max: { number: true } }),
   ]);
   return {
@@ -156,7 +161,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
         where: { claimedById: viewer.id, claimExpiresAt: { gt: new Date(now.getTime() - gameConfig.claimGraceMs) }, status: { in: ["DEFENSE_CLAIMED", "PROSECUTION_CLAIMED"] } },
         select: caseCardSelect,
       }),
-      db.case.groupBy({ by: ["status"], where: { moderationState: "VISIBLE", status: { not: "CLOSED" } }, _count: { _all: true } }),
+      db.case.groupBy({ by: ["status"], where: { moderationState: "VISIBLE", status: { not: "CLOSED" }, OR: [{ status: "DELIBERATION" }, NOT_ON_HOLD] }, _count: { _all: true } }),
       db.xpEvent.aggregate({ where: { userId: viewer.id, createdAt: { gte: startOfDay } }, _sum: { amount: true } }),
       db.vote.count({ where: { userId: viewer.id, createdAt: { gte: startOfDay } } }),
       db.argument.count({ where: { authorId: viewer.id, createdAt: { gte: startOfDay } } }),

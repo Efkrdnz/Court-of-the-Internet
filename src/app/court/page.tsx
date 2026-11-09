@@ -5,7 +5,7 @@ import { requireUserOrRedirect } from "@/server/auth/current-user";
 import { getDashboard } from "@/server/queries/community";
 import { getViewerSummary } from "@/server/queries/players";
 import { runMaintenance } from "@/server/services/maintenance";
-import { casePath, formatCaseNumber } from "@/lib/text";
+import { casePath, formatCaseNumber, pluralize } from "@/lib/text";
 import { parseAvatar } from "@/lib/avatar";
 import { relativeTime } from "@/lib/format";
 import type { CaseCardDTO } from "@/server/queries/cases";
@@ -169,7 +169,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                         </p>
                       </div>
                       <StatusPill status={c.status} verdict={c.verdict} />
-                      {c.status === "DELIBERATION" ? <span className="text-xs text-parchment/60">{c.votesCast} votes</span> : null}
+                      {c.status === "DELIBERATION" ? <span className="text-xs text-parchment/60">{pluralize(c.votesCast, "vote")}</span> : null}
                     </Link>
                   </li>
                 ))}

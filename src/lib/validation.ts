@@ -175,11 +175,16 @@ export const reportSchema = z.object({
 
 export type FieldErrors = Record<string, string[] | undefined>;
 
+// Zod's built-in messages ("Invalid option: expected one of …", "Too big: …") only reach players
+// through hand-crafted requests, since every real field has its own wording. Keep them human.
+const ZOD_DEFAULT = /^(?:Invalid (?:input|option|type|value|enum|string|key|union|element)|Too (?:big|small)|Expected |Required$|Unrecognized)/;
+const GENERIC_FIELD_ERROR = "That value isn't valid. Reload the page and try again.";
+
 export function fieldErrors(error: z.ZodError): FieldErrors {
   const out: FieldErrors = {};
   for (const issue of error.issues) {
     const key = issue.path.length ? String(issue.path[0]) : "_form";
-    (out[key] ??= []).push(issue.message);
+    (out[key] ??= []).push(ZOD_DEFAULT.test(issue.message) ? GENERIC_FIELD_ERROR : issue.message);
   }
   return out;
 }

@@ -41,6 +41,7 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
 
   const current = queue[0];
   const dismiss = useCallback(() => setQueue((q) => q.slice(1)), []);
+  const dismissAll = useCallback(() => setQueue([]), []);
 
   useEffect(() => {
     if (!current) return;
@@ -68,11 +69,11 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
           >
             {/* Confetti falls behind and around the card so it never covers the text. */}
             {celebratory ? <Confetti pieces={28} className="pointer-events-none absolute -inset-x-8 -top-28 bottom-0 z-0 overflow-visible" /> : null}
-            <div className="doc doc-ruled relative z-10 flex items-center gap-4 p-4 pr-10">
+            <div className="doc doc-ruled relative z-10 flex items-center gap-3 p-3 pr-10 sm:gap-4 sm:p-4">
               {achievement ? (
-                <AchievementBadge icon={achievement.icon} tier={achievement.tier} className="bdg-unlock h-20 w-16 shrink-0" />
+                <AchievementBadge icon={achievement.icon} tier={achievement.tier} className="bdg-unlock h-14 w-11 shrink-0 sm:h-20 sm:w-16" />
               ) : (
-                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-burgundy font-display text-2xl font-black text-gold-light shadow-inner">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-burgundy font-display text-xl font-black text-gold-light shadow-inner sm:h-14 sm:w-14 sm:text-2xl">
                   {current.type === "LEVEL_UP" ? "↑" : "§"}
                 </div>
               )}
@@ -80,13 +81,21 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
                 <p className="eyebrow !text-burgundy">
                   {current.type === "ACHIEVEMENT" ? "Achievement unlocked" : current.type === "LEVEL_UP" ? "Promotion" : "Verdict"}
                 </p>
-                <p className="font-display text-lg font-black leading-tight">{achievement?.name ?? current.title}</p>
-                <p className="muted text-sm">{current.body}</p>
-                {current.href ? (
-                  <Link href={current.href} onClick={dismiss} className="mt-1 inline-flex min-h-9 min-w-11 items-center text-sm font-bold text-burgundy underline underline-offset-2">
-                    View
-                  </Link>
-                ) : null}
+                <p className="font-display text-base font-black leading-tight sm:text-lg">{achievement?.name ?? current.title}</p>
+                {/* Phones keep the card short (it sits over the top of the page): two lines of body at most. */}
+                <p className="muted line-clamp-2 text-sm sm:line-clamp-none">{current.body}</p>
+                <div className="flex flex-wrap gap-x-4">
+                  {current.href ? (
+                    <Link href={current.href} onClick={dismiss} className="inline-flex min-h-9 min-w-11 items-center text-sm font-bold text-burgundy underline underline-offset-2">
+                      View
+                    </Link>
+                  ) : null}
+                  {queue.length > 1 ? (
+                    <button type="button" onClick={dismissAll} className="inline-flex min-h-9 items-center text-sm font-semibold text-sepia underline underline-offset-2">
+                      Dismiss all ({queue.length})
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <button type="button" onClick={dismiss} className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-full text-sepia hover:bg-ink/10 hover:text-ink" aria-label="Dismiss notification">
                 ✕
