@@ -58,7 +58,9 @@ export const usernameSchema = z
   .min(LIMITS.username.min, `Username must be at least ${LIMITS.username.min} characters.`)
   .max(LIMITS.username.max, `Username must be at most ${LIMITS.username.max} characters.`)
   .regex(/^[a-z0-9_]+$/, "Use only letters, numbers and underscores.")
-  .refine((u) => !/^(admin|moderator|mod|judge|court|system|anonymous|deleted|null|undefined)$/.test(u), {
+  // `deleted_*` is how deleted accounts are renamed: reserving it keeps deletion collision-free and
+  // stops anyone posing as a former citizen.
+  .refine((u) => !/^(admin|moderator|mod|judge|court|system|anonymous|deleted|null|undefined)$|^deleted_/.test(u), {
     message: "That username is reserved by the court.",
   });
 

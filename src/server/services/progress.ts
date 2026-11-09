@@ -90,7 +90,8 @@ export async function checkStatAchievements(tx: Tx, userId: string, caseId?: str
   const s = await tx.userStats.findUnique({ where: { userId } });
   if (!s) return [];
   const keys: string[] = [];
-  if (s.totalConfessions >= 1) keys.push("opening-statement");
+  // Public confessions only: an achievement appearing for an anonymous one would unmask it.
+  if (s.casesConfessed >= 1) keys.push("opening-statement");
   if (s.casesConfessed >= 5) keys.push("serial-defendant");
   if (s.timesConvicted >= 3) keys.push("certified-menace");
   if (s.timesAcquitted >= 1) keys.push("clean-record");
@@ -101,7 +102,7 @@ export async function checkStatAchievements(tx: Tx, userId: string, caseId?: str
   if (s.longestProsecutionStreak >= 3) keys.push("silver-tongued-raccoon");
   if (s.juryVotes >= 10) keys.push("justice-served");
   if (s.juryVotes >= 50) keys.push("cat-herder");
-  if (s.totalConfessions >= 1 && s.defensesFiled >= 1 && s.prosecutionsFiled >= 1 && s.juryVotes >= 1) {
+  if (s.casesConfessed >= 1 && s.defensesFiled >= 1 && s.prosecutionsFiled >= 1 && s.juryVotes >= 1) {
     keys.push("triple-threat");
   }
   return grantAchievements(tx, userId, keys, caseId);

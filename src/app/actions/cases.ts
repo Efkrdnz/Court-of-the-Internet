@@ -6,7 +6,7 @@ import type { ArgumentRole, ReactionType, ReportReason, VoteChoice } from "@pris
 import { argumentSchema, confessionSchema, reactionSchema, reportSchema, voteSchema } from "@/lib/validation";
 import { clientIp, requireActiveUser } from "@/server/auth/current-user";
 import { enforceRateLimit } from "@/server/rate-limit";
-import { castVote, claimCase, confess, releaseClaim, submitArgument } from "@/server/services/cases";
+import { castVote, claimCase, confess, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
 import { fileReport } from "@/server/services/moderation";
 import { CourtError } from "@/server/errors";
@@ -20,6 +20,7 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
     if (isBot(formData)) throw new CourtError("VALIDATION", "The bailiff suspects you are a robot.");
     // Validate first: rejected (invalid) submissions must not use up the rate-limit budget.
     const input = confessionSchema.parse(formObject(formData));
+    screenConfession(input); // content-filter rejections don't count against the limit either
     const ip = await clientIp();
     await enforceRateLimit(`confess:${user.id}`, 3, 600, "Slow down! The stenographer can only type so fast.");
     await enforceRateLimit(`confess-ip:${ip}`, 15, 3600);
@@ -68,6 +69,7 @@ export async function submitArgumentAction(
     // `role` is bound on the client, so never trust it without checking.
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
     const input = argumentSchema.parse(formObject(formData));
+    screenArgument(input.body);
     await enforceRateLimit(`argue:${user.id}`, 10, 600);
     const result = await submitArgument(user.id, input.caseId, role, input.body);
     target = `${casePath(result)}?filed=${role === "DEFENSE" ? "defense" : "prosecution"}`;

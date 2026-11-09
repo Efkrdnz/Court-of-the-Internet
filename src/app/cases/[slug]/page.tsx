@@ -34,7 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     where: { number },
     select: { title: true, confession: true, verdict: true, status: true, moderationState: true, guiltyVotes: true, notGuiltyVotes: true, number: true, slug: true },
   });
-  if (!c || c.moderationState !== "VISIBLE") return { title: "Sealed case", robots: { index: false } };
+  if (!c) return { title: "Page not found", robots: { index: false } };
+  if (c.moderationState === "UNDER_REVIEW") return { title: "Case under review", robots: { index: false } };
+  if (c.moderationState !== "VISIBLE") return { title: "Sealed case", robots: { index: false } };
   const verdict = c.status === "CLOSED" && c.verdict ? `Verdict: ${VERDICT_LABEL[c.verdict]} (${c.guiltyVotes}–${c.notGuiltyVotes}). ` : "";
   const description = `${verdict}“${c.confession.slice(0, 150)}${c.confession.length > 150 ? "…" : ""}”`;
   return {
@@ -84,6 +86,11 @@ export default async function CasePage({ params, searchParams }: Props) {
         <SleepingBailiff className="mx-auto w-full max-w-sm" />
         <h1 className="mt-6 font-display text-4xl font-black text-parchment">This case is under review</h1>
         <p className="mt-3 text-parchment/75">The clerks are looking into a report. Check back later.</p>
+        {user && (await db.report.count({ where: { reporterId: user.id, case: { number: detail.number } } })) > 0 ? (
+          <p role="status" className="mt-4 rounded-lg border border-[#8fe3cc]/40 bg-[#0f2a26] px-4 py-3 text-sm font-semibold text-[#c9f5e8]">
+            Thank you. Your report was received, and the case is paused while the clerks review it.
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -157,7 +164,7 @@ export default async function CasePage({ params, searchParams }: Props) {
         </div>
         <p className="mt-4 font-display text-sm font-bold uppercase tracking-[0.35em] text-burgundy">In the Court of the Internet</p>
         <p className="mt-1 font-display text-lg italic text-sepia">The People v. {c.accused.displayName.replace(/^You \(as (.*)\)$/, "$1")}</p>
-        <h1 className="mx-auto mt-3 max-w-3xl text-balance hyphens-auto font-display text-2xl font-black leading-tight text-ink min-[400px]:text-3xl sm:text-5xl">{c.title}</h1>
+        <h1 className="mx-auto mt-3 max-w-3xl text-balance font-display text-2xl font-black leading-tight text-ink min-[400px]:text-3xl sm:text-5xl">{c.title}</h1>
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-sepia">
           <CategoryIcon category={c.category} className="h-7 w-7" />
           <span className="font-bold">{cat.label}</span>

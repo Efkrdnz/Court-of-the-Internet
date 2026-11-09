@@ -8,6 +8,7 @@ import { casePath, formatCaseNumber } from "@/lib/text";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
 import { releaseClaims, sealedCaseNotice } from "./claims";
+import { pauseDeliberation, resumeDeliberation } from "./pause";
 import { getAchievement } from "@/lib/achievements";
 import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from "@/lib/cosmetics";
 
@@ -44,6 +45,7 @@ export async function fileReport(
       let autoReview = false;
       if (open >= gameConfig.autoReviewReportThreshold && c.moderationState === "VISIBLE") {
         await tx.case.update({ where: { id: c.id }, data: { moderationState: "UNDER_REVIEW" } });
+        await pauseDeliberation(tx, c.id); // voting is paused, so the deadline is too
         autoReview = true;
       }
       return { autoReview };
@@ -61,6 +63,7 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
     // A sealed case can't be argued: hand any claim back so a later restore finds it on the docket.
     await releaseClaims(tx, { caseId }, sealedCaseNotice);
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "REMOVED", removalReason: reason.slice(0, 300) } });
+    await pauseDeliberation(tx, caseId);
     await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "ACTIONED", resolvedAt: clock.now() } });
     await tx.case.update({ where: { id: caseId }, data: { openReports: 0 } });
     await notify(tx, c.accusedId, {
@@ -76,6 +79,7 @@ export async function restoreCase(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "VISIBLE", removalReason: null } });
+    await resumeDeliberation(tx, caseId);
     // Repairs cases sealed by older versions that cleared the claimer but kept a "claimed" status.
     await tx.case.updateMany({ where: { id: caseId, status: "DEFENSE_CLAIMED", claimedById: null }, data: { status: "AWAITING_DEFENSE", claimExpiresAt: null } });
     await tx.case.updateMany({ where: { id: caseId, status: "PROSECUTION_CLAIMED", claimedById: null }, data: { status: "AWAITING_PROSECUTION", claimExpiresAt: null } });
@@ -94,6 +98,7 @@ export async function dismissReports(moderatorId: string, caseId: string) {
       where: { id: caseId },
       data: { openReports: 0, ...(c.moderationState === "UNDER_REVIEW" ? { moderationState: "VISIBLE" } : {}) },
     });
+    if (c.moderationState === "UNDER_REVIEW") await resumeDeliberation(tx, caseId);
     await log(tx, moderatorId, "DISMISS_REPORTS", { caseId });
   });
 }
@@ -136,10 +141,16 @@ export async function adjournNow(moderatorId: string, caseId: string) {
   await db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     const res = await tx.case.updateMany({
-      where: { id: caseId, status: "DELIBERATION" },
+      where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE" },
       data: { deliberationEndsAt: clock.now() },
     });
-    if (res.count === 0) throw new CourtError("INVALID_STATE", "That case is not in deliberation.");
+    if (res.count === 0) {
+      const c = await tx.case.findUnique({ where: { id: caseId }, select: { status: true } });
+      throw new CourtError(
+        "INVALID_STATE",
+        c?.status === "DELIBERATION" ? "That case is sealed or under review. Restore it or dismiss the reports first." : "That case is not in deliberation.",
+      );
+    }
     await log(tx, moderatorId, "ADJOURN_NOW", { caseId });
   });
   return closeDeliberation(caseId);

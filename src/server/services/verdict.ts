@@ -47,9 +47,11 @@ export async function closeDeliberation(caseId: string): Promise<CloseOutcome> {
           prosecutorId: true,
           deliberationEndsAt: true,
           extensionsUsed: true,
+          moderationState: true,
         },
       });
-      if (!c || c.status !== "DELIBERATION" || !c.deliberationEndsAt || c.deliberationEndsAt > now) {
+      // Sealed or under-review trials are paused: no verdict, no payouts until a moderator acts.
+      if (!c || c.status !== "DELIBERATION" || c.moderationState !== "VISIBLE" || !c.deliberationEndsAt || c.deliberationEndsAt > now) {
         return { kind: "not-due" } as const;
       }
 
@@ -131,18 +133,21 @@ async function applyVerdictEffects(
   const href = casePath(c);
   const tally = `${guilty}–${notGuilty}`;
 
-  /* Accused */
-  if (verdict === "GUILTY") {
-    if (!c.anonymous) await tx.userStats.update({ where: { userId: c.accusedId }, data: { timesConvicted: { increment: 1 } } });
-    await awardXp(tx, c.accusedId, XP.convicted, "convicted", c.id);
-    if (!c.anonymous && guiltyShare >= 0.9) await grantAchievements(tx, c.accusedId, ["public-enemy"], c.id);
-  } else if (verdict === "NOT_GUILTY") {
-    if (!c.anonymous) await tx.userStats.update({ where: { userId: c.accusedId }, data: { timesAcquitted: { increment: 1 } } });
-    await awardXp(tx, c.accusedId, XP.acquitted, "acquitted", c.id);
-  } else {
-    await awardXp(tx, c.accusedId, XP.dismissed, verdict === "MISTRIAL" ? "mistrial" : "dismissed", c.id);
+  /* Accused. Anonymous defendants get the verdict notification only: XP or achievements
+     landing on their public profile at verdict time would reveal who confessed. */
+  if (!c.anonymous) {
+    if (verdict === "GUILTY") {
+      await tx.userStats.update({ where: { userId: c.accusedId }, data: { timesConvicted: { increment: 1 } } });
+      await awardXp(tx, c.accusedId, XP.convicted, "convicted", c.id);
+      if (guiltyShare >= 0.9) await grantAchievements(tx, c.accusedId, ["public-enemy"], c.id);
+    } else if (verdict === "NOT_GUILTY") {
+      await tx.userStats.update({ where: { userId: c.accusedId }, data: { timesAcquitted: { increment: 1 } } });
+      await awardXp(tx, c.accusedId, XP.acquitted, "acquitted", c.id);
+    } else {
+      await awardXp(tx, c.accusedId, XP.dismissed, verdict === "MISTRIAL" ? "mistrial" : "dismissed", c.id);
+    }
+    await checkStatAchievements(tx, c.accusedId, c.id);
   }
-  await checkStatAchievements(tx, c.accusedId, c.id);
   await notify(tx, c.accusedId, {
     type: "VERDICT",
     title: `Verdict: ${VERDICT_HEADLINE[verdict]}`,

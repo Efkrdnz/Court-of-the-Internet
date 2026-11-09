@@ -223,14 +223,18 @@ UPDATE "User" SET role = 'ADMIN' WHERE username = 'you';
 
 ## Safety
 
-This is a humorous, fictional courtroom. Submissions are screened for personal information (emails, phones, addresses), links, @handles, slurs (with leetspeak normalisation), threats and serious-crime content. Players can report cases or individual arguments, and three distinct reports hide a case pending review. Moderators can seal cases, strike arguments, ban players (which releases their claims and ends their sessions), adjourn trials and pin featured cases. Every action is audit-logged. See [`/rules`](src/app/rules/page.tsx).
+This is a humorous, fictional courtroom. Submissions are screened for personal information (emails, phones, addresses), links, @handles, slurs (with leetspeak normalisation), threats and serious-crime content. Players can report cases or individual arguments, and three distinct reports hide a case pending review. While a deliberating case is under review or sealed, its clock stops: no verdict and no payouts. It resumes with the remaining time when a moderator dismisses the reports or restores the case. Moderators can seal cases, strike arguments, ban players (which releases their claims and ends their sessions), adjourn trials and pin featured cases. Every action is audit-logged. See [`/rules`](src/app/rules/page.tsx).
 
 ## Known limitations
 
 - **Client IPs need a proxy.** IP-based limits use the right-most `X-Forwarded-For` entries (`TRUST_PROXY_HOPS`).
   - **Behind a reverse proxy** (nginx, Vercel, Fly…) clients can't spoof them. Login is limited to 8 attempts per account per client IP, so one attacker can't lock the owner out from a different IP. There is also a per-account ceiling of 100 attempts per 15 minutes across all IPs. It stops distributed brute force, but someone spraying wrong passwords from many IPs can lock the real owner out, even with the correct password, until the 15-minute window resets. That is a deliberate trade-off: letting correct passwords through would defeat the ceiling.
   - **With `next start` exposed directly**, the client controls that header, because Next doesn't expose the socket address to server actions. The per-IP limits on signup, login and confession can then be bypassed by rotating the header. The only fixed protection left is the per-account ceiling of 100 login attempts per 15 minutes, plus scrypt's cost per guess. Always deploy behind a proxy.
-- **Anonymity is per case, not perfect.** Anonymous cases never expose the confessor's name, id or profile link: not in pages, page payloads, OG images, the sitemap or leaderboards. Achievement dates on other players' profiles show only the month. But someone watching a player's public XP or level change in real time could still correlate it with a newly filed anonymous case. Hiding that would mean delaying all XP, which the game doesn't do.
+- **Anonymity costs rewards.** Anonymous cases never expose the confessor's name, id or profile link: not in pages, page payloads, OG images, the sitemap or leaderboards.
+  - Anonymous cases are also off the record. The confessor gets no XP, achievements, conviction or acquittal counts from them, at filing or at verdict. Otherwise a change on their public profile would reveal them.
+  - They still get the private verdict notification and see the case in their courtroom.
+  - Achievement dates on other players' profiles show only the month.
+  - What remains is ordinary activity: a player's attorney, prosecutor or juror XP can still change around the time they file anonymously, so a determined observer could guess from timing alone.
 - **Private courtrooms** for friend groups and **paid memberships** are designed (see `docs/MONETIZATION.md`) but not built. The Patron perks section is explicitly labelled "not on sale yet"; admins can grant cosmetics for testing.
 - **No email:** there's no password reset by email. Admins can't reset passwords from the console yet; players can change their own in Settings.
 - **Search:** archive search uses case-insensitive `ILIKE`. For very large archives, add a Postgres full-text or trigram index.

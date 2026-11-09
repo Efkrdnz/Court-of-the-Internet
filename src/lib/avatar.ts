@@ -31,13 +31,17 @@ export function parseAvatar(value: unknown): AvatarConfig {
   return parsed.success ? parsed.data : DEFAULT_AVATAR;
 }
 
+/** Starter avatars use only items every player owns (no locked goose or premium plum). */
+export const STARTER_SPECIES = SPECIES.filter((s) => s !== "goose");
+export const STARTER_BACKDROPS = BACKDROPS.filter((b) => b !== "plum");
+
 export function randomAvatar(seed: number = Math.random() * 1e9): AvatarConfig {
   const pick = <T,>(arr: readonly T[], salt: number) => arr[Math.floor(Math.abs(Math.sin(seed + salt) * 10000)) % arr.length];
   return {
-    species: pick(SPECIES, 1),
+    species: pick(STARTER_SPECIES, 1),
     headwear: pick(["none", "barrister-wig", "bowler", "beret"] as const, 2),
     accessory: pick(["none", "monocle", "bowtie", "reading-glasses"] as const, 3),
-    backdrop: pick(BACKDROPS, 4),
+    backdrop: pick(STARTER_BACKDROPS, 4),
   };
 }
 

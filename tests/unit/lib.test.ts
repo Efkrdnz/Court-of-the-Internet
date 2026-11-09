@@ -4,9 +4,10 @@ import { shareCardStatus } from "@/lib/share-card";
 import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/progression";
 import { casePath, normalizeText, parseCaseParam, slugify } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
-import { confessionSchema, signupSchema } from "@/lib/validation";
+import { confessionSchema, signupSchema, usernameSchema } from "@/lib/validation";
+import { randomAvatar } from "@/lib/avatar";
 import { decideVerdict, controversyScore } from "@/server/services/verdict";
-import { isUnlocked } from "@/lib/cosmetics";
+import { isUnlocked, LOCKED_AVATAR_ITEMS } from "@/lib/cosmetics";
 
 describe("content filter", () => {
   it.each([
@@ -176,5 +177,19 @@ describe("share card status", () => {
     expect(shareCardStatus("AWAITING_PROSECUTION", null).stamp).toBe("ON TRIAL");
     expect(shareCardStatus("DELIBERATION", null).stamp).toBe("JURY OUT");
     expect(shareCardStatus("CLOSED", "NOT_GUILTY").stamp).toBe("NOT GUILTY");
+  });
+});
+
+describe("audit 6 regressions", () => {
+  it("reserves the deleted-account username prefix", () => {
+    expect(usernameSchema.safeParse("deleted_abc12345").success).toBe(false);
+    expect(usernameSchema.safeParse("deleted").success).toBe(false);
+    expect(usernameSchema.safeParse("undeleted_fan").success).toBe(true);
+  });
+  it("never hands out a locked item as a starter avatar", () => {
+    for (let seed = 0; seed < 2000; seed++) {
+      const a = randomAvatar(seed);
+      for (const item of LOCKED_AVATAR_ITEMS) expect(a[item.kind as keyof typeof a]).not.toBe(item.value);
+    }
   });
 });

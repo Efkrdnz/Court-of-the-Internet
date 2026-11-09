@@ -71,7 +71,8 @@ export function ProfileForm({
       <legend className="field-label">{title}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((opt) => {
-          const lock = locks[`${kind}:${opt}`];
+          // An item the player already wears stays selectable, even if it's locked for them.
+          const lock = initial.avatar[kind] === opt ? null : locks[`${kind}:${opt}`];
           const on = avatar[kind] === opt;
           return (
             <label
@@ -162,8 +163,10 @@ export function ProfileForm({
       <fieldset>
         <legend className="field-label">Profile theme</legend>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {themes.map((t) => {
-            const on = theme === t.key;
+          {themes.map((theTheme) => {
+            const on = theme === theTheme.key;
+            // The theme already in use stays selectable even if it's locked for this player.
+            const t = theTheme.key === initial.profileTheme ? { ...theTheme, locked: null } : theTheme;
             return (
               <label
                 key={t.key}

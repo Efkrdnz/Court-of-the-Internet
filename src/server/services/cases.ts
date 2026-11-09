@@ -32,9 +32,19 @@ export interface ConfessionData {
   anonymous: boolean;
 }
 
-export async function confess(userId: string, input: ConfessionData) {
+/** Content-filter checks, exported so actions can run them before spending rate-limit budget. */
+export function screenConfession(input: Pick<ConfessionData, "title" | "confession" | "context">) {
   const screened = screenFields({ title: input.title, confession: input.confession, context: input.context });
   if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, screened.field);
+}
+
+export function screenArgument(body: string) {
+  const screened = screenText(body);
+  if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, "body");
+}
+
+export async function confess(userId: string, input: ConfessionData) {
+  screenConfession(input);
 
   const now = clock.now();
   const dayAgo = new Date(now.getTime() - 24 * 3_600_000);
@@ -97,8 +107,12 @@ export async function confess(userId: string, input: ConfessionData) {
         ...(input.anonymous ? {} : { casesConfessed: { increment: 1 } }),
       },
     });
-    await awardXp(tx, userId, XP.confess, "confess", created.id);
-    await checkStatAchievements(tx, userId, created.id);
+    // Anonymous confessions are off the record: no XP or achievements, because anything that
+    // changes on the public profile right after filing would identify the confessor.
+    if (!input.anonymous) {
+      await awardXp(tx, userId, XP.confess, "confess", created.id);
+      await checkStatAchievements(tx, userId, created.id);
+    }
     if (!input.anonymous && input.category === "food-crimes") {
       await grantAchievements(tx, userId, ["snack-attack"], created.id);
     }
@@ -206,6 +220,7 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
     if (stale.length) {
       await tx.caseClaim.updateMany({ where: { id: { in: stale.map((s) => s.id) } }, data: { outcome: "EXPIRED", resolvedAt: now } });
       for (const s of stale) {
+        if (s.userId === userId) continue; // re-claiming your own expired case: nothing to tell you
         await notify(tx, s.userId, {
           type: "CLAIM_EXPIRED",
           title: `Your claim on Case No. ${formatCaseNumber(c.number)} expired`,
@@ -253,8 +268,7 @@ export async function releaseClaim(userId: string, caseId: string) {
 /* ------------------------------------------------------------------ */
 
 export async function submitArgument(userId: string, caseId: string, role: ArgumentRole, body: string) {
-  const screened = screenText(body);
-  if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, "body");
+  screenArgument(body);
 
   return db.$transaction(async (tx) => {
     await assertActiveUser(tx, userId);
@@ -302,6 +316,8 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
             prosecutionFiledAt: now,
             deliberationStartsAt: now,
             deliberationEndsAt,
+            // A case under review starts its trial with the clock stopped.
+            deliberationPausedAt: c.moderationState === "UNDER_REVIEW" ? now : null,
           }
         : {
             status: "AWAITING_PROSECUTION",

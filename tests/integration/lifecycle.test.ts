@@ -4,7 +4,7 @@ import { resetClock } from "@/server/clock";
 import { castVote, claimCase, confess, releaseClaim, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { expireStaleClaims, runMaintenanceNow } from "@/server/services/maintenance";
-import { listQueue } from "@/server/queries/cases";
+import { listJuryCases, listQueue } from "@/server/queries/cases";
 import { auditStats } from "@/server/services/stats";
 import {
   DEFENSE_TEXT,
@@ -374,6 +374,22 @@ describe("confession rules", () => {
     await makeCase(accused);
   });
 
+  it("orders the jury queue by total votes, never revealing the hidden split (audit 6 #7)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const jurors = await makeUsers(3, "jq");
+    const mk = async (guilty: number, notGuilty: number) => {
+      const c = await makeCase(accused);
+      await toDeliberation(c.id, attorney, prosecutor);
+      for (let i = 0; i < guilty + notGuilty; i++) await castVote(jurors[i], c.id, i < guilty ? "GUILTY" : "NOT_GUILTY");
+      return c.number;
+    };
+    const twoGuilty = await mk(2, 0);
+    const threeAcquit = await mk(0, 3);
+    const oneAcquit = await mk(0, 1);
+    const order = (await listJuryCases(null)).cards.map((c) => c.number);
+    expect(order).toEqual([oneAcquit, twoGuilty, threeAcquit]);
+  });
+
   it("keeps anonymous confessions out of public defendant stats", async () => {
     const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
     const jurors = await makeUsers(10);
@@ -385,8 +401,16 @@ describe("confession rules", () => {
     expect(s.totalConfessions).toBe(1);
     expect(s.casesConfessed).toBe(0);
     expect(s.timesConvicted).toBe(0);
-    expect(await achievementKeys(accused)).toEqual(["opening-statement"]);
+    // Nothing public changes for an anonymous confessor, at filing or at verdict (audit 6 #6).
+    expect(await achievementKeys(accused)).toEqual([]);
+    expect(s.xp).toBe(0);
+    expect(await db.xpEvent.count({ where: { userId: accused } })).toBe(0);
+    expect(await db.notification.count({ where: { userId: accused, type: "VERDICT" } })).toBe(1); // still told privately
     expect((await auditStats(accused)).ok).toBe(true);
+    // A public confession does earn them.
+    await makeCase(accused, { anonymous: false });
+    expect(await achievementKeys(accused)).toEqual(["opening-statement"]);
+    expect((await stats(accused)).xp).toBeGreaterThan(0);
   });
 });
 

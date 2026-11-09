@@ -40,7 +40,7 @@ export function CaseFileCard({
           <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-sepia">
             {cat.label}
           </p>
-          <h3 className="hyphens-auto font-display text-xl font-bold leading-snug text-ink">
+          <h3 className="font-display text-xl font-bold leading-snug text-ink">
             {linkTitle ? (
               <Link href={href} className="after:absolute after:inset-0 after:content-[''] focus-visible:underline">
                 {c.title}

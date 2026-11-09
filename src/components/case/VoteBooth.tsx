@@ -82,7 +82,7 @@ export function VoteBooth({
             {vote ? "Your vote is sealed." : "How does the jury find the defendant?"}
           </h2>
           <p className="mt-1 text-sm text-parchment/70">
-            {total >= quorum ? `${total} votes · quorum reached` : `${total} of ${quorum} votes needed for a verdict`} · closes in{" "}
+            {total >= quorum ? `${total} votes · quorum reached` : `${total} vote${total === 1 ? "" : "s"} so far · ${quorum} needed for a verdict`} · closes in{" "}
             <Countdown to={endsAt} className="font-bold text-gold-light" expiredLabel="moments" />
           </p>
         </div>

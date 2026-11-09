@@ -5,7 +5,7 @@ import { requireUserOrRedirect } from "@/server/auth/current-user";
 import { db } from "@/server/db";
 import { grantableItems } from "@/server/services/moderation";
 import { casePath, formatCaseNumber } from "@/lib/text";
-import { relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
+import { formatDateTime, relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
 import { REPORT_REASONS } from "@/lib/validation";
 import { ModFlashProvider } from "@/components/forms/ModFlash";
 import { ModForm } from "@/components/forms/ModForm";
@@ -64,6 +64,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             anonymous: true,
             guiltyVotes: true,
             notGuiltyVotes: true,
+            deliberationPausedAt: true,
             accused: { select: { username: true } },
             arguments: { select: { role: true, body: true, stricken: true } },
           },
@@ -127,6 +128,11 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 Votes: {focusCase.guiltyVotes} guilty · {focusCase.notGuiltyVotes} not guilty · Accused: @{focusCase.accused.username}
                 {focusCase.anonymous ? " (anonymous publicly)" : ""}
               </p>
+              {focusCase.deliberationPausedAt ? (
+                <p className="mt-1 text-sm font-semibold text-gold-light">
+                  Deliberation clock paused since {formatDateTime(focusCase.deliberationPausedAt)}. It resumes with the remaining time when the case is restored or its reports are dismissed.
+                </p>
+              ) : null}
             </div>
           </div>
           <p className="rounded-lg bg-night/40 p-3 font-type text-sm text-parchment/85">{focusCase.confession}</p>
@@ -153,7 +159,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               <ModForm op="remove" label="Remove (seal) case" caseId={focusCase.id} tone="crimson" withReason reasonPlaceholder="Reason shown to the author" confirmText="Seal this case? It disappears from all public pages." />
             )}
             {focusCase.moderationState === "UNDER_REVIEW" ? <ModForm op="dismiss" label="Dismiss reports & make visible" caseId={focusCase.id} tone="teal" /> : null}
-            {focusCase.status === "DELIBERATION" ? (
+            {focusCase.status === "DELIBERATION" && focusCase.moderationState === "VISIBLE" ? (
               <ModForm op="adjourn" label={`Adjourn now (${focusCase.guiltyVotes + focusCase.notGuiltyVotes} votes; quorum rules apply)`} caseId={focusCase.id} confirmText="End deliberation now?" />
             ) : null}
             {focusCase.status === "CLOSED" && focusCase.moderationState === "VISIBLE" ? <ModForm op="feature" label="Pin as featured case of the day" caseId={focusCase.id} /> : null}

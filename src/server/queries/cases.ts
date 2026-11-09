@@ -298,17 +298,23 @@ export async function listJuryCases(viewer: { id: string; mutedCategories: strin
         }
       : {}),
   };
-  const [rows, total] = await Promise.all([
-    db.case.findMany({
-      where,
-      // Cases furthest from quorum first, then the ones ending soonest.
-      orderBy: [{ guiltyVotes: "asc" }, { notGuiltyVotes: "asc" }, { deliberationEndsAt: "asc" }],
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
-      select: caseCardSelect,
-    }),
-    db.case.count({ where }),
-  ]);
+  // Cases furthest from quorum first (by *total* votes, so the order never hints at the hidden
+  // guilty/not-guilty split), then the ones ending soonest. Only live trials are ranked, so the
+  // candidate set stays small.
+  const candidates = await db.case.findMany({
+    where,
+    select: { id: true, guiltyVotes: true, notGuiltyVotes: true, deliberationEndsAt: true, number: true },
+  });
+  candidates.sort(
+    (a, b) =>
+      a.guiltyVotes + a.notGuiltyVotes - (b.guiltyVotes + b.notGuiltyVotes) ||
+      (a.deliberationEndsAt?.getTime() ?? 0) - (b.deliberationEndsAt?.getTime() ?? 0) ||
+      a.number - b.number,
+  );
+  const pageIds = candidates.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((c) => c.id);
+  const fetched = await db.case.findMany({ where: { id: { in: pageIds } }, select: caseCardSelect });
+  const rows = pageIds.map((id) => fetched.find((r) => r.id === id)!).filter(Boolean);
+  const total = candidates.length;
   return { cards: await toCaseCards(rows, viewer), total, page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
 }
 

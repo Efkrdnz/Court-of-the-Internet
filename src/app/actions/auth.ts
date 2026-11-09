@@ -7,6 +7,7 @@ import { authenticate, registerUser } from "@/server/services/accounts";
 import { createSession, destroySession } from "@/server/auth/sessions";
 import { clearSessionCookie, clientIp, getSessionToken, setSessionCookie } from "@/server/auth/current-user";
 import { enforceRateLimit } from "@/server/rate-limit";
+import { screenText } from "@/lib/content-filter";
 import { appConfig } from "@/server/config";
 import { CourtError } from "@/server/errors";
 import { db } from "@/server/db";
@@ -23,6 +24,17 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
   try {
     if (isBot(formData)) throw new CourtError("VALIDATION", "The bailiff suspects you are a robot.");
     const input = signupSchema.parse(formObject(formData));
+    // Same content rules as Settings, checked (like a taken username) before spending the signup budget.
+    for (const [field, value] of [
+      ["username", input.username],
+      ["displayName", input.displayName],
+    ] as const) {
+      const screened = screenText(value, { allowSpamCheck: false });
+      if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, field);
+    }
+    if (await db.user.findUnique({ where: { username: input.username }, select: { id: true } })) {
+      throw new CourtError("CONFLICT", "That username is already taken.", "username");
+    }
     const ip = await clientIp();
     await enforceRateLimit(`signup:${ip}`, 6, 3600, "Too many new identities from here. Try again later.");
     next = safeNext(formData.get("next"));

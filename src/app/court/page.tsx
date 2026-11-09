@@ -25,6 +25,8 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
   await runMaintenance();
   const sp = await searchParams;
   const [d, summary] = await Promise.all([getDashboard(user), getViewerSummary(user.id)]);
+  // Banned players can browse but not play, so don't invite them to vote or claim.
+  if (user.bannedAt) d.recommended = { jury: [], defense: [], prosecution: [] };
 
   const quests = [
     { label: "Serve on 3 juries", done: Math.min(d.today.votes, 3), goal: 3, href: "/jury" },
@@ -219,7 +221,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                 const complete = q.done >= q.goal;
                 return (
                   <li key={q.label}>
-                    <Link href={q.href} className="group block">
+                    <Link href={q.href} className="group block min-h-9 py-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className={clsx("font-bold", complete && "line-through decoration-burgundy/60")}>{q.label}</span>
                         <span className="font-type">

@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **66/66 Playwright** and **74/74 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **66/66 Playwright** and **79/79 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **66/66 Playwright** and **74/74 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 74 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 79 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -195,6 +195,32 @@ Not changed: after a third report puts a case under review, the reporter sees th
 | 8 | "1 juries"; "7 unread" next to a cleared bell; featured case said "this week's"; truncated leaderboard rows at 320px; 34px avatar chips; Prisma error for `/u/%00` | plural fix; "7 new since your last visit"; honest featured-case copy; rows wrap on phones; `min-h-9` chips; usernames validated before querying | visual / status checks (`/u/%00` → 404 with an empty error log) |
 
 Not changed: seeded cases dismissed under the seed's quorum of 10 show e.g. "DISMISSED 3–1" when the server runs with `COURT_QUORUM=3`. That is historical data, not a bug. The view counter does de-duplicate per viewer; the displayed number trails by one view because the page reads it before recording the visit.
+
+## Sixth independent audit (fresh agent, build of commit 32abf40)
+
+**Result: 15 PASS (one with a footnote), 2 CONCERN (10 forms, 17 docs), 0 FAIL.** It also confirmed the fifth round's fixes:
+- seal/restore works at the awaiting and claimed stages, and the claimer is notified
+- ban and account deletion release claims
+- moderators can't ban admins
+- the claim grace period holds under 6-way races
+- statistics match its SQL for 6 players
+
+Its findings, all fixed:
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | A sealed deliberation still reached a verdict (by deadline or "Adjourn now") and paid out XP and reputation | the deliberation clock **pauses** while a case is sealed or under review (new `deliberationPausedAt` column, migration `20261109040000_pause_deliberation`) and resumes with the remaining time on restore or dismissal. `closeDeliberation`, the sweep and adjourn all require a visible case. The console hides Adjourn and shows the paused state | integration `pauses a trial while it is under review or sealed…` |
+| 2 | A case under review got a verdict while voting was paused (3 throwaway accounts could freeze any jury) | same pause; a prosecution filed while under review starts paused | same test |
+| 3 | Content-filter rejections used up the confession and argument rate limits | `screenConfession` / `screenArgument` run in the actions before the limiter | e2e `§12 forms: invalid submissions…` now adds 4 filter rejections before a valid filing |
+| 4 | Random starter avatars could be the locked goose, and those players couldn't save their profile | starter avatars use only free items; an item (or theme) already worn can always be kept | unit (2000 seeds, no locked item) + integration (keep goose, can't switch to crown) |
+| 5 | The signup display name skipped the content filter | signup screens username and display name (and checks "taken") before using the signup budget | validation path shared with Settings |
+| 6 | "Opening Statement" and XP on the public profile revealed anonymous confessions | anonymous cases are off the record: no XP, achievements or conviction counts for the confessor (they still get the private verdict notice). The form and README say so | integration `keeps anonymous confessions out of public defendant stats` (updated) |
+| 7 | The jury queue sorted by guilty votes, so its order leaked the hidden split | sorted by total votes, then deadline | integration `orders the jury queue by total votes…` (fails on the old order) |
+| 8 | The third reporter's thank-you vanished when the case went under review | the under-review page confirms a viewer's own report | visual |
+| 9 | Re-claiming your own expired case sent "another player picked it up" | no self-notification | covered by the claim tests |
+| 10 | `deleted_*` usernames could be registered (collision with deletion tombstones) | reserved | unit |
+| 11 | Unknown case tab title "Sealed case"; under-review title wrong | "Page not found" / "Case under review" | status check |
+| 12 | Banned users' dashboard invited them to vote; mid-word hyphenation at desktop; ambiguous "2 of 3 votes needed"; small links | no play suggestions when banned; hyphenation removed; "2 votes so far · 3 needed for a verdict"; 36px targets | visual |
 
 ## Per-phase evidence
 

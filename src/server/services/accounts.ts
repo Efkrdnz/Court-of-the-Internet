@@ -4,7 +4,7 @@ import { db } from "../db";
 import { CourtError, isUniqueViolation } from "../errors";
 import { burnPasswordCheck, hashPassword, verifyPassword } from "../auth/password";
 import { destroyAllSessions } from "../auth/sessions";
-import { randomAvatar, type AvatarConfig } from "@/lib/avatar";
+import { parseAvatar, randomAvatar, type AvatarConfig } from "@/lib/avatar";
 import {
   PROFILE_THEMES,
   avatarItemKey,
@@ -91,15 +91,18 @@ export async function updateProfile(
   input: { displayName: string; bio: string; avatar: AvatarConfig; profileTheme: string; featuredBadge: string | null },
 ) {
   const ctx = await getUnlockContext(userId);
+  const current = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { avatar: true, profileTheme: true } });
+  const wearing = parseAvatar(current.avatar);
   const theme = PROFILE_THEMES.find((t) => t.key === input.profileTheme);
   if (!theme) throw new CourtError("VALIDATION", "Unknown profile theme.", "profileTheme");
-  if (!isUnlocked(theme.unlock, ctx, themeItemKey(theme.key))) {
+  if (theme.key !== current.profileTheme && !isUnlocked(theme.unlock, ctx, themeItemKey(theme.key))) {
     throw new CourtError("FORBIDDEN", `The “${theme.label}” theme is still locked.`, "profileTheme");
   }
   for (const kind of ["species", "headwear", "accessory", "backdrop"] as const) {
     const value = input.avatar[kind];
     const rule = avatarItemRule(kind, value);
-    if (!isUnlocked(rule, ctx, avatarItemKey({ kind, value }))) {
+    // Something already worn can be kept (e.g. granted by an admin, or an older starter avatar).
+    if (value !== wearing[kind] && !isUnlocked(rule, ctx, avatarItemKey({ kind, value }))) {
       throw new CourtError("FORBIDDEN", `That ${kind} is still locked. Keep playing to earn it!`, "avatar");
     }
   }

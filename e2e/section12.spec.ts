@@ -341,6 +341,14 @@ test("§12 forms: invalid submissions don't use up the rate limit (audit defect 
     await expect(page.getByText("You must accept the community rules.")).toBeVisible();
   }
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).check();
+  // Four content-filter rejections (personal info) don't use it up either (audit 6 #3).
+  const story = await page.getByLabel("The confession").inputValue();
+  for (let i = 0; i < 4; i++) {
+    await page.getByLabel("The confession").fill(`${story} Email me at hammy${i}@example.com`);
+    await page.getByRole("button", { name: /^Submit my confession/ }).click();
+    await expect(page.getByText(/personal information|email/i).first()).toBeVisible();
+  }
+  await page.getByLabel("The confession").fill(story);
   await page.getByRole("button", { name: /^Submit my confession/ }).click();
   await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
 });

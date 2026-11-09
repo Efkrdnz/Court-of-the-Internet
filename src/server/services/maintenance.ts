@@ -48,7 +48,7 @@ export async function expireStaleClaims(limit = 100): Promise<number> {
 export async function closeDueDeliberations(limit = 50) {
   const now = clock.now();
   const due = await db.case.findMany({
-    where: { status: "DELIBERATION", deliberationEndsAt: { lte: now } },
+    where: { status: "DELIBERATION", moderationState: "VISIBLE", deliberationEndsAt: { lte: now } },
     select: { id: true },
     orderBy: { deliberationEndsAt: "asc" },
     take: limit,

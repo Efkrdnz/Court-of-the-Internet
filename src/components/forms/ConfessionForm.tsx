@@ -63,7 +63,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
                   <input type="radio" name="category" value={c.key} checked={on} onChange={() => setCategory(c.key)} className="sr-only" />
                   <CategoryIcon category={c.key} className={clsx("h-10 w-10 shrink-0 transition-transform", on ? "scale-110 rotate-[-6deg]" : "group-hover:rotate-[-6deg]")} />
                   <span className="min-w-0">
-                    <span className="block hyphens-auto text-sm font-bold leading-tight text-parchment">{c.label}</span>
+                    <span className="block text-sm font-bold leading-tight text-parchment">{c.label}</span>
                     <span className="block font-type text-[11px] text-parchment/50">{c.statute}</span>
                   </span>
                 </label>
@@ -150,7 +150,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
               <span className="block font-bold text-parchment">Confess anonymously</span>
               <span className="block text-sm text-parchment/65">
                 Your name is replaced by a random alias like “{previewAlias}”. The case won&apos;t appear on your public profile, but you can still follow it from your
-                courtroom.
+                courtroom. Anonymous cases are off the record: they earn you no XP or achievements, because those would give you away.
               </span>
             </span>
           </label>

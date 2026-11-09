@@ -2,6 +2,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { resetClock } from "@/server/clock";
 import { castVote, claimCase, submitArgument } from "@/server/services/cases";
+import { closeDeliberation } from "@/server/services/verdict";
+import { runMaintenanceNow } from "@/server/services/maintenance";
 import { toggleReaction } from "@/server/services/reactions";
 import { bumpViewCount } from "@/server/queries/cases";
 import {
@@ -18,7 +20,7 @@ import { hitRateLimit } from "@/server/rate-limit";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
-import { DEFENSE_TEXT, advance, achievementKeys, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
+import { DEFENSE_TEXT, advance, achievementKeys, hours, stats, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
 
 beforeEach(async () => {
   await resetDb();
@@ -162,6 +164,63 @@ describe("moderation", () => {
     await db.case.update({ where: { id: legacy.id }, data: { status: "DEFENSE_CLAIMED", claimedById: null, claimExpiresAt: null } });
     await claimCase(holder, legacy.id, "DEFENSE");
     expect((await db.case.findUniqueOrThrow({ where: { id: legacy.id } })).claimedById).toBe(holder);
+  });
+
+  it("pauses a trial while it is under review or sealed, then resumes with the time left (audit 6 #1, #2)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("pause_admin", "ADMIN");
+    const jurors = await makeUsers(10, "pz");
+    const reporters = await makeUsers(3, "pzr");
+
+    // Under review mid-deliberation: the deadline passes but no verdict is reached.
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await voteAll(c.id, jurors, 8);
+    advance(hours(20)); // 4h left
+    for (const r of reporters) await fileReport(r, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("UNDER_REVIEW");
+    advance(hours(30));
+    await runMaintenanceNow();
+    expect(await closeDeliberation(c.id)).toEqual({ kind: "not-due" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("DELIBERATION");
+    expect((await stats(prosecutor)).prosecutionWins).toBe(0);
+    await expect(adjournNow(admin, c.id)).rejects.toMatchObject({ code: "INVALID_STATE" });
+
+    await dismissReports(admin, c.id);
+    let row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.deliberationPausedAt).toBeNull();
+    advance(hours(3)); // 1h still left
+    expect(await closeDeliberation(c.id)).toEqual({ kind: "not-due" });
+    advance(hours(1) + 1);
+    expect(await closeDeliberation(c.id)).toMatchObject({ kind: "closed", verdict: "GUILTY" });
+
+    // Sealed mid-deliberation: no payouts, no notifications, even long past the deadline.
+    const d = await makeCase(accused);
+    await toDeliberation(d.id, attorney, prosecutor);
+    await voteAll(d.id, jurors, 2);
+    const before = await stats(attorney);
+    await removeCase(admin, d.id, "Checking");
+    advance(hours(48));
+    await runMaintenanceNow();
+    row = await db.case.findUniqueOrThrow({ where: { id: d.id } });
+    expect(row.status).toBe("DELIBERATION");
+    expect((await stats(attorney)).reputation).toBe(before.reputation);
+    expect(await db.notification.count({ where: { userId: attorney, type: "VERDICT", href: { contains: String(d.number) } } })).toBe(0);
+    await restoreCase(admin, d.id);
+    expect(await closeDeliberation(d.id)).toEqual({ kind: "not-due" }); // full 24h remain
+    advance(hours(24) + 1);
+    expect(await closeDeliberation(d.id)).toMatchObject({ kind: "closed", verdict: "NOT_GUILTY" });
+  });
+
+  it("lets a player keep a locked item they already wear when saving their profile (audit 6 #4)", async () => {
+    const player = await makeUser();
+    const goose = { ...DEFAULT_AVATAR, species: "goose" as const };
+    await db.user.update({ where: { id: player }, data: { avatar: goose } });
+    await updateProfile(player, { displayName: "Goose Owner", bio: "Honk.", avatar: goose, profileTheme: "mahogany", featuredBadge: null });
+    // …but can't switch *to* a locked item.
+    await expect(
+      updateProfile(player, { displayName: "Goose Owner", bio: "", avatar: { ...goose, headwear: "crown" }, profileTheme: "mahogany", featuredBadge: null }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {
