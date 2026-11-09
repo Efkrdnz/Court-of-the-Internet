@@ -43,7 +43,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const longestStampWord = Math.max(0, ...stamp.text.split(" ").map((w) => w.length));
   const accused = visible ? (c.anonymous ? anonymousAlias(c.aliasSeed).name : c.accused.displayName) : "";
   const art = await ogArt(visible && c.category === "food-crimes" ? "pizza" : closed ? "judge-stern" : "judge-shocked");
-  const confession = visible ? (c.confession.length > 210 ? `${c.confession.slice(0, 207)}…` : c.confession) : "";
+  // A long (two- or three-line) title leaves less room: shorten the quote so it never reaches the footer.
+  const quoteMax = c.title.length > 60 ? 110 : c.title.length > 40 ? 160 : 210;
+  const confession = visible ? (c.confession.length > quoteMax ? `${c.confession.slice(0, quoteMax - 3).trimEnd()}…` : c.confession) : "";
 
   return new ImageResponse(
     (

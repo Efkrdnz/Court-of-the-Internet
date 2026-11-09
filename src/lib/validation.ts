@@ -64,11 +64,12 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
   })
   // "Sweaty Walrus #D89B" is what anonymous confessors are called; nobody may pose as one.
   // (Checked on the NFKC form, so a full-width ＃ or trailing punctuation doesn't slip past.)
-  .refine((s) => !/#\s*[0-9a-f]{3,6}\b/i.test(s.normalize("NFKC")), {
+  // Any hash-like symbol (#, ＃, ♯, ⋕, ﹟…) or other symbol before a hex tag counts.
+  .refine((s) => !/[#\uFF03\u266F\u22D5\uFE5F]\s*[0-9a-f]{3,6}\b|[^\p{L}\p{N}\s]\s*[0-9a-f]{4}\s*[^\p{L}\p{N}]*$/iu.test(s.normalize("NFKC")), {
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
   })
   // The court's own titles for staff.
-  .refine((s) => !/^\s*(?:presiding\s+judge|court\s+clerk|the\s+court|the\s+clerks?|moderator|administrator|admin)\s*[.!]*\s*$/i.test(s.normalize("NFKC")), {
+  .refine((s) => !/^\s*(?:presiding\s+judge|court\s+clerk|the\s+court|the\s+clerks?|moderator|mod|administrator|admin)\b/i.test(s.normalize("NFKC")), {
     message: "That's an official title of the court. Pick your own name.",
   });
 
@@ -104,8 +105,9 @@ export const signupSchema = z
   });
 
 export const loginSchema = z.object({
-  username: z.string().trim().toLowerCase().min(1, "Enter your username."),
-  password: z.string().min(1, "Enter your password."),
+  // Bounded like real usernames/passwords: also keeps rate-limit keys small.
+  username: z.string().trim().toLowerCase().min(1, "Enter your username.").max(40, "Unknown username or wrong password."),
+  password: z.string().min(1, "Enter your password.").max(200, "Unknown username or wrong password."),
 });
 
 export const profileSchema = z.object({

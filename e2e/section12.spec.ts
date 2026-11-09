@@ -623,3 +623,30 @@ test("§12 layout: maximum-length display names never widen key pages (audit 22 
     await prisma.$transaction(users.map((u) => prisma.user.update({ where: { id: u.id }, data: { displayName: u.displayName } })));
   }
 });
+
+test("§12 mobile: a long-word title in the 'you're on' banner doesn't widen the queue (audit 24 #1)", async ({ browser }) => {
+  const whiskers = await prisma.user.findUniqueOrThrow({ where: { username: "juror_whiskers" }, select: { id: true } });
+  const c = await prisma.case.findFirstOrThrow({
+    where: { status: "AWAITING_DEFENSE", moderationState: "VISIBLE", accusedId: { not: whiskers.id } },
+    select: { id: true, title: true },
+  });
+  const held = await prisma.case.count({ where: { claimedById: whiskers.id } });
+  test.skip(held > 0, "juror_whiskers already holds a claim in this run");
+  await prisma.case.update({
+    where: { id: c.id },
+    data: { title: "Mwahahawwmmwmwmawmwmhamwmwmhawmwm Wombmwomwmwombmwamwombmwmhwmwmm dates", status: "DEFENSE_CLAIMED", claimedById: whiskers.id, claimExpiresAt: new Date(Date.now() + 20 * 60_000) },
+  });
+  try {
+    const context = await browser.newContext({ viewport: { width: 320, height: 740 }, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    await page.goto("/login");
+    await page.locator(`form:has(input[name="username"][value="juror_whiskers"]) button`).tap();
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+    await page.goto("/defend");
+    await expect(page.getByText(/You're on/)).toBeVisible();
+    await expectNoHorizontalScroll(page);
+    await context.close();
+  } finally {
+    await prisma.case.update({ where: { id: c.id }, data: { title: c.title, status: "AWAITING_DEFENSE", claimedById: null, claimExpiresAt: null } });
+  }
+});

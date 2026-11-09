@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **71/71 Playwright** and **213/213 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **72/72 Playwright** and **221/221 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **71/71 Playwright** and **213/213 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 213 Vitest + 71 Playwright tests (46 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 221 Vitest + 72 Playwright tests (47 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -611,6 +611,28 @@ Unchanged:
 - sealed pages return 200 with `noindex`
 - `X-Forwarded-For` can be spoofed without a proxy (documented)
 - 35-character words break at 320px (expected)
+
+## Twenty-fourth independent audit (fresh agent, build of commit 465f011)
+
+**Result: 14 PASS, 3 CONCERN (13, 14, 16), 0 FAIL.**
+
+It confirmed the twenty-third round:
+- successful logins don't count toward limits
+- 21-way claim races and expiry races held
+- its SQL recount matched all 50 users after every race
+- 119 concurrent reaction toggles left exact counts
+- the pause and deadline maths held under seal/restore/dismiss/report/adjourn races
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | The "You're on …" claim banner overflowed phones with a long-word title (by up to 154px) | the banner text is `min-w-0` with a flex basis and breaks long words | e2e `a long-word title in the 'you're on' banner doesn't widen the queue` |
+| 2 | Alias impersonation with look-alike hash signs (♯, ⋕); "Mod" and "Presiding Judge Owl" accepted | any hash-like symbol (or any symbol before a 4-hex tag at the end) is refused; staff titles are refused as name prefixes | unit (4 rejected; "Agent 47", "Modest Mouse", "Room 101" accepted) |
+| 3 | The moderation console's title overflowed phones with a long-word title | same `min-w-0` / `break-words` treatment | — |
+| 4 | Share image: a maximum-length title pushed the quote over the footer | the quote is shortened for long titles | 90-character title rendered and checked |
+| 5 | A 6,000-character login username broke the rate-limit key index (DB error) | login inputs are length-bounded (40/200) | — |
+| 6 | Pages are heavy (inline SVG art) | documented in README with the remedy (sprite sheet / static SVGs) | — |
+
+Environment note from the audit: the checkout's untracked `.env` enables demo login. That file is local only (git-ignored); `.env.example` leaves the flag off, and production defaults to off.
 
 ## Per-phase evidence
 

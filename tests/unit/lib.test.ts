@@ -502,3 +502,13 @@ describe("alias and title impersonation (audit 23 #1)", () => {
     expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
   });
 });
+
+describe("alias look-alikes and titles (audit 24 #2)", () => {
+  const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+  it.each(["Shifty Pigeon ♯06EF", "Shifty Pigeon ⋕06EF", "Mod", "Presiding Judge Owl"])("rejects %j", (displayName) => {
+    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(false);
+  });
+  it.each(["Agent 47", "Modest Mouse", "Room 101", "Judge Mental"])("accepts %j", (displayName) => {
+    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
+  });
+});

@@ -119,7 +119,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
       {focusCase ? (
         <section aria-labelledby="focus-case" className="velvet mt-6 space-y-4 p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0 flex-[1_1_14rem] break-words">
               <p className="eyebrow">
                 Case No. {formatCaseNumber(focusCase.number)} · {STATUS_LABEL[focusCase.status]}
                 {focusCase.verdict ? ` · ${VERDICT_LABEL[focusCase.verdict]}` : ""} · {focusCase.moderationState}
