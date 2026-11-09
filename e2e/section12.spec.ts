@@ -657,7 +657,7 @@ test("§12 a filing rejected for an expired claim keeps the draft on the device 
   test.skip(held > 0, "juror_whiskers already holds a claim in this run");
   const c = await prisma.case.findFirstOrThrow({
     where: { status: "AWAITING_DEFENSE", moderationState: "VISIBLE", accusedId: { not: whiskers.id }, arguments: { none: {} } },
-    select: { id: true, number: true, slug: true },
+    select: { id: true },
   });
   await prisma.case.update({ where: { id: c.id }, data: { status: "DEFENSE_CLAIMED", claimedById: whiskers.id, claimExpiresAt: new Date(Date.now() + 20 * 60_000) } });
   const context = await browser.newContext();
@@ -666,7 +666,7 @@ test("§12 a filing rejected for an expired claim keeps the draft on the device 
     await page.goto("/login");
     await page.locator(`form:has(input[name="username"][value="juror_whiskers"]) button`).click();
     await page.waitForURL((u) => !u.pathname.startsWith("/login"));
-    await page.goto(`/cases/${c.number}-${c.slug}`);
+    await page.goto(`/defend/${c.id}`);
     const draft = "Members of the jury, my client only borrowed the stapler for a very long, very sincere time of reflection.";
     await page.locator('textarea[name="body"]').fill(draft);
     // The claim (and its grace period) runs out while they're still writing.
@@ -676,8 +676,8 @@ test("§12 a filing rejected for an expired claim keeps the draft on the device 
     const key = `coti-draft-DEFENSE-${c.id}`;
     expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBe(draft);
   } finally {
-    await context.close();
     await prisma.case.update({ where: { id: c.id }, data: { status: "AWAITING_DEFENSE", claimedById: null, claimExpiresAt: null } });
+    await context.close().catch(() => {});
   }
 });
 
