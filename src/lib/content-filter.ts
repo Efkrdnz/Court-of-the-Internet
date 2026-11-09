@@ -3,6 +3,7 @@
  * it blocks things that are clearly against the rules (personal info, slurs, threats,
  * serious-crime content, spam) and leaves judgement calls to reports + moderators.
  */
+import { skeleton } from "./confusables";
 
 export type FilterIssue =
   | "personal-info"
@@ -115,8 +116,11 @@ function looksLikeSpam(text: string): boolean {
   return false;
 }
 
-export function screenText(text: string, { allowSpamCheck = true }: { allowSpamCheck?: boolean } = {}): FilterResult {
+export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCheck?: boolean } = {}): FilterResult {
   const fail = (issue: FilterIssue): FilterResult => ({ ok: false, issue, message: MESSAGES[issue] });
+  // Screen what a reader *sees*: full-width digits folded to ASCII, invisible characters dropped,
+  // Cyrillic/Greek look-alikes folded to Latin. The spam heuristics still use the raw text.
+  const text = skeleton(raw);
 
   if (EMAIL.test(text) || SSN.test(text) || STREET.test(text)) return fail("personal-info");
   if (PHONE.test(text)) return fail("personal-info");
@@ -132,7 +136,7 @@ export function screenText(text: string, { allowSpamCheck = true }: { allowSpamC
   }
   if (VIOLENCE.some((re) => re.test(text))) return fail("violence");
   if (SERIOUS.some((re) => re.test(text))) return fail("serious-crime");
-  if (allowSpamCheck && looksLikeSpam(text)) return fail("spam");
+  if (allowSpamCheck && looksLikeSpam(raw)) return fail("spam");
   return { ok: true };
 }
 

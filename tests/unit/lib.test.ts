@@ -231,3 +231,21 @@ describe("display names (audit 11 #3)", () => {
     expect(signupSchema.safeParse({ ...base, displayName: "Judge Mental" }).success).toBe(true);
   });
 });
+
+describe("filter evasion with invisible or look-alike characters (audit 12 D1)", () => {
+  it.each([
+    ["email me at petty.thief­@gmail­.com", "personal-info"],
+    ["call 555­123­4567 for fries", "personal-info"],
+    ["call ５５５１２３４５６７ for fries", "personal-info"],
+    ["you absolute fag­got", "hate"],
+    ["you absolute fаggot", "hate"], // Cyrillic а
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it("strips invisible characters before storage", () => {
+    expect(normalizeText("soft­hyphen and zero​width")).toBe("softhyphen and zerowidth");
+  });
+  it("still accepts ordinary non-Latin text", () => {
+    expect(screenText("Я съел пиццу соседа по комнате и свалил всё на кота.").ok).toBe(true);
+  });
+});

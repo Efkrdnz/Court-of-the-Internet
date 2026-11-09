@@ -1,3 +1,4 @@
+import { cleanQuery, pageParam } from "@/lib/text";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -37,11 +38,11 @@ export default async function ArchivesPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const user = await getCurrentUser();
   const viewer = user ? { id: user.id, mutedCategories: user.mutedCategories } : null;
-  const q = sp.q?.slice(0, 80) ?? "";
+  const q = cleanQuery(sp.q);
   const category = sp.category && isCategoryKey(sp.category) ? sp.category : undefined;
   const verdict = VERDICTS.find((v) => v.key === sp.verdict)?.key;
   const sort = SORTS.find((s) => s.key === sp.sort)?.key ?? "recent";
-  const page = Math.min(100_000, Math.max(1, Math.floor(Number(sp.page)) || 1));
+  const page = pageParam(sp.page);
   const [archive, featured] = await Promise.all([listArchive({ q, category, verdict, sort, page, viewer }), page === 1 && !q ? getFeaturedCase(viewer) : null]);
   const vc = archive.verdictCounts;
   const decided = vc.GUILTY + vc.NOT_GUILTY + vc.MISTRIAL + vc.DISMISSED;

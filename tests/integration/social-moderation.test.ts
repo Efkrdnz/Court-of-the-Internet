@@ -328,6 +328,17 @@ describe("moderation", () => {
     expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).openReports).toBe(1); // only the CASE report is still open
   });
 
+  it("simultaneous reports keep an exact reporter count (audit 12 D4)", async () => {
+    const accused = await makeUser();
+    const reporters = await makeUsers(5, "simrep");
+    advance(hours(25));
+    const c = await makeCase(accused);
+    await Promise.all(reporters.map((r) => fileReport(r, { caseId: c.id, target: "CASE", reason: "SPAM" })));
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.openReports).toBe(5);
+    expect(row.moderationState).toBe("UNDER_REVIEW");
+  });
+
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {
     const [accused, quitter, next] = [await makeUser(), await makeUser(), await makeUser()];
     const c = await makeCase(accused);

@@ -1,3 +1,5 @@
+import { INVISIBLE } from "./confusables";
+
 /**
  * Normalises user-submitted text before validation and storage.
  * React escapes on output, so this is about hygiene, not HTML sanitisation:
@@ -5,8 +7,8 @@
  */
 export function normalizeText(input: string, { multiline = true }: { multiline?: boolean } = {}): string {
   let s = input.normalize("NFC");
-  // Zero-width and bidi control characters (used for spoofing / filter evasion).
-  s = s.replace(/[​-‏‪-‮⁠-⁤﻿]/g, "");
+  // Invisible characters: zero-width, bidi controls, soft hyphens, fillers (spoofing / filter evasion).
+  s = s.replace(INVISIBLE, "");
   // ASCII control chars except tab/newline.
   s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
   s = s.replace(/\r\n?/g, "\n").replace(/\t/g, " ");
@@ -56,4 +58,16 @@ export function parseCaseParam(param: string): number | null {
 
 export function pluralize(n: number, one: string, many = `${one}s`): string {
   return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
+}
+
+/** Search/lookup text from a URL: control characters (NUL breaks Postgres) and invisibles removed, trimmed, capped. */
+export function cleanQuery(value: unknown, max = 80): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/[\u0000-\u001f\u007f]/g, "").replace(INVISIBLE, "").trim().slice(0, max);
+}
+
+/** A 1-based page number from a URL, clamped so it can't overflow a query's OFFSET. */
+export function pageParam(value: unknown, max = 10_000): number {
+  const n = Math.floor(Number(value));
+  return Number.isFinite(n) && n >= 1 ? Math.min(n, max) : 1;
 }

@@ -12,7 +12,7 @@ import { screenText } from "@/lib/content-filter";
 import { appConfig } from "@/server/config";
 import { CourtError } from "@/server/errors";
 import { db } from "@/server/db";
-import { DEMO_PASSWORD } from "@/lib/demo";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo";
 import { formObject, isBot, toFailure, type ActionResult } from "./_util";
 
 
@@ -75,6 +75,8 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
 export async function demoLoginAction(formData: FormData): Promise<void> {
   if (!appConfig.demoLoginEnabled) redirect("/login");
   const username = String(formData.get("username") ?? "");
+  // Only the advertised demo accounts, not every seeded player that shares the demo password.
+  if (!DEMO_ACCOUNTS.some((a) => a.username === username)) redirect("/login?demo=missing");
   const user = await db.user.findUnique({ where: { username }, select: { id: true, deletedAt: true } });
   if (!user || user.deletedAt) redirect("/login?demo=missing");
   // Demo accounts all share the published demo password; verify it like a normal login.

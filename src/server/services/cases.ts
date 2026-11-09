@@ -43,47 +43,61 @@ export function screenArgument(body: string) {
   if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, "body");
 }
 
+/**
+ * Daily cap and duplicate checks. Runs inside the confession transaction (under the per-user
+ * lock) and, read-only, in the action before the rate limiter, so a rejected duplicate doesn't
+ * use up the player's confession budget.
+ */
+async function checkConfessionAllowed(client: Tx | typeof db, userId: string, input: Pick<ConfessionData, "title" | "confession">) {
+  const now = clock.now();
+  const dayAgo = new Date(now.getTime() - 24 * 3_600_000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 3_600_000);
+  const recentCount = await client.case.count({ where: { accusedId: userId, createdAt: { gte: dayAgo } } });
+  if (recentCount >= gameConfig.maxConfessionsPerDay) {
+    throw new CourtError(
+      "RATE_LIMITED",
+      `The court accepts at most ${gameConfig.maxConfessionsPerDay} confessions per day. Come back tomorrow, menace.`,
+    );
+  }
+
+  const recent = await client.case.findMany({
+    where: { accusedId: userId, createdAt: { gte: monthAgo } },
+    select: { title: true, confession: true },
+    take: 50,
+    orderBy: { createdAt: "desc" },
+  });
+  for (const r of recent) {
+    if (r.title.toLowerCase() === input.title.toLowerCase() || similarity(r.confession, input.confession) > 0.75) {
+      throw new CourtError("CONFLICT", "You've already confessed to this crime recently. Double jeopardy!", "confession");
+    }
+  }
+  const globalDupe = await client.case.findFirst({
+    where: {
+      confession: { equals: input.confession, mode: "insensitive" },
+      createdAt: { gte: new Date(now.getTime() - 7 * 24 * 3_600_000) },
+    },
+    select: { id: true },
+  });
+  if (globalDupe) {
+    throw new CourtError("CONFLICT", "That exact confession is already on the docket. Copy-paste crimes are inadmissible.", "confession");
+  }
+}
+
+export async function precheckConfession(userId: string, input: Pick<ConfessionData, "title" | "confession">) {
+  await checkConfessionAllowed(db, userId, input);
+}
+
 export async function confess(userId: string, input: ConfessionData) {
   screenConfession(input);
 
   const now = clock.now();
-  const dayAgo = new Date(now.getTime() - 24 * 3_600_000);
-  const monthAgo = new Date(now.getTime() - 30 * 24 * 3_600_000);
 
   return db.$transaction(async (tx) => {
     await assertActiveUser(tx, userId);
     // Serialise confessions per user so the daily cap can't be raced.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"confess:" + userId}))`;
 
-    const recentCount = await tx.case.count({ where: { accusedId: userId, createdAt: { gte: dayAgo } } });
-    if (recentCount >= gameConfig.maxConfessionsPerDay) {
-      throw new CourtError(
-        "RATE_LIMITED",
-        `The court accepts at most ${gameConfig.maxConfessionsPerDay} confessions per day. Come back tomorrow, menace.`,
-      );
-    }
-
-    const recent = await tx.case.findMany({
-      where: { accusedId: userId, createdAt: { gte: monthAgo } },
-      select: { title: true, confession: true },
-      take: 50,
-      orderBy: { createdAt: "desc" },
-    });
-    for (const r of recent) {
-      if (r.title.toLowerCase() === input.title.toLowerCase() || similarity(r.confession, input.confession) > 0.75) {
-        throw new CourtError("CONFLICT", "You've already confessed to this crime recently. Double jeopardy!", "confession");
-      }
-    }
-    const globalDupe = await tx.case.findFirst({
-      where: {
-        confession: { equals: input.confession, mode: "insensitive" },
-        createdAt: { gte: new Date(now.getTime() - 7 * 24 * 3_600_000) },
-      },
-      select: { id: true },
-    });
-    if (globalDupe) {
-      throw new CourtError("CONFLICT", "That exact confession is already on the docket. Copy-paste crimes are inadmissible.", "confession");
-    }
+    await checkConfessionAllowed(tx, userId, input);
 
     const created = await tx.case.create({
       data: {

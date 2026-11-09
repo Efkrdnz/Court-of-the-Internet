@@ -1,4 +1,5 @@
 import "server-only";
+import { pruneRateLimits } from "../rate-limit";
 import type { ArgumentRole } from "@prisma/client";
 import { db } from "../db";
 import { clock } from "../clock";
@@ -68,7 +69,7 @@ export async function runMaintenanceNow() {
   return { expired, closed, extended };
 }
 
-const globalForMaintenance = globalThis as unknown as { lastMaintenance?: number; maintenanceRunning?: Promise<unknown> };
+const globalForMaintenance = globalThis as unknown as { lastMaintenance?: number; lastPrune?: number; maintenanceRunning?: Promise<unknown> };
 
 /**
  * Throttled maintenance for page loads: at most every 20 seconds per process.
@@ -79,7 +80,11 @@ export async function runMaintenance() {
   if (globalForMaintenance.maintenanceRunning) return;
   if (globalForMaintenance.lastMaintenance && now - globalForMaintenance.lastMaintenance < 20_000) return;
   globalForMaintenance.lastMaintenance = now;
-  globalForMaintenance.maintenanceRunning = runMaintenanceNow()
+  // Old rate-limit windows (and view-dedupe keys) are pruned hourly from here too, so the table
+  // stays small even when the cron endpoint isn't configured.
+  const prune = !globalForMaintenance.lastPrune || now - globalForMaintenance.lastPrune > 3_600_000;
+  if (prune) globalForMaintenance.lastPrune = now;
+  globalForMaintenance.maintenanceRunning = Promise.all([runMaintenanceNow(), prune ? pruneRateLimits() : null])
     .catch((e) => console.error("[maintenance] failed", e))
     .finally(() => {
       globalForMaintenance.maintenanceRunning = undefined;

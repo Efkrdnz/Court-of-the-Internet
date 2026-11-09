@@ -1,3 +1,4 @@
+import { pageParam } from "@/lib/text";
 import Link from "next/link";
 import clsx from "clsx";
 import { getCurrentUser } from "@/server/auth/current-user";
@@ -43,7 +44,7 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
   const cfg = publicGameConfig();
   const category = typeof searchParams.category === "string" && isCategoryKey(searchParams.category) ? searchParams.category : undefined;
   const sort: QueueSort = searchParams.sort === "oldest" ? "oldest" : "newest";
-  const page = Math.max(1, Number(searchParams.page) || 1);
+  const page = pageParam(searchParams.page);
 
   const [queue, claims, stats] = await Promise.all([
     listQueue({ role, viewer: user ? { id: user.id, mutedCategories: user.mutedCategories } : null, category, sort, page }),

@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **67/67 Playwright** and **90/90 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **67/67 Playwright** and **98/98 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **67/67 Playwright** and **90/90 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 90 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 98 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -337,6 +337,32 @@ It confirmed the ninth round's close lock: votes racing "Adjourn now" or a natur
 | 7 | Achievements can be minted by toggling reactions | documented: achievements are permanent and carry no gameplay power | — |
 | 8 | Under-review OG card said "sealed"; striking left `openReports` stale; home vote total included sealed cases; banned players kept jury XP for removed votes | "under review" card; report count recomputed after a strike; totals use the same scope; removed votes' XP is reversed (still paid only once per case) | integration (strike → openReports 2 → 1); ban tests still pass the full stats audit |
 | 9 | After an empty confession, focus skipped the category error | radio groups mark themselves `data-invalid`, and focus goes to the first invalid control in document order | — |
+
+## Twelfth independent audit (fresh agent, build of commit 6a8c5af)
+
+**Result: 14 PASS, 3 CONCERN (10, 14, 17), 0 FAIL.**
+
+It confirmed the eleventh round:
+- every open-redirect variant falls back to `/court`
+- expiry-boundary claim races (119.95–120.05s) have exactly one outcome
+- statistics matched its SQL for 28 players
+- ban vs close tallies match the rows
+- sealing pauses the trial, and restoring resumes it correctly
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **Content-filter evasion with invisible or look-alike characters**: soft hyphen (U+00AD) in an email or phone number, full-width digits, a slur split by a soft hyphen or using a Cyrillic letter | storage strips all invisible characters (new `INVISIBLE` set). The filter screens a *skeleton*: NFKC (full-width → ASCII), invisibles dropped, Cyrillic/Greek look-alikes folded to Latin, case kept so address detection still works. Shared with the staff-name check (`src/lib/confusables.ts`) | unit: 5 evasions rejected; Russian text still accepted; storage strips U+00AD/U+200B |
+| D2 | `/defend?page=1e20` → 500 | `pageParam()` clamps every page number | status check |
+| D3 | A NUL byte in `?q=` or `?user=` reached Postgres (error page / 500) | `cleanQuery()` strips control and invisible characters from search and lookup parameters | status check |
+| D4 | Simultaneous reports stored a stale reporter count | `fileReport` takes the case row lock, so reports on one case are serialised | integration `simultaneous reports keep an exact reporter count` (5 at once → 5); **fails on the old code** |
+| D5 | Rejected duplicate confessions used up the rate limit | duplicate and daily-cap checks run (read-only) before the limiter; the transaction re-checks under its lock | e2e: 4 duplicates, then a new confession, are accepted |
+| D6 | Demo login accepted any seeded account with the demo password | only the 7 listed demo accounts | — |
+| D7 | Seal or dismiss on an unknown case → generic crash message | NOT_FOUND | — |
+| D8 | Restoring sent no notice; sealing a deliberating case didn't tell counsel | restore notifies the accused; sealing mid-trial notifies attorney and prosecutor | — |
+| D9 | Rate-limit and view-dedupe rows were only pruned by the cron endpoint | page-load maintenance also prunes, at most hourly | — |
+| D10 | Players can copy another player's display name | documented (display names aren't unique; `@username` shown on leaderboards ≥ 400px) | — |
+
+D11 (spoofable IPs without a proxy) and D12 (sealed pages return 200) are unchanged; both are documented above.
 
 ## Per-phase evidence
 

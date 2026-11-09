@@ -67,7 +67,9 @@ function Board<T extends Person>({
                   <Avatar config={r.avatar} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      <span className="min-w-0 font-bold leading-tight text-parchment">{r.displayName}</span>
+                      <span className="min-w-0 font-bold leading-tight text-parchment">
+                        {r.displayName} <span className="hidden text-xs font-normal text-parchment/45 min-[400px]:inline">@{r.username}</span>
+                      </span>
                       {badge ? <AchievementBadge icon={badge.icon} tier={badge.tier} className="h-5 w-4 shrink-0" title={badge.name} /> : null}
                     </span>
                     <span className="block text-xs text-parchment/55">{detail(r)}</span>

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { requireUserOrRedirect } from "@/server/auth/current-user";
 import { db } from "@/server/db";
 import { grantableItems } from "@/server/services/moderation";
-import { casePath, formatCaseNumber, parseCaseParam } from "@/lib/text";
+import { casePath, cleanQuery, formatCaseNumber, parseCaseParam } from "@/lib/text";
 import { formatDateTime, relativeTime, STATUS_LABEL, VERDICT_LABEL } from "@/lib/format";
 import { REPORT_REASONS } from "@/lib/validation";
 import { ModFlashProvider } from "@/components/forms/ModFlash";
@@ -22,7 +22,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   const isAdmin = user.role === "ADMIN";
   const sp = await searchParams;
   const caseNumber = sp.case ? parseCaseParam(String(sp.case)) : null;
-  const lookupUser = sp.user?.trim().toLowerCase();
+  const lookupUser = cleanQuery(sp.user, 40).toLowerCase() || undefined;
 
   const [queue, log, focusCase, focusUser, totals] = await Promise.all([
     db.case.findMany({

@@ -234,6 +234,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
     - Someone spraying 100 wrong passwords from rotated IPs can still lock an account's owner out for 15 minutes (see above).
     - **Always deploy behind a proxy.** This is a deployment requirement, not something the app can fix: Next doesn't give server actions the socket address.
   - If a request has no address at all (no header and none set by the server), per-IP limits are skipped rather than lumping such clients into one shared bucket. Signups then fall under a site-wide 60/hour ceiling and logged-out views aren't counted.
+- **Display names aren't unique; usernames are.** Two players can share a display name, except that officers' names are reserved. Profiles and links use the unique `@username`, which leaderboards also show on screens 400px and wider.
 - **Achievements are permanent.** A badge earned at a threshold (e.g. Legendary Litigator at 10 Legendary reactions) is kept even if reactions are later withdrawn. A coordinated group could therefore toggle reactions on and off to mint one. Badges carry no gameplay power, so this is accepted.
 - **No identity verification, so sockpuppets are possible.** There is no email or phone verification (no external messaging service is configured), so one person can register several accounts.
   - The per-IP signup limit (6 per hour behind a proxy) and the 24h age requirement for auto-hiding reports slow this down.

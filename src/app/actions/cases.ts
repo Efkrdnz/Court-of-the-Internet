@@ -6,7 +6,7 @@ import type { ArgumentRole, ReactionType, ReportReason, VoteChoice } from "@pris
 import { argumentSchema, confessionSchema, reactionSchema, reportSchema, voteSchema } from "@/lib/validation";
 import { clientIp, requireActiveUser } from "@/server/auth/current-user";
 import { enforceRateLimit } from "@/server/rate-limit";
-import { castVote, claimCase, confess, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
+import { castVote, claimCase, confess, precheckConfession, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
 import { fileReport } from "@/server/services/moderation";
 import { CourtError } from "@/server/errors";
@@ -21,6 +21,7 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
     // Validate first: rejected (invalid) submissions must not use up the rate-limit budget.
     const input = confessionSchema.parse(formObject(formData));
     screenConfession(input); // content-filter rejections don't count against the limit either
+    await precheckConfession(user.id, input); // nor do duplicates or a full daily cap
     const ip = await clientIp();
     await enforceRateLimit(`confess:${user.id}`, 3, 600, "Slow down! The stenographer can only type so fast.");
     if (ip) await enforceRateLimit(`confess-ip:${ip}`, 15, 3600);

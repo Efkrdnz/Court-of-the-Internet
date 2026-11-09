@@ -31,6 +31,9 @@ export async function fileReport(
   try {
     return await db.$transaction(async (tx) => {
       await assertActiveUser(tx, reporterId);
+      // Serialise reports per case, so simultaneous reporters each count the others (otherwise
+      // the stored reporter count lags behind the reports actually filed).
+      await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${input.caseId} FOR UPDATE`;
       const c = await tx.case.findUnique({ where: { id: input.caseId }, select: { id: true, moderationState: true } });
       if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
       if (input.target !== "CASE") {
@@ -82,7 +85,11 @@ export async function fileReport(
 export async function removeCase(moderatorId: string, caseId: string, reason: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { id: true, number: true, accusedId: true, title: true, moderationState: true } });
+    const c = await tx.case.findUnique({
+      where: { id: caseId },
+      select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, title: true, moderationState: true, status: true },
+    });
+    if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
     if (c.moderationState === "REMOVED") throw new CourtError("ALREADY_DONE", "That case is already sealed.");
     // A sealed case can't be argued: hand any claim back so a later restore finds it on the docket.
     await releaseClaims(tx, { caseId }, sealedCaseNotice);
@@ -95,6 +102,16 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
       title: `Case No. ${formatCaseNumber(c.number)} was sealed`,
       body: `A moderator removed “${c.title}”: ${reason.slice(0, 200)}`,
     });
+    // Counsel on a live trial learn why it stopped (the accused got the notice above).
+    if (c.status === "DELIBERATION") {
+      for (const id of [c.attorneyId, c.prosecutorId].filter(Boolean) as string[]) {
+        await notify(tx, id, {
+          type: "MODERATION",
+          title: `Case No. ${formatCaseNumber(c.number)} was sealed`,
+          body: "A moderator paused this trial. It resumes with its remaining time if the case is restored.",
+        });
+      }
+    }
     await log(tx, moderatorId, "REMOVE_CASE", { caseId, note: reason });
   });
 }
@@ -102,8 +119,16 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
 export async function restoreCase(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    const exists = await tx.case.findUnique({ where: { id: caseId }, select: { id: true } });
+    const exists = await tx.case.findUnique({ where: { id: caseId }, select: { id: true, number: true, slug: true, accusedId: true, moderationState: true } });
     if (!exists) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (exists.moderationState === "REMOVED") {
+      await notify(tx, exists.accusedId, {
+        type: "MODERATION",
+        title: `Case No. ${formatCaseNumber(exists.number)} was restored`,
+        body: "A moderator reviewed the seal and put your case back on the record.",
+        href: casePath(exists),
+      });
+    }
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "VISIBLE", removalReason: null } });
     await resumeDeliberation(tx, caseId);
     // Repairs cases sealed by older versions that cleared the claimer but kept a "claimed" status.
@@ -119,7 +144,8 @@ export async function dismissReports(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
-    const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { moderationState: true } });
+    const c = await tx.case.findUnique({ where: { id: caseId }, select: { moderationState: true } });
+    if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
     await tx.case.update({
       where: { id: caseId },
       data: { openReports: 0, ...(c.moderationState === "UNDER_REVIEW" ? { moderationState: "VISIBLE" } : {}) },

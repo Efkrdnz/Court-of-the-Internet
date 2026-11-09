@@ -351,6 +351,21 @@ test("§12 forms: invalid submissions don't use up the rate limit (audit defect 
   await page.getByLabel("The confession").fill(story);
   await page.getByRole("button", { name: /^Submit my confession/ }).click();
   await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
+
+  // Duplicates don't use it up either (audit 12 D5): 4 re-filings of the same crime, then a new one.
+  await page.goto("/confess");
+  await page.locator(`label:has(input[value="pet-related"])`).click();
+  await page.getByLabel("Case title").fill(`I taught the parrot to say my sister's ringtone ${sfx}`);
+  await page.getByLabel("The confession").fill(story);
+  await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).check();
+  for (let i = 0; i < 4; i++) {
+    await page.getByRole("button", { name: /^Submit my confession/ }).click();
+    await expect(page.getByText(/already confessed to this crime|already on the docket/).first()).toBeVisible();
+  }
+  await page.getByLabel("Case title").fill(`I renamed the office wifi after the printer ${sfx}`);
+  await page.getByLabel("The confession").fill(`The printer has jammed every day for a month, so now the wifi is called PrinterIsAPrisoner and nobody knows who did it (${sfx}).`);
+  await page.getByRole("button", { name: /^Submit my confession/ }).click();
+  await page.waitForURL(/\/cases\/\d+-.*\?filed=1/);
 });
 
 test("§12 navigation: unknown editor ids are real 404s (audit defect G)", async ({ browser }) => {
