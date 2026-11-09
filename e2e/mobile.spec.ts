@@ -111,7 +111,7 @@ test("mobile: dashboard, queues and settings are usable on a phone", async ({ br
   // The account menu works on touch and doesn't break the header (audit defect B).
   const logo = page.getByRole("link", { name: "Court of the Internet: home" });
   const before = (await logo.boundingBox())!;
-  await page.getByRole("button", { name: /Account menu/ }).tap();
+  await page.getByRole("button", { name: /account menu/i }).tap();
   const after = (await logo.boundingBox())!;
   expect(after.width).toBeCloseTo(before.width, 0);
   expect(after.height).toBeCloseTo(before.height, 0);

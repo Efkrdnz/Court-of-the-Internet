@@ -275,3 +275,27 @@ describe("personal-info / link / handle evasions (audit 13 #1)", () => {
     expect(screenText(text).ok).toBe(true);
   });
 });
+
+describe("spelled-out evasions (audit 14 #3)", () => {
+  it.each([
+    ["write to bob [at] example [dot] com", "personal-info"],
+    ["write to bob (at) example dot com", "personal-info"],
+    ["call five five five eight six seven five three oh nine", "personal-info"],
+    ["find him on insta as john_smith_1990", "handle"],
+    ["his tiktok is sneaky.steve42 if you want proof", "handle"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it("flags slurs spelled with spaced-out letters", () => {
+    expect(screenText("you are such a f a g g o t honestly").ok).toBe(false);
+  });
+  it.each([
+    "I looked at it and laughed so hard I had to sit down",
+    "I deleted instagram as a protest and then reinstalled it an hour later",
+    "I spent 3 hours on tiktok instead of doing the dishes",
+    "I ate one two three slices before anyone noticed",
+    "I wrote U S A on the cake in ketchup at the party",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok).toBe(true);
+  });
+});

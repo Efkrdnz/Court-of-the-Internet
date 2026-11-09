@@ -94,7 +94,8 @@ export async function closeDeliberation(caseId: string): Promise<CloseOutcome> {
           closedAt: now,
           guiltyVotes: guilty,
           notGuiltyVotes: notGuilty,
-          controversy: controversyScore(guilty, notGuilty),
+          // A dismissal (below quorum) isn't a close call, however the few votes split.
+          controversy: verdict === "DISMISSED" ? 0 : controversyScore(guilty, notGuilty),
           claimedById: null,
           claimExpiresAt: null,
         },

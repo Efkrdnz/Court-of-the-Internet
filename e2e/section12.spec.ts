@@ -113,7 +113,7 @@ test("§12 navigation is functional (every header link, signed in)", async ({ br
     ["Settings", /\/settings$/],
     ["Notifications", /\/notifications$/],
   ] as const) {
-    await page.getByRole("button", { name: /Account menu/ }).click();
+    await page.getByRole("button", { name: /account menu/i }).click();
     await page.getByRole("menuitem", { name: label }).click();
     await expect(page).toHaveURL(url);
   }
@@ -425,6 +425,9 @@ test("§12 share links use the runtime site URL (audit #7)", async ({ page, base
   expect(og).toContain(baseURL!);
   const sitemap = await (await page.request.get("/sitemap.xml")).text();
   expect(sitemap).toContain(`${baseURL}/cases/`);
+  // robots.txt too (audit 14 #1): it used to be frozen at build time.
+  const robots = await (await page.request.get("/robots.txt")).text();
+  expect(robots).toContain(`Sitemap: ${baseURL}/sitemap.xml`);
 });
 
 test("§12 jurors see majority/minority, not win/loss, on verdicts (audit #5)", async ({ browser }) => {

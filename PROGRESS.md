@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **67/67 Playwright** and **114/114 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **67/67 Playwright** and **126/126 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **67/67 Playwright** and **114/114 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 114 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 126 Vitest + 67 Playwright tests (42 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -389,6 +389,33 @@ It confirmed the twelfth round:
 Not changed:
 - **Defect 5, stale countdown after a rejected filing.** This only happens when the claim's expiry is edited directly in the database. In normal use the countdown has already reached zero. Refreshing on failure would discard the player's draft.
 - **Defect 9 (sealed pages return 200) and defect 10 (spoofable IPs without a proxy).** Both are documented.
+
+## Fourteenth independent audit (fresh agent, build of commit f88ba99)
+
+**Result: 15 PASS, 2 CONCERN (10 filter, 16 one README claim), 0 FAIL, no high-severity defects.**
+
+It confirmed the thirteenth round end to end:
+- every race and role bypass it tried failed
+- its SQL recount matched every counter, tally and reaction after bans, deletions and races
+- reduced motion stops all animation
+- all `next` variants are blocked
+- 123 links had no dead ones
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | robots.txt froze `SITE_URL` at build time (pointing at localhost) | `dynamic = "force-dynamic"`, like the sitemap | e2e: robots.txt names the runtime sitemap URL |
+| 3 | Spelled-out evasions: `bob [at] example [dot] com`, spaced-out letters ("r e t a r d"), a phone number in words, "on insta as john_smith_1990" | patterns for each (slices of single-letter runs are checked as words) | unit: 6 evasions rejected, 5 everyday sentences still accepted; seed content clean |
+| 4 | Muted categories still showed on the home page's recent verdicts and in related-case filler | both respect the viewer's muted list | — |
+| 5 | "Case No. 0050 could be yours" used the visible-case count | the real next number (`max + 1`) | — |
+| 6 | Banned and deleted players still earned XP; a banned player's open cases were claimable | `awardXp` pays no one banned or deleted (records still update); those cases are on hold | integration `banned players earn nothing new…` (stats audit still passes) |
+| 7 | Counsel weren't told when a sealed trial resumed; "verdict in 24h" was sent for a trial starting under review | restore notifies counsel; the under-review filing says the clock starts after review | — |
+| 8 | `make-mod` for an unknown user → generic crash | NOT_FOUND | — |
+| 9 | Dismissed (below-quorum) cases ranked as "controversial" | controversy 0 for dismissals (plus migration `20261109090000_dismissed_controversy` for existing rows) | — |
+| 10 | Toast backlog piled up on phones | at most the 3 newest pop up; older ones stay in the inbox | — |
+| 11 | axe: active reaction chip contrast 3.84:1; label-content-name mismatch in the header | lighter reaction colours (≥ 4.5:1 with ink); the account button's label starts with its visible text; decorative tagline `aria-hidden` | e2e a11y suite |
+| 12 | Reacting on an under-review case said "not found" | "Reactions are paused while the clerks review this case." | — |
+
+Unchanged and documented: issue 2 (lockout and spoofable IPs without a proxy) and sealed pages returning 200.
 
 ## Per-phase evidence
 

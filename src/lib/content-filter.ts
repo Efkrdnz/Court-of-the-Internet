@@ -79,6 +79,35 @@ const STREET_LOWER = new RegExp(
   "i",
 );
 const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
+// "bob [at] example [dot] com", "bob (at) example dot com".
+const EMAIL_SPELLED =
+  /\b[\w.+-]+\s*(?:[[({]\s*at\s*[\])}]|\sat\s)\s*[\w-]+\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*[a-z]{2,}\b/i;
+// "find him on insta as john_smith_1990": a platform name followed shortly by a handle-like token
+// (letters mixed with digits, dots or underscores).
+const PLATFORM_HANDLE =
+  /\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b.{0,25}?\b(?=[a-z0-9._]*[_\d.])(?=[a-z0-9._]*[a-z])[a-z0-9._]{4,}\b/i;
+const NUMBER_WORDS: Record<string, string> = { zero: "0", oh: "0", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6", seven: "7", eight: "8", nine: "9" };
+/** A phone number spelled out ("five five five, eight six seven…"): 7+ digit words in a row. */
+function spelledPhone(text: string): boolean {
+  let run = 0;
+  for (const w of text.toLowerCase().split(/[^a-z]+/).filter(Boolean)) {
+    run = w in NUMBER_WORDS ? run + 1 : 0;
+    if (run >= 7) return true;
+  }
+  return false;
+}
+/**
+ * "r e t a r d", "r.e.t.a.r.d": runs of single letters, joined back together. Every contiguous
+ * slice is returned, because a neighbouring "a" or "I" often joins the run ("a f a g…").
+ */
+function spacedOutWords(text: string): string[] {
+  const out: string[] = [];
+  for (const run of text.match(/\b(?:[a-z][\s.\-_*]+){3,}[a-z]\b/gi) ?? []) {
+    const letters = run.replace(/[^a-z]/gi, "").toLowerCase().slice(0, 40);
+    for (let i = 0; i < letters.length; i++) for (let j = i + 3; j <= letters.length; j++) out.push(letters.slice(i, j));
+  }
+  return out;
+}
 
 const VIOLENCE = [
   /\bkill\s+(?:your\s*self|urself|yourselves)\b/i,
@@ -134,12 +163,12 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const text = skeleton(raw);
 
   if (EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text)) return fail("personal-info");
-  if (PHONE.test(text)) return fail("personal-info");
+  if (PHONE.test(text) || EMAIL_SPELLED.test(text) || spelledPhone(text)) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
   if (URL.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
-  if (HANDLE.test(text)) return fail("handle");
+  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text)) return fail("handle");
 
-  for (const word of normaliseForWords(text)) {
+  for (const word of [...normaliseForWords(text), ...spacedOutWords(text)]) {
     if (SLURS.has(word)) return fail("hate");
     // Stretched spellings ("fooooo") are compared in collapsed form, but only when the word
     // actually has repeated letters, so ordinary words like "con" or "niger" never match.

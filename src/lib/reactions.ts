@@ -1,8 +1,8 @@
 export const REACTIONS = [
   { type: "HILARIOUS", label: "Hilarious", verb: "laughed", weight: 2, color: "#e0a82e" },
-  { type: "OUTRAGEOUS", label: "Outrageous", verb: "gasped", weight: 2, color: "#c2412d" },
-  { type: "LEGENDARY", label: "Legendary", verb: "saluted", weight: 3, color: "#9b4dca" },
-  { type: "RELATABLE", label: "Relatable", verb: "nodded", weight: 1, color: "#2f8f83" },
+  { type: "OUTRAGEOUS", label: "Outrageous", verb: "gasped", weight: 2, color: "#e0664f" },
+  { type: "LEGENDARY", label: "Legendary", verb: "saluted", weight: 3, color: "#b77ee0" },
+  { type: "RELATABLE", label: "Relatable", verb: "nodded", weight: 1, color: "#3aa596" },
 ] as const;
 
 export type ReactionKey = (typeof REACTIONS)[number]["type"];

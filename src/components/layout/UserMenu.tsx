@@ -47,7 +47,8 @@ export function UserMenu({
         className="flex items-center gap-2 rounded-full border border-gold/40 bg-night/40 py-1 pl-1 pr-3 transition hover:border-gold-light"
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Account menu for ${displayName}`}
+        // Starts with the visible text ("Hammy Lv 2"), so voice-control users can say what they see.
+        aria-label={`${displayName} Lv ${level}, account menu`}
       >
         <Avatar config={avatar} className="h-9 w-9" title={displayName} />
         <span className="hidden text-left leading-tight sm:block">

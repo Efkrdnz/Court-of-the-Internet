@@ -273,7 +273,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
           <WaxSeal color="burgundy" emblem="gavel" className="h-28 w-28 shrink-0" />
           <div className="flex-1">
             <h2 className="font-display text-3xl font-black">The court is now in session.</h2>
-            <p className="muted mt-1">Case No. {formatCaseNumber(stats.cases + 1)} could be yours. What did you do?</p>
+            <p className="muted mt-1">Case No. {formatCaseNumber(stats.nextCaseNumber)} could be yours. What did you do?</p>
           </div>
           <Link href={user ? "/confess" : "/signup"} className="btn btn-burgundy btn-lg">
             {user ? "Confess now" : "Get sworn in"}

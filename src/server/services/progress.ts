@@ -28,6 +28,9 @@ export async function notify(
 
 export async function awardXp(tx: Tx, userId: string, amount: number, reason: string, caseId?: string) {
   if (amount === 0) return;
+  // Banned or deleted players keep their records (wins, verdicts) but earn nothing new.
+  const who = await tx.user.findUnique({ where: { id: userId }, select: { bannedAt: true, deletedAt: true } });
+  if (!who || who.bannedAt || who.deletedAt) return;
   const stats = await tx.userStats.update({
     where: { userId },
     data: { xp: { increment: amount } },

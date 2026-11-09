@@ -1,4 +1,5 @@
 import "server-only";
+import type { NotificationType } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { db } from "../db";
 import { clock } from "../clock";
@@ -234,10 +235,17 @@ export async function listNotifications(userId: string, take = 40) {
 
 /** Notifications that should pop as toasts (achievements, level-ups, verdicts) and haven't yet. */
 export async function pendingToasts(userId: string) {
-  return db.notification.findMany({
-    where: { userId, toastedAt: null, type: { in: ["ACHIEVEMENT", "LEVEL_UP", "VERDICT"] }, createdAt: { gte: new Date(clock.now().getTime() - 3 * 86_400_000) } },
-    orderBy: { createdAt: "asc" },
-    take: 5,
-    select: { id: true, type: true, title: true, body: true, href: true, data: true },
+  const where = { userId, toastedAt: null, type: { in: ["ACHIEVEMENT", "LEVEL_UP", "VERDICT"] as NotificationType[] }, createdAt: { gte: new Date(clock.now().getTime() - 3 * 86_400_000) } };
+  // At most the 3 newest pop up (one at a time); an older backlog is marked as shown so a player
+  // returning to a pile of news isn't buried in toasts. Everything stays in the inbox.
+  const newest = await db.notification.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    select: { id: true, type: true, title: true, body: true, href: true, data: true, createdAt: true },
   });
+  if (newest.length === 3) {
+    await db.notification.updateMany({ where: { ...where, createdAt: { ...where.createdAt, lt: newest[2].createdAt } }, data: { toastedAt: clock.now() } });
+  }
+  return newest.reverse().map((t) => ({ id: t.id, type: t.type, title: t.title, body: t.body, href: t.href, data: t.data }));
 }

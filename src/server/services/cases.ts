@@ -198,6 +198,8 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
     if (c.moderationState === "UNDER_REVIEW") {
       throw new CourtError("INVALID_STATE", "This case is under review by the court clerks and can't be claimed right now.");
     }
+    const accused = await tx.user.findUnique({ where: { id: c.accusedId }, select: { bannedAt: true } });
+    if (accused?.bannedAt) throw new CourtError("INVALID_STATE", "The accused has been held in contempt of court, so this case is on hold.");
     const ineligible = eligibilityError(c, userId, role);
     if (ineligible) throw new CourtError("INELIGIBLE", ineligible);
     if (c.status !== openStatus && c.status !== claimedStatus) {
@@ -381,7 +383,10 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
       const msg = {
         type: "PROSECUTION_FILED" as const,
         title: "The jury is now deliberating",
-        body: `Both sides have spoken on “${c.title}”. The verdict arrives in ${Math.round(gameConfig.deliberationMs / 3_600_000)}h.`,
+        body:
+          c.moderationState === "UNDER_REVIEW"
+            ? `Both sides have spoken on “${c.title}”. The case is under review, so the jury's clock starts once the clerks finish.`
+            : `Both sides have spoken on “${c.title}”. The verdict arrives in ${Math.round(gameConfig.deliberationMs / 3_600_000)}h.`,
         href,
       };
       await notify(tx, c.accusedId, msg);

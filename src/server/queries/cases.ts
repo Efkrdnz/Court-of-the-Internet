@@ -201,6 +201,7 @@ function queueWhere(role: "DEFENSE" | "PROSECUTION", now: Date): Prisma.CaseWher
   const claimed: CaseStatus = role === "DEFENSE" ? "DEFENSE_CLAIMED" : "PROSECUTION_CLAIMED";
   return {
     moderationState: "VISIBLE",
+    accused: { bannedAt: null }, // a banned player's open cases are on hold
     OR: [{ status: open }, { status: claimed, claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
   };
 }
@@ -399,7 +400,7 @@ export async function getCaseIdByNumber(number: number) {
   return db.case.findUnique({ where: { number }, select: { id: true, status: true, number: true, slug: true } });
 }
 
-export async function relatedCases(caseId: string, category: string, viewer: { id: string } | null) {
+export async function relatedCases(caseId: string, category: string, viewer: { id: string; mutedCategories?: string[] } | null) {
   const rows = await db.case.findMany({
     where: { id: { not: caseId }, category, status: "CLOSED", moderationState: "VISIBLE" },
     orderBy: [{ reactionScore: "desc" }, { closedAt: "desc" }],
@@ -408,7 +409,13 @@ export async function relatedCases(caseId: string, category: string, viewer: { i
   });
   if (rows.length < 3) {
     const more = await db.case.findMany({
-      where: { id: { notIn: [caseId, ...rows.map((r) => r.id)] }, status: "CLOSED", moderationState: "VISIBLE" },
+      where: {
+        id: { notIn: [caseId, ...rows.map((r) => r.id)] },
+        status: "CLOSED",
+        moderationState: "VISIBLE",
+        // Filler from other categories respects the viewer's muted list.
+        ...(viewer?.mutedCategories?.length ? { category: { notIn: viewer.mutedCategories } } : {}),
+      },
       orderBy: [{ reactionScore: "desc" }],
       take: 3 - rows.length,
       select: caseCardSelect,

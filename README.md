@@ -243,7 +243,7 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 - **Moderation doesn't rewrite history.**
   - Sealing a *closed* case hides it from every public page and the archive totals, but the players' records (wins, convictions, XP) from that trial stand.
   - Striking an argument hides it from non-staff without pausing or annulling the trial; jurors who already voted keep their votes. Seal the case instead if the whole trial should stop.
-  - Banning a player removes their votes from trials still in deliberation (those votes no longer count); verdicts already reached stand. Jury XP is paid once per case, so unbanning and re-voting earns nothing extra.
+  - Banning a player removes their votes from trials still in deliberation (those votes no longer count); verdicts already reached stand. Jury XP is paid once per case, so unbanning and re-voting earns nothing extra. While banned, a player keeps their record (wins, verdicts) but earns no XP, and cases they confessed that still need counsel are on hold (not claimable).
   - Deleting your own account keeps your votes (they were cast legitimately) and retires your username so nobody can impersonate you through old links.
 - **Anonymity costs rewards.** Anonymous cases never expose the confessor's name, id or profile link: not in pages, page payloads, OG images, the sitemap or leaderboards.
   - Anonymous cases are also off the record. The confessor gets no XP, achievements, conviction or acquittal counts from them, at filing or at verdict. Otherwise a change on their public profile would reveal them.

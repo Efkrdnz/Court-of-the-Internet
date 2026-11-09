@@ -119,7 +119,10 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
 export async function restoreCase(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    const exists = await tx.case.findUnique({ where: { id: caseId }, select: { id: true, number: true, slug: true, accusedId: true, moderationState: true } });
+    const exists = await tx.case.findUnique({
+      where: { id: caseId },
+      select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, status: true, moderationState: true },
+    });
     if (!exists) throw new CourtError("NOT_FOUND", "That case could not be found.");
     if (exists.moderationState === "REMOVED") {
       await notify(tx, exists.accusedId, {
@@ -128,6 +131,17 @@ export async function restoreCase(moderatorId: string, caseId: string) {
         body: "A moderator reviewed the seal and put your case back on the record.",
         href: casePath(exists),
       });
+      // Counsel were told the trial would resume if restored; tell them it has.
+      if (exists.status === "DELIBERATION") {
+        for (const id of [exists.attorneyId, exists.prosecutorId].filter(Boolean) as string[]) {
+          await notify(tx, id, {
+            type: "MODERATION",
+            title: `Case No. ${formatCaseNumber(exists.number)} is back in session`,
+            body: "The seal was lifted and deliberation resumed with its remaining time.",
+            href: casePath(exists),
+          });
+        }
+      }
     }
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "VISIBLE", removalReason: null } });
     await resumeDeliberation(tx, caseId);
@@ -271,7 +285,8 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
   return db.$transaction(async (tx) => {
     const mod = await assertStaff(tx, adminId);
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can appoint moderators.");
-    const target = await tx.user.findUniqueOrThrow({ where: { id: targetUserId }, select: { role: true } });
+    const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { role: true } });
+    if (!target) throw new CourtError("NOT_FOUND", "User not found.");
     if (target.role === "ADMIN") throw new CourtError("FORBIDDEN", "Admins can't be demoted here.");
     await tx.user.update({ where: { id: targetUserId }, data: { role } });
     await log(tx, adminId, `SET_ROLE_${role}`, { targetUserId });

@@ -356,6 +356,26 @@ describe("moderation", () => {
     await expect(pinFeaturedCase(mod, c.id, utcDay())).rejects.toMatchObject({ code: "INELIGIBLE" });
   });
 
+  it("banned players earn nothing new and their open cases are on hold (audit 14 #6)", async () => {
+    process.env.COURT_QUORUM = "3";
+    const [accused, attorney, prosecutor, lawyer] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("payout_admin", "ADMIN");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await voteAll(c.id, await makeUsers(3, "pay"), 3);
+    await setBan(admin, prosecutor, true, "Contempt");
+    const before = await stats(prosecutor);
+    await closeNow(c.id);
+    const after = await stats(prosecutor);
+    expect(after.prosecutionWins).toBe(before.prosecutionWins + 1); // the record stands…
+    expect(after.xp).toBe(before.xp); // …but no XP is paid
+    expect((await auditStats(prosecutor)).ok).toBe(true);
+
+    const open = await makeCase(accused);
+    await setBan(admin, accused, true, "Contempt");
+    await expect(claimCase(lawyer, open.id, "DEFENSE")).rejects.toMatchObject({ code: "INVALID_STATE" });
+  });
+
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {
     const [accused, quitter, next] = [await makeUser(), await makeUser(), await makeUser()];
     const c = await makeCase(accused);

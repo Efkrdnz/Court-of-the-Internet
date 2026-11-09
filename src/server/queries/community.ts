@@ -49,7 +49,7 @@ export async function getFeaturedCase(viewer: { id: string } | null) {
 export async function getCommunityStats() {
   const now = clock.now();
   const dayAgo = new Date(now.getTime() - 86_400_000);
-  const [players, cases, closed, votes, guilty, notGuilty, todayVotes, inDeliberation, awaiting] = await Promise.all([
+  const [players, cases, closed, votes, guilty, notGuilty, todayVotes, inDeliberation, awaiting, lastNumber] = await Promise.all([
     db.user.count({ where: { deletedAt: null } }),
     db.case.count({ where: { moderationState: { not: "REMOVED" } } }),
     db.case.count({ where: { status: "CLOSED", moderationState: "VISIBLE" } }),
@@ -59,6 +59,7 @@ export async function getCommunityStats() {
     db.vote.count({ where: { createdAt: { gte: dayAgo } } }),
     db.case.count({ where: { status: "DELIBERATION", moderationState: "VISIBLE" } }),
     db.case.count({ where: { status: { in: ["AWAITING_DEFENSE", "AWAITING_PROSECUTION"] }, moderationState: "VISIBLE" } }),
+    db.case.aggregate({ _max: { number: true } }),
   ]);
   return {
     players,
@@ -70,12 +71,19 @@ export async function getCommunityStats() {
     todayVotes,
     inDeliberation,
     awaiting,
+    // The real next number (sealed cases still use theirs), not a count of visible ones.
+    nextCaseNumber: (lastNumber._max.number ?? 0) + 1,
   };
 }
 
-export async function getRecentVerdicts(viewer: { id: string } | null, take = 6) {
+export async function getRecentVerdicts(viewer: { id: string; mutedCategories?: string[] } | null, take = 6) {
   const rows = await db.case.findMany({
-    where: { status: "CLOSED", moderationState: "VISIBLE", verdict: { not: "DISMISSED" } },
+    where: {
+      status: "CLOSED",
+      moderationState: "VISIBLE",
+      verdict: { not: "DISMISSED" },
+      ...(viewer?.mutedCategories?.length ? { category: { notIn: viewer.mutedCategories } } : {}),
+    },
     orderBy: [{ closedAt: "desc" }],
     take,
     select: caseCardSelect,
@@ -157,6 +165,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
           moderationState: "VISIBLE",
           deliberationEndsAt: { gt: now },
           accusedId: { not: viewer.id },
+          accused: { bannedAt: null },
           attorneyId: { not: viewer.id },
           prosecutorId: { not: viewer.id },
           votes: { none: { userId: viewer.id } },
@@ -170,6 +179,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
         where: {
           moderationState: "VISIBLE",
           accusedId: { not: viewer.id },
+          accused: { bannedAt: null },
           OR: [{ status: "AWAITING_DEFENSE" }, { status: "DEFENSE_CLAIMED", claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
           ...muted,
         },
@@ -181,6 +191,7 @@ export async function getDashboard(viewer: { id: string; mutedCategories: string
         where: {
           moderationState: "VISIBLE",
           accusedId: { not: viewer.id },
+          accused: { bannedAt: null },
           attorneyId: { not: viewer.id },
           OR: [{ status: "AWAITING_PROSECUTION" }, { status: "PROSECUTION_CLAIMED", claimExpiresAt: { lt: new Date(now.getTime() - gameConfig.claimGraceMs) } }],
           ...muted,
