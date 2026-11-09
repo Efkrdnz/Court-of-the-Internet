@@ -60,9 +60,9 @@ export function PersonChip({
       </span>
     </>
   );
-  if (!person.username) return <span className={clsx("inline-flex min-w-0 items-center gap-2", className)}>{content}</span>;
+  if (!person.username) return <span className={clsx("inline-flex min-w-0 max-w-full items-center gap-2", className)}>{content}</span>;
   return (
-    <Link href={`/u/${person.username}`} className={clsx("inline-flex min-w-0 items-center gap-2 rounded-full pr-2 hover:underline", className)}>
+    <Link href={`/u/${person.username}`} className={clsx("inline-flex min-w-0 max-w-full items-center gap-2 rounded-full pr-2 hover:underline", className)}>
       {content}
     </Link>
   );

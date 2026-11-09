@@ -42,7 +42,10 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
         message = "Case restored.";
         break;
       case "dismiss":
-        message = (await dismissReports(mod.id, caseId)).madeVisible ? "Reports dismissed; case visible again." : "Reports dismissed. (The case stays sealed.)";
+        {
+          const r = await dismissReports(mod.id, caseId);
+          message = r.madeVisible ? "Reports dismissed; case visible again." : r.sealed ? "Reports dismissed. (The case stays sealed.)" : "Reports dismissed.";
+        }
         break;
       case "strike-defense":
       case "strike-prosecution":

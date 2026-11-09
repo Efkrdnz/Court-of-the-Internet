@@ -38,12 +38,12 @@ export function ArgumentPanel({
   const m = META[kind];
   const Character = kind === "confession" ? (category === "food-crimes" ? CryingPizza : HamsterDefendant) : kind === "defense" ? PigeonAttorney : RaccoonProsecutor;
   return (
-    <section aria-label={m.label} className={clsx("grid items-end gap-4 md:grid-cols-[150px_minmax(0,1fr)]", flip && "md:grid-cols-[minmax(0,1fr)_150px]")}>
+    <section aria-label={m.label} className={clsx("grid grid-cols-1 items-end gap-4 md:grid-cols-[150px_minmax(0,1fr)]", flip && "md:grid-cols-[minmax(0,1fr)_150px]")}>
       <div className={clsx("hidden md:block", flip && "md:order-2")}>
         <Character className="chr-hover chr-sticker w-full drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]" title={kind === "confession" && category === "food-crimes" ? "The victim: a crying slice of pizza" : undefined} />
         {kind === "confession" && category === "food-crimes" ? <p className="mt-1 text-center text-xs italic text-parchment/60">The victim, pictured</p> : null}
       </div>
-      <div className={clsx("argument", m.panel, body === null && "opacity-90")}>
+      <div className={clsx("argument min-w-0", m.panel, body === null && "opacity-90")}>
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className={clsx("text-xs font-black uppercase tracking-[0.2em]", m.accent)}>{m.label}</p>

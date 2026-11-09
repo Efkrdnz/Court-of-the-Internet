@@ -196,7 +196,7 @@ test("narrow phones: long unbroken words never widen the page (audit 3 #1)", asy
   await page.getByLabel("The confession").fill("I microwaved fish in the office kitchen and then blamed the new intern, who does not exist.");
   await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).tap();
   await page.getByRole("button", { name: /^Submit my confession/ }).tap();
-  await expect(page.getByRole("alert").filter({ hasText: /spam/ }).first()).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: /longer than 35 characters|spam/ }).first()).toBeVisible();
   // …and the longest allowed word (35 chars) still wraps everywhere it appears.
   const word = `Antidisestablishmentarianismwaffle${Date.now().toString(36).slice(-1)}`;
   expect(word.length).toBe(35);

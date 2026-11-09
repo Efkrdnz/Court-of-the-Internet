@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **68/68 Playwright** and **184/184 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **69/69 Playwright** and **194/194 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **68/68 Playwright** and **184/184 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 184 Vitest + 68 Playwright tests (43 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 194 Vitest + 69 Playwright tests (44 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -519,6 +519,26 @@ It confirmed the eighteenth round end to end:
 | 9 | The unselected vote option faded to 50% and was hard to read | 75% with desaturation | — |
 
 Unchanged and documented: issues 2 and 3 (lockout and IP spoofing without a proxy).
+
+## Twentieth independent audit (fresh agent, build of commit 2acc991)
+
+**Result: 14 PASS, 3 CONCERN (10, 13, 17), 0 FAIL.** It confirmed the nineteenth round:
+- 25-way claim races and ±400ms expiry races stayed consistent
+- 4 simultaneous adjourns produced one close
+- 34 look-alike staff names were all blocked
+- reaction races left exact counters
+- its SQL recount matched every player after every race
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Filter gaps: comma-separated phone numbers, uncommon TLDs (`.ninja`), ideographic or spaced dots (`x。com`, `x . com`), a slur split by a space, "Ex-Lax in his coffee" | comma separator; broader TLD list; dot variants normalised; adjacent word pairs checked; laxative brand names | unit: 7 rejected, 2 everyday sentences accepted |
+| 2 | A 31–32 character display name made case pages scroll sideways on phones | the argument panel grid gets a `grid-cols-1` base and `min-w-0`; person chips are capped at full width | e2e `a maximum-length display name doesn't widen a case page` |
+| 3 | "Dismiss reports" on a visible case said "the case stays sealed" | message reflects the actual state | — |
+| 4 | "Restore" on a case that wasn't sealed silently dismissed its open reports | refused ("isn't sealed") | integration |
+| 5 | A single 36+ character word was rejected with a misleading spam message | a specific message for the long-word rule | unit |
+| 7 | Card title links are 24–27px tall | each card's title link stretches over the whole card, so the tap target is the card (WCAG 2.5.8 is satisfied) | — |
+
+Unchanged and documented: lockout and IP spoofing without a proxy.
 
 ## Per-phase evidence
 

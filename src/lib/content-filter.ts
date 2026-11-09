@@ -31,6 +31,8 @@ const MESSAGES: Record<FilterIssue, string> = {
     "This court only hears ridiculous, harmless offenses. Serious real-world crimes belong with real authorities.",
   spam: "That reads like spam (repeated characters, all-caps, or copy-paste). Tidy it up, counselor.",
 };
+/** Specific message for the 36+ character word rule, which isn't about repetition or caps. */
+const LONG_WORD_MESSAGE = "Words longer than 35 characters aren't allowed (it stops keyboard-mash from breaking layouts). Add a space or hyphen.";
 
 // ROT13-encoded so the source isn't a wall of slurs. Matched on whole (normalised) words.
 const ENCODED_SLURS =
@@ -64,10 +66,10 @@ const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // Any script's digits (Arabic-Indic too), with the separators people use to dodge filters.
 // 9+ digits: real numbers (with area code) are caught, while years ("2019-2020"), scores and
 // counting ("1 2 3 4 5 6 7 8") are not. Bare 7-digit local numbers are a known gap (see README).
-const PHONE = /(?:\+?\p{Nd}[\s()./_\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
+const PHONE = /(?:\+?\p{Nd}[\s()./_,\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
 // Explicit URLs, or a domain with any two-letter country TLD or a common generic TLD.
 const URL =
-  /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]{2,}\.(?:[a-z]{2}|com|net|org|info|biz|xyz|app|dev|online|site|shop|store|blog|live|link|club|fun|top|page|social|lol|wtf|tech|space|world|news)\b/i;
+  /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]{2,}\.(?:[a-z]{2}|com|net|org|info|biz|xyz|app|dev|online|site|shop|store|blog|live|link|club|fun|top|page|social|lol|wtf|tech|space|world|news|ninja|pro|art|design|email|cloud|digital|games|life|today|website|wiki|zone|rocks|fyi|guru|agency|studio|media|online|network|systems|works|party|club|vip|bet|win|click|icu|buzz|monster|quest|homes|lgbt|gay|sex|porn|adult)\b/i;
 // A handle is "@name" not glued to a word on its left (that would be an email, checked first).
 const HANDLE = /(?:^|[^\p{L}\p{N}_.%+-])@[\p{L}\p{N}_.]{3,}/u;
 // Number + Capitalised Name(s) + street suffix, e.g. "42 Wallaby Way".
@@ -149,7 +151,7 @@ const HARM_DONE = new RegExp(`\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|s
 const SERIOUS = [
   HARM_DONE,
   // Dosing someone's food or drink, or spiking it.
-  /\b(?:laxatives?|eye\s*drops|sleeping\s+pills|xanax|molly)\b.{0,40}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
+  /\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\b.{0,40}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
   /\bspiked\b.{0,40}\b(?:with|using)\s+(?:\w+\s+)?(?:vodka|alcohol|booze|rum|gin|tequila|drugs|pills|molly|xanax|laxatives?)\b/i,
   // Burning or vandalising someone else's things.
   /\bset\s+(?:my|his|her|their|the|our)\s+[\w-]+(?:'s|s')\s+(?:\w+\s+)?\w+\s+on\s+fire\b|\bset\s+fire\s+to\s+(?:my|his|her|their)\s+[\w-]+(?:'s|s')\b/i,
@@ -209,7 +211,10 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
 
   // Variants a reader decodes without thinking: "evil[.]com", "evil.c0m", "555-123-45six7",
   // "k i l l". Each is checked by the same patterns as the plain text.
-  const undotted = text.replace(/\s*[[({]\s*(?:\.|dot)\s*[\])}]\s*/gi, ".");
+  const undotted = text
+    .replace(/[\u3002\uFF0E\uFF61]/g, ".") // ideographic / fullwidth full stops
+    .replace(/\s*[[({]\s*(?:\.|dot)\s*[\])}]\s*/gi, ".")
+    .replace(/\s+\.\s+(?=(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|ninja)\b)/gi, ".");
   const leet = undotted.replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
   const numbered = text.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
   const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){3,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
@@ -221,7 +226,10 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   if (URL.test(text) || URL.test(undotted) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
   if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text)) return fail("handle");
 
-  for (const word of [...normaliseForWords(text), ...spacedOutWords(text)]) {
+  const words = normaliseForWords(text);
+  // Adjacent pairs too, for slurs split by a space ("fa ggot").
+  const pairs = words.slice(1).map((w, i) => words[i] + w);
+  for (const word of [...words, ...pairs, ...spacedOutWords(text)]) {
     if (SLURS.has(word)) return fail("hate");
     // Stretched spellings ("fooooo") are compared in collapsed form, but only when the word
     // actually has repeated letters, so ordinary words like "con" or "niger" never match.
@@ -242,7 +250,7 @@ export function screenFields(fields: Record<string, string | undefined | null>):
     if (!value) continue;
     // Titles skip the caps/repetition heuristics but still may not contain giant unbroken words.
     const result: FilterResult =
-      field === "title" && LONG_WORD.test(value) ? { ok: false, issue: "spam", message: MESSAGES.spam } : screenText(value, { allowSpamCheck: field !== "title" });
+      LONG_WORD.test(value) ? { ok: false, issue: "spam", message: LONG_WORD_MESSAGE } : screenText(value, { allowSpamCheck: field !== "title" });
     if (!result.ok) return { ...result, field };
   }
   return { ok: true };

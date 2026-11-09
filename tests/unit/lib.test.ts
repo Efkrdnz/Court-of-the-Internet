@@ -441,3 +441,25 @@ describe("harm phrasing (audit 19 #4)", () => {
     expect(screenText(text).ok, text).toBe(true);
   });
 });
+
+describe("more evasions (audit 20 #1, #5)", () => {
+  it.each([
+    ["Complaints to 555,123,4567 or nowhere", "personal-info"],
+    ["call 07700,900,123 tonight", "personal-info"],
+    ["Complaints to pettycrimes.ninja please", "link"],
+    ["see pettycrimes。com", "link"],
+    ["see pettycrimes . com", "link"],
+    ["you are such a fa ggot", "hate"],
+    ["I put Ex-Lax in his coffee", "serious-crime"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it("explains the long-word rule accurately", () => {
+    const r = screenFields({ title: "I said Pneumonoultramicroscopicsilicovolcanoconiosis wrong" });
+    expect(r.ok).toBe(false);
+    expect(r.message).toMatch(/longer than 35 characters/);
+  });
+  it.each(["I said the scores were 3, 4, 5 and 6 out of 10", "the end. Then I left early"])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
+  });
+});

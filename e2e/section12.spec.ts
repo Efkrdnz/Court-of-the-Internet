@@ -5,7 +5,7 @@
 import { execSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
-import { demoPage } from "./helpers";
+import { demoPage, expectNoHorizontalScroll } from "./helpers";
 import { ACHIEVEMENTS } from "../src/lib/achievements";
 
 const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgresql://court:court@localhost:5432/court_e2e?schema=public";
@@ -570,5 +570,20 @@ test("§12 navigation: malformed URLs and sealed cases don't leak or crash (audi
     const res = await request.get(`/cases/${sealed.number}`, { maxRedirects: 0 });
     expect(res.status()).not.toBe(308);
     expect(res.headers()["location"] ?? "").not.toContain(sealed.slug);
+  }
+});
+
+test("§12 mobile: a maximum-length display name doesn't widen a case page (audit 20 #2)", async ({ browser }) => {
+  const coo = await prisma.user.findUniqueOrThrow({ where: { username: "counselor_coo" }, select: { id: true, displayName: true } });
+  const c = await prisma.case.findFirstOrThrow({ where: { attorneyId: coo.id, moderationState: "VISIBLE" }, select: { number: true, slug: true } });
+  await prisma.user.update({ where: { id: coo.id }, data: { displayName: "W".repeat(32) } });
+  try {
+    const context = await browser.newContext({ viewport: { width: 320, height: 740 }, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    await page.goto(`/cases/${c.number}-${c.slug}`);
+    await expectNoHorizontalScroll(page);
+    await context.close();
+  } finally {
+    await prisma.user.update({ where: { id: coo.id }, data: { displayName: coo.displayName } });
   }
 });

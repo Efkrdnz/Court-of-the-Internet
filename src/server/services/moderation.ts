@@ -134,6 +134,8 @@ export async function restoreCase(moderatorId: string, caseId: string) {
       select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, status: true, moderationState: true },
     });
     if (!exists) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    // Only a sealed case can be restored (a stale console must not silently dismiss open reports).
+    if (exists.moderationState !== "REMOVED") throw new CourtError("INVALID_STATE", "That case isn't sealed, so there's nothing to restore.");
     if (exists.moderationState === "REMOVED") {
       await notify(tx, exists.accusedId, {
         type: "MODERATION",
@@ -176,7 +178,7 @@ export async function dismissReports(moderatorId: string, caseId: string) {
     await tx.case.update({ where: { id: caseId }, data: { openReports: 0, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
     if (madeVisible) await resumeDeliberation(tx, caseId);
     await log(tx, moderatorId, "DISMISS_REPORTS", { caseId });
-    return { madeVisible };
+    return { madeVisible, sealed: c.moderationState === "REMOVED" };
   });
 }
 

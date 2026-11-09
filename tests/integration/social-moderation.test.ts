@@ -178,6 +178,8 @@ describe("moderation", () => {
     const admin = await makeUser("seal_admin", "ADMIN");
     const c = await makeCase(accused);
     await claimCase(holder, c.id, "DEFENSE");
+    // Restoring a case that isn't sealed is refused (audit 20 #4).
+    await expect(restoreCase(admin, c.id)).rejects.toMatchObject({ code: "INVALID_STATE" });
     await removeCase(admin, c.id, "Checking something");
     await expect(removeCase(admin, c.id, "Again")).rejects.toMatchObject({ code: "ALREADY_DONE" }); // no duplicate notice
     let row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
