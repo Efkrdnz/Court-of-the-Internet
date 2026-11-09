@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **71/71 Playwright** and **205/205 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **71/71 Playwright** and **213/213 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **71/71 Playwright** and **205/205 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 205 Vitest + 71 Playwright tests (46 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 213 Vitest + 71 Playwright tests (46 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -588,6 +588,29 @@ Unchanged:
 - **Sealed pages return 200 with `noindex`.**
 - **No proxy:** lockout and IP spoofing without a proxy are documented.
 - **Jury illustration at 1024px:** the reported spill on the home page's 1024px layout is cosmetic. I could not reproduce it and left it as is.
+
+## Twenty-third independent audit (fresh agent, build of commit 484e7e8)
+
+**Result: all 17 PASS (item 10 "with gaps"), 0 FAIL. No blocking defects; four low-severity issues and two concerns.**
+
+It confirmed:
+- every race (dismiss vs seal vs vote; strike vs seal vs report vs dismiss vs vote; ban vs adjourn vs vote) kept counters equal to the Vote rows
+- the pause and resume deadline maths is exact
+- deletion during an in-flight filing serialises cleanly
+- statistics for 6 players match its own replay
+- axe found 0 violations on 10 pages
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | The anonymous-alias rule could be dodged with a full-width ＃ or a trailing period; "Presiding Judge" was accepted as a display name | the alias rule is checked on the NFKC form anywhere in the name; the court's staff titles are reserved | unit (4 rejected; "Judge Mental", "Clerk Kent", "#1 Fan" accepted) |
+| 2 | Re-reporting after a dismissal said "the clerks are on it" | says the clerks already reviewed it | — |
+| 4 | The sitemap listed `/jury` (and `/confess`), which redirect logged-out visitors | removed | — |
+| 5 | Successful logins counted toward the per-IP and per-account limits, so people sharing an office IP could lock each other out | only *failed* logins count (checked without counting, incremented on failure); a successful login clears its account+IP counter. README updated | integration (`assertUnderLimit`); e2e lockout test still passes |
+
+Unchanged:
+- sealed pages return 200 with `noindex`
+- `X-Forwarded-For` can be spoofed without a proxy (documented)
+- 35-character words break at 320px (expected)
 
 ## Per-phase evidence
 

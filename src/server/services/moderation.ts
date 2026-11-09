@@ -85,7 +85,14 @@ export async function fileReport(
       return { autoReview };
     });
   } catch (e) {
-    if (isUniqueViolation(e)) throw new CourtError("ALREADY_DONE", "You've already reported this. The clerks are on it.");
+    if (isUniqueViolation(e)) {
+      // One report per player, case and target. Say whether the clerks are still on it or already ruled.
+      const prior = await db.report.findFirst({ where: { caseId: input.caseId, reporterId, target: input.target }, select: { status: true } });
+      throw new CourtError(
+        "ALREADY_DONE",
+        prior && prior.status !== "OPEN" ? "You reported this before and the clerks already reviewed it." : "You've already reported this. The clerks are on it.",
+      );
+    }
     throw e;
   }
 }

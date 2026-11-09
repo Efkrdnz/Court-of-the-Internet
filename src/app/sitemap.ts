@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     select: { number: true, slug: true, closedAt: true },
   });
   return [
-    ...["", "/archives", "/leaderboards", "/jury", "/defend", "/prosecute", "/confess", "/rules"].map((p) => ({ url: `${base}${p}` })),
+    ...["", "/archives", "/leaderboards", "/defend", "/prosecute", "/rules"].map((p) => ({ url: `${base}${p}` })),
     ...cases.map((c) => ({ url: `${base}${casePath(c)}`, lastModified: c.closedAt ?? undefined })),
   ];
 }

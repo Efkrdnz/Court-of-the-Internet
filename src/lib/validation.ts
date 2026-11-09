@@ -63,8 +63,13 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
     message: "Display names can't mix Latin letters with letters from other alphabets.",
   })
   // "Sweaty Walrus #D89B" is what anonymous confessors are called; nobody may pose as one.
-  .refine((s) => !/#\s*[0-9a-f]{3,6}\s*$/i.test(s), {
-    message: "Names ending in a #tag look like an anonymous alias. Pick something else.",
+  // (Checked on the NFKC form, so a full-width ＃ or trailing punctuation doesn't slip past.)
+  .refine((s) => !/#\s*[0-9a-f]{3,6}\b/i.test(s.normalize("NFKC")), {
+    message: "Names with a #tag look like an anonymous alias. Pick something else.",
+  })
+  // The court's own titles for staff.
+  .refine((s) => !/^\s*(?:presiding\s+judge|court\s+clerk|the\s+court|the\s+clerks?|moderator|administrator|admin)\s*[.!]*\s*$/i.test(s.normalize("NFKC")), {
+    message: "That's an official title of the court. Pick your own name.",
   });
 
 export const usernameSchema = z

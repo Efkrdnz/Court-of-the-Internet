@@ -34,6 +34,18 @@ export async function enforceRateLimit(
   if (!result.allowed) throw new CourtError("RATE_LIMITED", message);
 }
 
+/**
+ * Read-only check: throws if `key` has already used up `limit` in the current window, without
+ * counting this request. Pair with hitRateLimit() to count only the attempts that should count
+ * (e.g. failed logins).
+ */
+export async function assertUnderLimit(key: string, limit: number, windowSeconds: number, message: string) {
+  if (process.env.DISABLE_RATE_LIMITS === "1") return;
+  const floor = new Date(clock.now().getTime() - windowSeconds * 1000);
+  const row = await db.rateLimit.findUnique({ where: { key }, select: { count: true, windowStart: true } });
+  if (row && row.windowStart > floor && row.count >= limit) throw new CourtError("RATE_LIMITED", message);
+}
+
 /** Periodic cleanup of stale windows. */
 export async function pruneRateLimits(olderThanSeconds = 86_400) {
   const cutoff = new Date(clock.now().getTime() - olderThanSeconds * 1000);

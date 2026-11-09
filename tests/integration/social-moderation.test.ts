@@ -17,7 +17,7 @@ import {
   setBan,
   strikeArgument,
 } from "@/server/services/moderation";
-import { hitRateLimit } from "@/server/rate-limit";
+import { assertUnderLimit, hitRateLimit } from "@/server/rate-limit";
 import { auditStats } from "@/server/services/stats";
 import { getFeaturedCase, utcDay } from "@/server/queries/community";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
@@ -540,6 +540,15 @@ describe("rate limiting", () => {
     expect((await hitRateLimit("test:key", 3, 60)).allowed).toBe(false);
     advance(minutes(1) + 1);
     expect((await hitRateLimit("test:key", 3, 60)).allowed).toBe(true);
+  });
+
+  it("can check a limit without counting the request (failed-login-only limits, audit 23 #5)", async () => {
+    await assertUnderLimit("test:peek", 3, 60, "limited"); // never counted
+    await assertUnderLimit("test:peek", 3, 60, "limited");
+    for (let i = 0; i < 3; i++) await hitRateLimit("test:peek", 3, 60);
+    await expect(assertUnderLimit("test:peek", 3, 60, "limited")).rejects.toMatchObject({ code: "RATE_LIMITED" });
+    advance(minutes(2));
+    await assertUnderLimit("test:peek", 3, 60, "limited"); // window over
   });
 
   it("is atomic under concurrency", async () => {

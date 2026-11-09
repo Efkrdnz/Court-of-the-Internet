@@ -6,7 +6,7 @@ import { loginSchema, signupSchema } from "@/lib/validation";
 import { assertNotStaffName, authenticate, registerUser } from "@/server/services/accounts";
 import { createSession, destroySession } from "@/server/auth/sessions";
 import { clearSessionCookie, clientIp, getSessionToken, setSessionCookie } from "@/server/auth/current-user";
-import { enforceRateLimit } from "@/server/rate-limit";
+import { assertUnderLimit, enforceRateLimit, hitRateLimit } from "@/server/rate-limit";
 import { safeNext } from "@/lib/safe-next";
 import { screenText } from "@/lib/content-filter";
 import { appConfig } from "@/server/config";
@@ -53,15 +53,29 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
   try {
     const ip = await clientIp();
     const input = loginSchema.parse(formObject(formData));
-    if (ip) {
-      await enforceRateLimit(`login:${ip}`, 20, 900, "Too many attempts. The court is in recess for 15 minutes.");
-      // Strict per (account, IP) so one attacker can't lock the real owner out; a looser
-      // per-account ceiling still slows distributed guessing (scrypt makes each guess costly).
-      await enforceRateLimit(`login-user-ip:${input.username}:${ip}`, 8, 900, "Too many attempts for that account. Try again in 15 minutes.");
-    }
-    await enforceRateLimit(`login-user:${input.username}`, 100, 900, "Too many attempts for that account. Try again in 15 minutes.");
+    // Only *failed* logins count (people sharing an office or NAT IP shouldn't lock each other
+    // out by logging in successfully). Strict per (account, IP) so one attacker can't lock the
+    // owner out from elsewhere; a looser per-account ceiling still slows distributed guessing.
+    const limits: [string, number, string][] = [
+      ...(ip
+        ? ([
+            [`login:${ip}`, 20, "Too many failed attempts. The court is in recess for 15 minutes."],
+            [`login-user-ip:${input.username}:${ip}`, 8, "Too many failed attempts for that account. Try again in 15 minutes."],
+          ] as [string, number, string][])
+        : []),
+      [`login-user:${input.username}`, 100, "Too many failed attempts for that account. Try again in 15 minutes."],
+    ];
+    for (const [key, limit, message] of limits) await assertUnderLimit(key, limit, 900, message);
     next = safeNext(formData.get("next"));
-    const user = await authenticate(input.username, input.password);
+    let user;
+    try {
+      user = await authenticate(input.username, input.password);
+    } catch (e) {
+      if (process.env.DISABLE_RATE_LIMITS !== "1") for (const [key] of limits) await hitRateLimit(key, 1, 900);
+      throw e;
+    }
+    // A successful login clears this account's failures from this IP.
+    if (ip) await db.rateLimit.deleteMany({ where: { key: `login-user-ip:${input.username}:${ip}` } });
     const ua = (await headers()).get("user-agent");
     const session = await createSession(user.id, ua);
     await setSessionCookie(session.token);

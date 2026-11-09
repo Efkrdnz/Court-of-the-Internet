@@ -406,9 +406,9 @@ test("§12 security: wrong passwords from one IP don't lock the owner out elsewh
     await a.getByLabel("Username").fill("juror_whiskers");
     await a.getByLabel("Password").fill(`wrong-guess-${i}`);
     await a.getByRole("button", { name: "Enter the courtroom" }).click();
-    await expect(a.getByRole("alert").filter({ hasText: /wrong password|Too many attempts/ })).toBeVisible();
+    await expect(a.getByRole("alert").filter({ hasText: /wrong password|Too many (failed )?attempts/ })).toBeVisible();
   }
-  await expect(a.getByRole("alert").filter({ hasText: /Too many attempts/ })).toBeVisible(); // attacker is throttled
+  await expect(a.getByRole("alert").filter({ hasText: /Too many (failed )?attempts/ })).toBeVisible(); // attacker is throttled
   const owner = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": "198.51.100.42" } });
   const o = await owner.newPage();
   await o.goto("/login");

@@ -491,3 +491,14 @@ describe("audit 22 filter gaps", () => {
     expect(signupSchema.safeParse({ ...base, displayName: "Agent 47" }).success).toBe(true);
   });
 });
+
+describe("alias and title impersonation (audit 23 #1)", () => {
+  it.each(["Sweaty Walrus ＃D89B", "Sweaty Walrus #D89B.", "Presiding Judge", "court clerk"])("rejects %j", (displayName) => {
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(false);
+  });
+  it.each(["Judge Mental", "Clerk Kent", "#1 Fan"])("accepts %j", (displayName) => {
+    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
+  });
+});
