@@ -36,7 +36,9 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
       throw new CourtError("CONFLICT", "That username is already taken.", "username");
     }
     const ip = await clientIp();
-    await enforceRateLimit(`signup:${ip}`, 6, 3600, "Too many new identities from here. Try again later.");
+    if (ip) await enforceRateLimit(`signup:${ip}`, 6, 3600, "Too many new identities from here. Try again later.");
+    // Without a client IP, a loose site-wide ceiling still stops a signup flood.
+    else await enforceRateLimit("signup:unknown-ip", 60, 3600, "Too many new identities right now. Try again later.");
     next = safeNext(formData.get("next"));
     const user = await registerUser({ username: input.username, displayName: input.displayName, password: input.password });
     const ua = (await headers()).get("user-agent");
@@ -53,10 +55,12 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
   try {
     const ip = await clientIp();
     const input = loginSchema.parse(formObject(formData));
-    await enforceRateLimit(`login:${ip}`, 20, 900, "Too many attempts. The court is in recess for 15 minutes.");
-    // Strict per (account, IP) so one attacker can't lock the real owner out; a looser
-    // per-account ceiling still slows distributed guessing (scrypt makes each guess costly).
-    await enforceRateLimit(`login-user-ip:${input.username}:${ip}`, 8, 900, "Too many attempts for that account. Try again in 15 minutes.");
+    if (ip) {
+      await enforceRateLimit(`login:${ip}`, 20, 900, "Too many attempts. The court is in recess for 15 minutes.");
+      // Strict per (account, IP) so one attacker can't lock the real owner out; a looser
+      // per-account ceiling still slows distributed guessing (scrypt makes each guess costly).
+      await enforceRateLimit(`login-user-ip:${input.username}:${ip}`, 8, 900, "Too many attempts for that account. Try again in 15 minutes.");
+    }
     await enforceRateLimit(`login-user:${input.username}`, 100, 900, "Too many attempts for that account. Try again in 15 minutes.");
     next = safeNext(formData.get("next"));
     const user = await authenticate(input.username, input.password);

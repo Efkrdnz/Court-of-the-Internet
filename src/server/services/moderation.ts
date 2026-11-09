@@ -130,6 +130,19 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     if (banned) {
       // Release anything they were holding so other players aren't blocked.
       await releaseClaims(tx, { userId: targetUserId });
+      // Their votes on trials still in deliberation stop counting; reached verdicts stand.
+      const open = await tx.vote.findMany({
+        where: { userId: targetUserId, case: { status: "DELIBERATION" } },
+        select: { id: true, caseId: true, choice: true },
+      });
+      for (const v of open) {
+        await tx.vote.delete({ where: { id: v.id } });
+        await tx.case.update({
+          where: { id: v.caseId },
+          data: v.choice === "GUILTY" ? { guiltyVotes: { decrement: 1 } } : { notGuiltyVotes: { decrement: 1 } },
+        });
+      }
+      if (open.length) await tx.userStats.update({ where: { userId: targetUserId }, data: { juryVotes: { decrement: open.length } } });
       await tx.session.deleteMany({ where: { userId: targetUserId } });
     }
     await log(tx, moderatorId, banned ? "BAN_USER" : "UNBAN_USER", { targetUserId, note: reason });

@@ -77,8 +77,10 @@ body {
   min-height: 100dvh;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  /* Player-written text can contain very long "words"; never let them widen the page. */
-  overflow-wrap: anywhere;
+  /* Player-written text can contain very long "words"; break them only when a word alone
+     overflows its line. (`anywhere` would also shrink flex columns to one character wide and
+     split ordinary words mid-word.) */
+  overflow-wrap: break-word;
 }
 
 /* Film-grain overlay for warmth */
@@ -269,6 +271,7 @@ body::before {
        spilling out of the button (or its card) on narrow phones. */
     max-width: 100%;
     white-space: normal;
+    overflow-wrap: normal; /* wrap between words only: never "Reconsid/er" */
     text-align: center;
     text-wrap: balance;
   }

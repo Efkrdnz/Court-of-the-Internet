@@ -96,7 +96,9 @@ export default async function CasePage({ params, searchParams }: Props) {
   }
 
   const c = detail.case;
-  void bumpViewCount(c.id, user ? `u:${user.id}` : `ip:${await clientIp()}`);
+  // Logged-out views count once per IP; without a known IP they aren't counted at all.
+  const viewer = user ? `u:${user.id}` : await clientIp().then((ip) => (ip ? `ip:${ip}` : null));
+  if (viewer) void bumpViewCount(c.id, viewer);
   const cat = getCategory(c.category);
   const viewerRole = c.viewer.role;
   const url = `${appConfig.siteUrl}${casePath(c)}`;

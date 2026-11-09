@@ -178,7 +178,7 @@ The app is a standard Node.js Next.js server and needs one PostgreSQL database.
    - `SITE_URL`: e.g. `https://court.example.com` (share links, OG URLs, sitemap). Read at runtime, so no rebuild is needed to change it. `NEXT_PUBLIC_SITE_URL` still works as a build-time fallback.
    - `TRUST_PROXY_HOPS`: the number of reverse proxies in front of the app (default `1`). Rate limits use the client IP that your own proxy appended to `X-Forwarded-For` (counted from the right), so spoofed left-most entries are ignored.
    - `CRON_SECRET`: enables the maintenance endpoint
-   - `ENABLE_DEMO_LOGIN=false`: unless you want the demo buttons
+   - Leave `ENABLE_DEMO_LOGIN` unset (it defaults to **off** in production) and never run the seed against production. The seed refuses non-local databases unless `ALLOW_PRODUCTION_SEED=1` is set, because the demo admin's password is public
    - Optional tuning: `COURT_QUORUM`, `COURT_DELIBERATION_HOURS`, `COURT_MAX_EXTENSIONS`, `COURT_CLAIM_MINUTES`
 3. Build and migrate:
 
@@ -230,6 +230,15 @@ This is a humorous, fictional courtroom. Submissions are screened for personal i
 - **Client IPs need a proxy.** IP-based limits use the right-most `X-Forwarded-For` entries (`TRUST_PROXY_HOPS`).
   - **Behind a reverse proxy** (nginx, Vercel, Fly…) clients can't spoof them. Login is limited to 8 attempts per account per client IP, so one attacker can't lock the owner out from a different IP. There is also a per-account ceiling of 100 attempts per 15 minutes across all IPs. It stops distributed brute force, but someone spraying wrong passwords from many IPs can lock the real owner out, even with the correct password, until the 15-minute window resets. That is a deliberate trade-off: letting correct passwords through would defeat the ceiling.
   - **With `next start` exposed directly**, the client controls that header, because Next doesn't expose the socket address to server actions. The per-IP limits on signup, login and confession can then be bypassed by rotating the header. The only fixed protection left is the per-account ceiling of 100 login attempts per 15 minutes, plus scrypt's cost per guess. Always deploy behind a proxy.
+  - **Requests with no forwarding header at all** have no known IP. They skip the per-IP limits instead of sharing one bucket, which would let a single noisy client lock everyone out. In that case:
+    - logins rely on the per-account ceiling
+    - signups fall under a site-wide ceiling of 60 per hour
+    - confessions rely on the per-player limit of 3 per 10 minutes
+    - logged-out case views aren't counted
+- **Moderation doesn't rewrite history.**
+  - Sealing a *closed* case hides it from every public page and the archive totals, but the players' records (wins, convictions, XP) from that trial stand.
+  - Striking an argument hides it from non-staff without pausing or annulling the trial; jurors who already voted keep their votes. Seal the case instead if the whole trial should stop.
+  - Banning a player removes their votes from trials still in deliberation (those votes no longer count); verdicts already reached stand.
 - **Anonymity costs rewards.** Anonymous cases never expose the confessor's name, id or profile link: not in pages, page payloads, OG images, the sitemap or leaderboards.
   - Anonymous cases are also off the record. The confessor gets no XP, achievements, conviction or acquittal counts from them, at filing or at verdict. Otherwise a change on their public profile would reveal them.
   - They still get the private verdict notification and see the case in their courtroom.

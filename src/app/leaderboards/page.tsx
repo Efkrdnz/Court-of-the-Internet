@@ -157,7 +157,7 @@ export default async function LeaderboardsPage() {
         <h2 id="ent-heading" className="rule-ornate mb-2 font-display text-2xl font-bold">
           <span className="text-parchment">Most entertaining cases</span>
         </h2>
-        <p className="mb-6 text-center text-sm text-parchment/60">Ranked by gallery reactions (Legendary counts triple).</p>
+        <p className="mb-6 text-center text-sm text-parchment/60">Ranked by weighted gallery reactions: Legendary ×3, Hilarious and Outrageous ×2, Relatable ×1.</p>
         {lb.entertaining.length === 0 ? (
           <p className="velvet p-6 text-center text-parchment/70">No reactions yet. Tough crowd.</p>
         ) : (

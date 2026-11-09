@@ -34,7 +34,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         },
       })
     : null;
-  const visible = c && c.moderationState === "VISIBLE";
+  // No such case: a real 404 rather than a blank card. (Sealed cases still get a neutral card.)
+  if (!c) return new Response("Not found", { status: 404 });
+  const visible = c.moderationState === "VISIBLE";
   const closed = visible && c.status === "CLOSED" && c.verdict;
   const status = visible ? shareCardStatus(c.status, c.verdict) : null;
   const stamp = { text: status?.stamp ?? "", color: status?.color ?? "#5c5254" };

@@ -46,8 +46,17 @@ setClock(() => new Date(t));
 async function main() {
   const reset = process.argv.includes("--reset");
   const url = process.env.DATABASE_URL ?? "";
-  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_PRODUCTION_SEED) {
-    throw new Error("Refusing to seed in production. Set ALLOW_PRODUCTION_SEED=1 if you really mean it.");
+  // The seed creates an admin whose password is published in the README, so it only runs
+  // against a local database unless explicitly forced (NODE_ENV alone is too easy to forget).
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {}
+  const local = ["localhost", "127.0.0.1", "::1", "[::1]", "db", "postgres"].includes(host);
+  if ((process.env.NODE_ENV === "production" || !local) && !process.env.ALLOW_PRODUCTION_SEED) {
+    throw new Error(
+      `Refusing to seed ${local ? "in production" : `a non-local database (${host || "unknown host"})`}: the demo accounts have a public password. Set ALLOW_PRODUCTION_SEED=1 if you really mean it.`,
+    );
   }
   const existing = await db.user.count();
   if (existing > 0 && !reset) {

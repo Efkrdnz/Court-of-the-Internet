@@ -23,7 +23,7 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
     screenConfession(input); // content-filter rejections don't count against the limit either
     const ip = await clientIp();
     await enforceRateLimit(`confess:${user.id}`, 3, 600, "Slow down! The stenographer can only type so fast.");
-    await enforceRateLimit(`confess-ip:${ip}`, 15, 3600);
+    if (ip) await enforceRateLimit(`confess-ip:${ip}`, 15, 3600);
     const created = await confess(user.id, input);
     path = `${casePath(created)}?filed=1`;
   } catch (e) {

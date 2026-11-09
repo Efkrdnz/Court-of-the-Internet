@@ -40,3 +40,40 @@ export async function expectNoHorizontalScroll(page: Page) {
   }, device);
   expect({ scroll, inner, culprits }, "page content must fit the device width").toEqual({ scroll: device, inner: device, culprits: [] });
 }
+
+/**
+ * Finds ordinary words (≤ 20 characters) that can't fit on one line of their container, i.e.
+ * would be split mid-word ("Reconsid/er", "N/o./0/0/3"). Page-overflow checks miss these
+ * because the text wraps inside the page.
+ */
+export async function findMidWordBreaks(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const ctx = document.createElement("canvas").getContext("2d")!;
+    const found = new Set<string>();
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = node.textContent ?? "";
+      if (!text.trim()) continue;
+      const el = node.parentElement!;
+      if (el.closest("[aria-hidden=true], script, style, svg, noscript, dialog:not([open])")) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === "hidden" || cs.textOverflow === "ellipsis" || el.getClientRects().length === 0) continue;
+      // Width available to the text: the nearest non-inline ancestor's content box.
+      let box: HTMLElement = el;
+      while (box.parentElement && getComputedStyle(box).display.startsWith("inline")) box = box.parentElement;
+      const bs = getComputedStyle(box);
+      if (bs.whiteSpace === "nowrap" || bs.whiteSpace === "pre") continue;
+      const avail = box.clientWidth - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight);
+      if (avail <= 0) continue;
+      ctx.font = cs.font;
+      // A hyphen is a legitimate break point ("Silver-" / "Tongued").
+      for (let word of text.split(/\s+|(?<=-)/)) {
+        if (!word || word.length > 20) continue;
+        if (cs.textTransform === "uppercase") word = word.toUpperCase();
+        const w = ctx.measureText(word).width + word.length * (parseFloat(cs.letterSpacing) || 0);
+        if (w > avail + 1) found.add(`"${word}" needs ${Math.round(w)}px, has ${Math.round(avail)}px in <${box.tagName.toLowerCase()} class="${(box.getAttribute("class") ?? "").slice(0, 40)}">`);
+      }
+    }
+    return [...found].slice(0, 10);
+  });
+}

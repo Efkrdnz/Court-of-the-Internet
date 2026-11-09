@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalScroll } from "./helpers";
+import { expectNoHorizontalScroll, findMidWordBreaks } from "./helpers";
 
 const PAGES = ["/", "/archives", "/leaderboards", "/rules", "/login", "/signup", "/cases/1", "/cases/27", "/u/counselor_coo", "/jury", "/defend", "/prosecute", "/confess"];
 
@@ -153,7 +153,18 @@ for (const width of [360, 320]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
       await expectNoHorizontalScroll(page);
+      // …and no ordinary word is squeezed into a column too narrow for it (audit 7 #1–3).
+      expect(await findMidWordBreaks(page), `${path} at ${width}px`).toEqual([]);
     }
+    // The vote confirmation (shown after picking a side, before sealing the vote).
+    await page.goto("/jury");
+    const pick = page.locator("button[aria-pressed]").last();
+    if (await pick.isVisible()) {
+      await pick.tap();
+      await expect(page.getByRole("button", { name: "Reconsider" })).toBeVisible();
+      expect(await findMidWordBreaks(page), `vote confirmation at ${width}px`).toEqual([]);
+    }
+    await context.close();
   });
 }
 

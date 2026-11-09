@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **66/66 Playwright** and **79/79 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **66/66 Playwright** and **80/80 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **66/66 Playwright** and **79/79 Vitest** passing; `tsc`, ESLint 
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 79 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 80 Vitest + 66 Playwright tests (41 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -221,6 +221,31 @@ Its findings, all fixed:
 | 10 | `deleted_*` usernames could be registered (collision with deletion tombstones) | reserved | unit |
 | 11 | Unknown case tab title "Sealed case"; under-review title wrong | "Page not found" / "Case under review" | status check |
 | 12 | Banned users' dashboard invited them to vote; mid-word hyphenation at desktop; ambiguous "2 of 3 votes needed"; small links | no play suggestions when banned; hyphenation removed; "2 votes so far · 3 needed for a verdict"; 36px targets | visual |
+
+## Seventh independent audit (fresh agent, build of commit eccb4ee)
+
+**Result: 15 PASS, 1 FAIL (13 mobile), 1 CONCERN (17 docs).**
+
+It confirmed the sixth round end to end:
+- **Paused trials:** review and seal pause the clock, dismissal restores the exact remaining time, and nothing pays out while a case is hidden.
+- **Anonymity:** an anonymous confession and its verdict leave the profile untouched.
+- **Rate limits:** a valid filing after 11 rejections used one slot.
+- **Concurrency:** 48-way reaction races and 12-way claim races held.
+- **Statistics:** 0 mismatches in its SQL recomputation.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 (FAIL) | `/court` "Your active cases" collapsed to a 14px column at 320px ("N/o./0/0/3") | **Root cause:** `overflow-wrap: anywhere` on `body` lets flex columns shrink to one character. Now `break-word`, which still breaks over-long words but never ordinary ones. The row's text has a flex basis, so the status pill wraps below | new `findMidWordBreaks()` detector (every ≤20-character word must fit its column) runs on 13 pages at 360 and 320px plus the vote confirmation; a one-off scan of 19 pages × 4 accounts × 2 widths is clean |
+| 2 | Case-card titles broke mid-word at 320px | the decorative verdict stamp is hidden below 400px (the footer pill states the verdict); smaller icon and title | same detector |
+| 3 | "Reconsid/er" in the vote confirmation at 320px | `.btn` uses `overflow-wrap: normal` | same detector, after picking a side |
+| 4 | Clients with no forwarding header shared one rate-limit bucket ("local"), so about 20 logins locked everyone out | unknown IP → per-IP limits skipped (per-account limits stay); signups fall under a site-wide 60/h ceiling; logged-out views aren't counted. README documents it | — |
+| 5 | OG image for a nonexistent case returned 200 | 404 | status check |
+| 6 | Moderation side effects undocumented; a banned juror's vote still counted | a ban removes the player's votes from open trials (closed verdicts stand). README "Moderation doesn't rewrite history" covers sealed closed cases and struck arguments | integration `a ban removes the player's votes from open trials…` |
+| 7 | Demo login could be on in production via a copied `.env.example`; the seed guard relied on `NODE_ENV` | `.env.example` no longer enables demo login (the default is off in production); the seed refuses any non-local database unless `ALLOW_PRODUCTION_SEED=1` | manual: the seed refuses `db.example.com` |
+| 8 | "Legendary counts triple" was wrong | states the real weights | — |
+| 9 | Audit-log and toast links under 36px | `min-h-9` | — |
+
+Not changed: sealed case pages return 200 with `noindex`. The page explains the seal to people who follow an old link, and the author sees the reason.
 
 ## Per-phase evidence
 

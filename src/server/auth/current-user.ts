@@ -65,13 +65,15 @@ export async function clearSessionCookie() {
  * from the right. When the app is exposed directly (no proxy) this cannot be made spoof-proof
  * without the socket address, which Next does not expose to server actions (see README).
  */
-export async function clientIp(): Promise<string> {
+export async function clientIp(): Promise<string | null> {
   const h = await headers();
   const hops = Math.max(1, Number(process.env.TRUST_PROXY_HOPS ?? 1) || 1);
   const chain = (h.get("x-forwarded-for") ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const ip = chain.length ? chain[Math.max(0, chain.length - hops)] : h.get("x-real-ip") || "local";
-  return ip.slice(0, 64);
+  // Unknown (no proxy header): callers skip per-IP limits rather than lumping every such client
+  // into one shared bucket, which would let one noisy client lock everyone else out.
+  const ip = chain.length ? chain[Math.max(0, chain.length - hops)] : h.get("x-real-ip");
+  return ip ? ip.slice(0, 64) : null;
 }

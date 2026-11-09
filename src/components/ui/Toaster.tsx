@@ -81,7 +81,7 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
                 <p className="font-display text-lg font-black leading-tight">{achievement?.name ?? current.title}</p>
                 <p className="muted text-sm">{current.body}</p>
                 {current.href ? (
-                  <Link href={current.href} onClick={dismiss} className="mt-1 inline-block text-sm font-bold text-burgundy underline underline-offset-2">
+                  <Link href={current.href} onClick={dismiss} className="mt-1 inline-flex min-h-9 min-w-11 items-center text-sm font-bold text-burgundy underline underline-offset-2">
                     View
                   </Link>
                 ) : null}

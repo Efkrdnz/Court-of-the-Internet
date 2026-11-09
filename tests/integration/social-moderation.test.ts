@@ -17,10 +17,11 @@ import {
   strikeArgument,
 } from "@/server/services/moderation";
 import { hitRateLimit } from "@/server/rate-limit";
+import { auditStats } from "@/server/services/stats";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
-import { DEFENSE_TEXT, advance, achievementKeys, hours, stats, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
+import { DEFENSE_TEXT, advance, closeNow, achievementKeys, hours, stats, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
 
 beforeEach(async () => {
   await resetDb();
@@ -221,6 +222,28 @@ describe("moderation", () => {
     await expect(
       updateProfile(player, { displayName: "Goose Owner", bio: "", avatar: { ...goose, headwear: "crown" }, profileTheme: "mahogany", featuredBadge: null }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("a ban removes the player's votes from open trials but leaves reached verdicts alone (audit 7 #6)", async () => {
+    const [accused, attorney, prosecutor, rogue] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const admin = await makeUser("vote_ban_admin", "ADMIN");
+    process.env.COURT_QUORUM = "3";
+    const others = await makeUsers(3, "vb");
+    const closed = await makeCase(accused);
+    await toDeliberation(closed.id, attorney, prosecutor);
+    await castVote(rogue, closed.id, "GUILTY");
+    await voteAll(closed.id, others, 3);
+    await closeNow(closed.id);
+    const open = await makeCase(accused);
+    await toDeliberation(open.id, attorney, prosecutor);
+    await castVote(rogue, open.id, "NOT_GUILTY");
+
+    await setBan(admin, rogue, true, "Vote brigading");
+    const o = await db.case.findUniqueOrThrow({ where: { id: open.id } });
+    expect(o.notGuiltyVotes).toBe(0);
+    expect(await db.vote.count({ where: { userId: rogue } })).toBe(1); // the closed trial's vote stands
+    expect((await db.case.findUniqueOrThrow({ where: { id: closed.id } })).guiltyVotes).toBe(4);
+    expect((await auditStats(rogue)).ok).toBe(true);
   });
 
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {

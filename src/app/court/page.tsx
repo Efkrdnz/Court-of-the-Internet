@@ -145,7 +145,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
             {d.active.length === 0 ? (
               <div className="velvet flex flex-wrap items-center gap-6 p-6">
                 <HamsterDefendant className="chr-hover chr-sticker w-28" />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-[1_1_12rem]">
                   <p className="font-display text-xl font-bold text-parchment">No open cases. Suspiciously innocent.</p>
                   <p className="text-parchment/70">Confess something, or take on a client.</p>
                 </div>
@@ -159,8 +159,9 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                   <li key={c.id}>
                     <Link href={casePath(c)} className="flex flex-wrap items-center gap-3 p-4 transition hover:bg-burgundy/30">
                       <CategoryIcon category={c.category} className="h-9 w-9" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-bold text-parchment">{c.title}</p>
+                      {/* Basis 11rem: on narrow phones the status pill wraps below instead of squeezing the title. */}
+                      <div className="min-w-0 flex-[1_1_11rem]">
+                        <p className="line-clamp-2 font-bold text-parchment">{c.title}</p>
                         <p className="text-xs text-parchment/60">
                           No. {formatCaseNumber(c.number)} · You: <span className="text-gold-light">{roleOf(c)}</span>
                           {c.anonymous && c.viewer.role === "ACCUSED" ? " (anonymous)" : ""} · {relativeTime(c.createdAt)}

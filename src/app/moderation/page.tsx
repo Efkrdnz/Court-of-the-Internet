@@ -256,10 +256,10 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         ) : (
           <ul className="divide-y divide-gold/15 rounded-xl border border-gold/20 bg-night/30 text-sm">
             {log.map((l) => (
-              <li key={l.id} className="flex flex-wrap gap-x-3 px-4 py-2 text-parchment/80">
+              <li key={l.id} className="flex flex-wrap items-center gap-x-3 px-4 py-1 text-parchment/80">
                 <span className="font-bold text-gold-light">{l.action}</span>
                 <span>by @{l.moderator.username}</span>
-                {l.case ? <Link href={casePath(l.case)} className="underline">case {formatCaseNumber(l.case.number)}</Link> : null}
+                {l.case ? <Link href={casePath(l.case)} className="inline-flex min-h-9 items-center underline">case {formatCaseNumber(l.case.number)}</Link> : null}
                 {l.note ? <span className="italic">“{l.note}”</span> : null}
                 <span className="ml-auto text-parchment/50">{relativeTime(l.createdAt)}</span>
               </li>

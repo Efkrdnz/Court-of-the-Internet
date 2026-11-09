@@ -35,12 +35,12 @@ export function CaseFileCard({
         CASE No. {formatCaseNumber(c.number)}
       </span>
       <div className="flex items-start gap-3">
-        <CategoryIcon category={c.category} className="h-11 w-11 shrink-0 transition-transform duration-300 group-hover:rotate-[-8deg]" title={cat.label} />
+        <CategoryIcon category={c.category} className="h-9 w-9 shrink-0 min-[400px]:h-11 min-[400px]:w-11 transition-transform duration-300 group-hover:rotate-[-8deg]" title={cat.label} />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-sepia">
             {cat.label}
           </p>
-          <h3 className="font-display text-xl font-bold leading-snug text-ink">
+          <h3 className="font-display text-lg font-bold leading-snug text-ink min-[400px]:text-xl">
             {linkTitle ? (
               <Link href={href} className="after:absolute after:inset-0 after:content-[''] focus-visible:underline">
                 {c.title}
@@ -51,7 +51,8 @@ export function CaseFileCard({
           </h3>
         </div>
         {showStamp && c.status === "CLOSED" && c.verdict ? (
-          <VerdictStamp verdict={c.verdict} className="pointer-events-none -mr-2 -mt-1 w-20 shrink-0 rotate-[-8deg] opacity-90 mix-blend-multiply" />
+          // Decorative (the footer pill states the verdict), so narrow phones give its room to the title.
+          <VerdictStamp verdict={c.verdict} className="pointer-events-none -mr-2 -mt-1 hidden w-20 shrink-0 rotate-[-8deg] opacity-90 mix-blend-multiply min-[400px]:block" />
         ) : null}
       </div>
       <div className="mt-3 line-clamp-3 font-type text-[0.95rem] leading-relaxed text-ink/85">“{c.confession}”</div>

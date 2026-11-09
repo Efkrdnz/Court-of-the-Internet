@@ -49,7 +49,7 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
           <legend className="sr-only">Category</legend>
           <p className="font-display text-xl font-bold text-parchment">1. Choose the statute you broke</p>
           <p className="mb-4 text-sm text-parchment/60">Every crime belongs somewhere in the legal code.</p>
-          <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-2">
             {CATEGORIES.map((c) => {
               const on = category === c.key;
               return (
