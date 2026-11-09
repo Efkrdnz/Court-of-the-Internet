@@ -707,6 +707,15 @@ test("§12 visual assets: character art stays inside its card at desktop widths 
     for (const path of ["/", "/court", "/archives", "/leaderboards"]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
+      // Measure the resting layout: entrance animations (the hero's stamp slams down from 3×) finish first.
+      await page.evaluate(() =>
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+            .map((a) => a.finished.catch(() => undefined)),
+        ),
+      );
       const found = await page.evaluate(() => {
         const out: string[] = [];
         for (const card of document.querySelectorAll<HTMLElement>(".velvet, .doc")) {
