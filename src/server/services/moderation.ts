@@ -12,6 +12,14 @@ import { pauseDeliberation, resumeDeliberation } from "./pause";
 import { getAchievement } from "@/lib/achievements";
 import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from "@/lib/cosmetics";
 
+/**
+ * Moderation actions on one case run one at a time: each takes the case row lock first, so
+ * e.g. a seal and a concurrent "dismiss reports" can't interleave and silently undo each other.
+ */
+async function lockCase(tx: Tx, caseId: string) {
+  await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
+}
+
 async function assertStaff(tx: Tx, userId: string) {
   const u = await tx.user.findUnique({ where: { id: userId }, select: { role: true, bannedAt: true } });
   if (!u || u.bannedAt || (u.role !== "ADMIN" && u.role !== "MODERATOR")) {
@@ -85,6 +93,7 @@ export async function fileReport(
 export async function removeCase(moderatorId: string, caseId: string, reason: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    await lockCase(tx, caseId);
     const c = await tx.case.findUnique({
       where: { id: caseId },
       select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, title: true, moderationState: true, status: true },
@@ -119,6 +128,7 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
 export async function restoreCase(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    await lockCase(tx, caseId);
     const exists = await tx.case.findUnique({
       where: { id: caseId },
       select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, status: true, moderationState: true },
@@ -157,21 +167,23 @@ export async function restoreCase(moderatorId: string, caseId: string) {
 export async function dismissReports(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    await lockCase(tx, caseId);
     await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
     const c = await tx.case.findUnique({ where: { id: caseId }, select: { moderationState: true } });
     if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
-    await tx.case.update({
-      where: { id: caseId },
-      data: { openReports: 0, ...(c.moderationState === "UNDER_REVIEW" ? { moderationState: "VISIBLE" } : {}) },
-    });
-    if (c.moderationState === "UNDER_REVIEW") await resumeDeliberation(tx, caseId);
+    // Only an *under review* case is made visible again; a sealed one stays sealed.
+    const madeVisible = c.moderationState === "UNDER_REVIEW";
+    await tx.case.update({ where: { id: caseId }, data: { openReports: 0, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
+    if (madeVisible) await resumeDeliberation(tx, caseId);
     await log(tx, moderatorId, "DISMISS_REPORTS", { caseId });
+    return { madeVisible };
   });
 }
 
 export async function strikeArgument(moderatorId: string, caseId: string, role: "DEFENSE" | "PROSECUTION", stricken = true) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    await lockCase(tx, caseId);
     const res = await tx.argument.updateMany({ where: { caseId, role }, data: { stricken } });
     if (res.count === 0) throw new CourtError("NOT_FOUND", "No such argument.");
     await tx.report.updateMany({
@@ -236,6 +248,7 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
 export async function adjournNow(moderatorId: string, caseId: string) {
   await db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    await lockCase(tx, caseId);
     const res = await tx.case.updateMany({
       where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE" },
       data: { deliberationEndsAt: clock.now() },
@@ -296,6 +309,7 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
 export async function pinFeaturedCase(moderatorId: string, caseId: string, day: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    await lockCase(tx, caseId);
     const c = await tx.case.findUnique({
       where: { id: caseId },
       select: { status: true, moderationState: true, number: true, slug: true, accused: { select: { allowFeaturing: true } } },

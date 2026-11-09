@@ -8,11 +8,15 @@ const LETTERS: Record<string, string> = {
 };
 
 /** Invisible characters with no business in a confession (soft hyphen, zero-width, bidi, word joiners…). */
-export const INVISIBLE = /[­͏؜ᅟᅠ឴឵᠋-᠏​-‏‪-‮⁠-⁯ㅤ﻿ﾠ]/g;
+// (U+200D, the zero-width joiner, is handled separately: it is invisible on its own but holds emoji
+// sequences like a family emoji together.)
+export const INVISIBLE = /[­͏؜ᅟᅠ឴឵᠋-᠏​‌‎‏‪-‮⁠-⁯ㅤ﻿ﾠ]/g;
+/** Joiners that aren't between two emoji (i.e. that only serve to hide or split text). */
+export const STRAY_ZWJ = /(?<!\p{Extended_Pictographic}️?)‍|‍(?!\p{Extended_Pictographic})/gu;
 
 /** Compatibility folding (full-width digits → ASCII), invisibles dropped, look-alikes folded (case kept). */
 export function skeleton(input: string): string {
-  return [...input.normalize("NFKC").replace(INVISIBLE, "")]
+  return [...input.normalize("NFKC").replace(INVISIBLE, "").replace(/\u200D/g, "")]
     .map((ch) => {
       const lower = ch.toLowerCase();
       const latin = LETTERS[lower];

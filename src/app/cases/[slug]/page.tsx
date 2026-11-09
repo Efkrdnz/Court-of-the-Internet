@@ -152,7 +152,13 @@ export default async function CasePage({ params, searchParams }: Props) {
           : viewerRole === "PROSECUTION"
             ? "You're the prosecutor, so you can't vote. Glare at the jury meaningfully instead."
             : null;
-  const reactionReason = !user ? "signin" : viewerRole ? "You can't react to a case you took part in." : undefined;
+  const reactionReason = !user
+    ? "signin"
+    : viewerRole
+      ? "You can't react to a case you took part in."
+      : user.bannedAt
+        ? "You're held in contempt of court, so reactions are off."
+        : undefined;
   // The "just filed" banner only shows while it is still accurate (not on a later, closed case).
   const FILED_STAGE: Record<string, string[]> = {
     "1": ["AWAITING_DEFENSE", "DEFENSE_CLAIMED"],

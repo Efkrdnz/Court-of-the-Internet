@@ -1,4 +1,4 @@
-import { INVISIBLE } from "./confusables";
+import { INVISIBLE, STRAY_ZWJ } from "./confusables";
 
 /**
  * Normalises user-submitted text before validation and storage.
@@ -8,7 +8,7 @@ import { INVISIBLE } from "./confusables";
 export function normalizeText(input: string, { multiline = true }: { multiline?: boolean } = {}): string {
   let s = input.normalize("NFC");
   // Invisible characters: zero-width, bidi controls, soft hyphens, fillers (spoofing / filter evasion).
-  s = s.replace(INVISIBLE, "");
+  s = s.replace(INVISIBLE, "").replace(STRAY_ZWJ, "");
   // "Zalgo" text: at most two combining marks per character (real languages rarely need more).
   s = s.replace(/(\p{M}{2})\p{M}+/gu, "$1");
   // ASCII control chars except tab/newline.

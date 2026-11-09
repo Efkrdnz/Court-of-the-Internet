@@ -436,6 +436,16 @@ describe("moderation", () => {
     }
   });
 
+  it("a seal racing 'dismiss reports' always ends sealed (audit 18 #1)", async () => {
+    const [modA, modB] = [await makeUser("race_mod_a", "MODERATOR"), await makeUser("race_mod_b", "MODERATOR")];
+    for (let i = 0; i < 12; i++) {
+      const c = await makeCase(await makeUser());
+      await db.case.update({ where: { id: c.id }, data: { moderationState: "UNDER_REVIEW" } });
+      await Promise.allSettled([removeCase(modA, c.id, "doxxing removed"), dismissReports(modB, c.id)]);
+      expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("REMOVED");
+    }
+  });
+
   it("deleting an account releases its claims; moderators can't ban other officers", async () => {
     const [accused, quitter, next] = [await makeUser(), await makeUser(), await makeUser()];
     const c = await makeCase(accused);

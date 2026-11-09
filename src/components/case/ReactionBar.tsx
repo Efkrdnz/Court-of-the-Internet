@@ -136,6 +136,9 @@ export function ReactionBar({
           </Link>{" "}
           to react.
         </p>
+      ) : !canReact && reason ? (
+        // Visible, not just a tooltip: participants and banned players see why the buttons are off.
+        <p className="mt-2 text-sm text-parchment/70">{reason}</p>
       ) : null}
       {error ? (
         <p role="alert" className="mt-2 text-sm font-semibold text-[#ff9d9d]">

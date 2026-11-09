@@ -42,8 +42,7 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
         message = "Case restored.";
         break;
       case "dismiss":
-        await dismissReports(mod.id, caseId);
-        message = "Reports dismissed; case visible again.";
+        message = (await dismissReports(mod.id, caseId)).madeVisible ? "Reports dismissed; case visible again." : "Reports dismissed. (The case stays sealed.)";
         break;
       case "strike-defense":
       case "strike-prosecution":
@@ -61,7 +60,7 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
             ? `Deliberation closed: ${outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
             : outcome.kind === "extended"
               ? "Below quorum, so deliberation was extended (low-participation rule)."
-              : "Nothing to close.";
+              : "The case was sealed or put under review before it could close. It will close as soon as it is visible again.";
         break;
       }
       case "feature":

@@ -244,6 +244,9 @@ describe("filter evasion with invisible or look-alike characters (audit 12 D1)",
   });
   it("strips invisible characters before storage", () => {
     expect(normalizeText("soft­hyphen and zero​width")).toBe("softhyphen and zerowidth");
+    // Emoji joined with ZWJ survive; a stray joiner inside a word does not (audit 18 #6).
+    expect(normalizeText("family \u{1F469}\u200D\u{1F469}\u200D\u{1F467} night")).toBe("family \u{1F469}\u200D\u{1F469}\u200D\u{1F467} night");
+    expect(normalizeText("jo\u200Diner")).toBe("joiner");
   });
   it("still accepts ordinary non-Latin text", () => {
     expect(screenText("Я съел пиццу соседа по комнате и свалил всё на кота.").ok).toBe(true);
@@ -381,5 +384,28 @@ describe("display names mixing alphabets (audit 17 #4)", () => {
     expect(signupSchema.safeParse({ ...base, displayName: "J\u057Ddge Wigsworth" }).success).toBe(false); // Armenian ս
     expect(signupSchema.safeParse({ ...base, displayName: "\u13DFlerk Pemberton" }).success).toBe(false); // Cherokee Ꮯ
     expect(signupSchema.safeParse({ ...base, displayName: "山田 太郎" }).success).toBe(true);
+  });
+});
+
+describe("threat and evasion regressions (audit 18 #2)", () => {
+  it.each([
+    ["I'm gonna kill my roommate", "violence"],
+    ["Im gonna kill my roommate", "violence"],
+    ["gonna kill my roommate", "violence"],
+    ["i will k i l l my neighbour", "violence"],
+    ["the proof is on evil[.]com", "link"],
+    ["the proof is on evil.c0m", "link"],
+    ["call 555-123-45six7 tonight", "personal-info"],
+    ["they live at forty two Wallaby Way", "personal-info"],
+    ["find me on ig: coolguy", "handle"],
+  ])("flags %j as %s", (text, issue) => {
+    expect(screenText(text)).toMatchObject({ ok: false, issue });
+  });
+  it.each([
+    "I'm gonna be late again so I blamed the bus",
+    "My roommate is gonna kill me when she sees the kitchen",
+    "I told everyone I was going to the gym and went to the bakery",
+  ])("still accepts %j", (text) => {
+    expect(screenText(text).ok, text).toBe(true);
   });
 });

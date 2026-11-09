@@ -79,7 +79,7 @@ const FILLER = "(?:the|a|an|my|his|her|our|their|your|down|up|on|to|of|in|at|by|
 // Spelled-out house numbers: "seven forty two evergreen terrace".
 const NUM_WORD = "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)";
 const STREET_SPELLED = new RegExp(
-  `\\b${NUM_WORD}(?:[\\s-]+${NUM_WORD})*\\s+(?!${"(?:the|a|an|my|his|her|our|their|your|down|up|on|to|of|in|at|by|from|for|and|all|way|whole|entire|long|other|blocks?|miles?|minutes?|hours?|days?|times?|steps?)"}\\b)[a-z]+(?:\\s+[a-z]+)?\\s+(?:street|avenue|road|boulevard|lane|drive|terrace)\\b`,
+  `\\b${NUM_WORD}(?:[\\s-]+${NUM_WORD})*\\s+(?!${"(?:the|a|an|my|his|her|our|their|your|down|up|on|to|of|in|at|by|from|for|and|all|way|whole|entire|long|other|blocks?|miles?|minutes?|hours?|days?|times?|steps?)"}\\b)[a-z]+(?:\\s+[a-z]+)?\\s+(?:street|avenue|road|boulevard|lane|drive|terrace|way)\\b`,
   "i",
 );
 const STREET_LOWER = new RegExp(
@@ -94,6 +94,8 @@ const EMAIL_SPELLED =
   /\b[\w.+-]+\s*(?:[[({]\s*at\s*[\])}]|\sat\s)\s*[\w-]+\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*[a-z]{2,}\b/i;
 // "find him on insta as john_smith_1990": a platform name followed shortly by a handle-like token
 // (letters mixed with digits, dots or underscores).
+// "on ig: coolguy", "insta @coolguy": a platform name with a colon or @ right before a name.
+const PLATFORM_COLON = /\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\s*[:@]\s*@?[a-z0-9._]{3,}/i;
 const PLATFORM_HANDLE =
   /\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b.{0,25}?\b(?=[a-z0-9._]*[_\d.])(?=[a-z0-9._]*[a-z])[a-z0-9._]{4,}\b/i;
 const NUMBER_WORDS: Record<string, string> = { zero: "0", oh: "0", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6", seven: "7", eight: "8", nine: "9" };
@@ -122,7 +124,9 @@ function spacedOutWords(text: string): string[] {
 const VIOLENCE = [
   /\bkill\s+(?:your\s*self|urself|yourselves)\b/i,
   /\bkys\b/i,
-  /\bi(?:'m| am)?\s*(?:going|gonna)\s+to?\s*(?:kill|hurt|stab|shoot|murder|beat up)\b/i,
+  // "I'm going to kill", "im gonna kill", "gonna kill my roommate" (the old pattern demanded a "t" after "gonna").
+  /\b(?:i(?:'m|m| am)?\s*)?(?:going\s+to|gonna)\s+(?:kill|hurt|stab|shoot|murder|beat\s+up)\s+(?:my|his|her|their|your|him|them|you|someone|somebody|everyone)\b/i,
+  /\bi(?:'m|m| am)?\s*(?:going\s+to|gonna)\s+(?:kill|hurt|stab|shoot|murder|beat\s+up)\b/i,
   /\bi\s*(?:will|'ll)\s+(?:kill|hurt|stab|shoot|murder)\b/i,
   // Intent + harm + a person: "I want to kill my neighbour", "planning to poison his dog's owner".
   // Needs a human target, so "kill time", "could kill for a nap" and "mom will kill me" stay fine.
@@ -194,13 +198,19 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   // Cyrillic/Greek look-alikes folded to Latin. The spam heuristics still use the raw text.
   const text = skeleton(raw);
 
-  if (EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
+  // Variants a reader decodes without thinking: "evil[.]com", "evil.c0m", "555-123-45six7",
+  // "k i l l". Each is checked by the same patterns as the plain text.
+  const undotted = text.replace(/\s*[[({]\s*(?:\.|dot)\s*[\])}]\s*/gi, ".");
+  const leet = undotted.replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
+  const numbered = text.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
+  const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){3,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
+  if (EMAIL.test(undotted) || EMAIL.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m": runs of single characters, squashed back together.
   const spacedEmail = (text.match(/(?:\S\s+){5,}\S/g) ?? []).some((run) => EMAIL.test(run.replace(/\s+/g, "")));
-  if (PHONE.test(text) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
+  if (PHONE.test(text) || PHONE.test(numbered) || EMAIL_SPELLED.test(text) || spelledPhone(text) || spacedEmail) return fail("personal-info");
   // Links spelled out with spaces ("h t t p s : / /") are links too.
-  if (URL.test(text) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
-  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text)) return fail("handle");
+  if (URL.test(text) || URL.test(undotted) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
+  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text)) return fail("handle");
 
   for (const word of [...normaliseForWords(text), ...spacedOutWords(text)]) {
     if (SLURS.has(word)) return fail("hate");
@@ -211,8 +221,8 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   }
   // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
   const decoded = text.replace(/[013457@$!]/g, (c) => LEET[c] ?? c);
-  if (VIOLENCE.some((re) => re.test(text) || re.test(decoded))) return fail("violence");
-  if (SERIOUS.some((re) => re.test(text) || re.test(decoded))) return fail("serious-crime");
+  if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("violence");
+  if (SERIOUS.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("serious-crime");
   if (allowSpamCheck && looksLikeSpam(raw)) return fail("spam");
   return { ok: true };
 }

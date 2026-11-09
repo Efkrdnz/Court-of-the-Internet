@@ -52,9 +52,9 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
   const celebratory = current && (current.type === "ACHIEVEMENT" || current.type === "LEVEL_UP" || (current.data as { won?: boolean } | null)?.won);
 
   // Phones: just under the header, away from the thumb zone where vote/confirm buttons sit, and
-  // below the mobile menu (z-50) so it never covers navigation. Larger screens: bottom right.
+  // below the header (z-40) and its menus, so it never covers navigation. Larger screens: bottom right.
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-[72px] z-[45] flex justify-center overflow-x-clip px-4 sm:bottom-6 sm:top-auto sm:justify-end sm:px-6">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-[72px] z-[35] flex justify-center overflow-x-clip px-4 sm:bottom-6 sm:top-auto sm:justify-end sm:px-6">
       <AnimatePresence mode="wait">
         {current ? (
           <motion.div

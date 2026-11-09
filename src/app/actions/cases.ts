@@ -33,13 +33,17 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
   redirect(path);
 }
 
+/** Case ids are cuids; anything else (e.g. with a NUL byte) never reaches the database. */
+const isCaseId = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9]{10,40}$/i.test(v);
+
 export async function claimAction(caseId: string, role: ArgumentRole): Promise<ActionResult> {
   let target: string;
   try {
     const user = await requireActiveUser();
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
     await enforceRateLimit(`claim:${user.id}`, 20, 600);
-    await claimCase(user.id, String(caseId), role);
+    if (!isCaseId(caseId)) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    await claimCase(user.id, caseId, role);
     target = role === "DEFENSE" ? `/defend/${caseId}` : `/prosecute/${caseId}`;
   } catch (e) {
     return toFailure(e);
@@ -51,7 +55,8 @@ export async function releaseAction(caseId: string): Promise<ActionResult> {
   let target: string;
   try {
     const user = await requireActiveUser();
-    const { role } = await releaseClaim(user.id, String(caseId));
+    if (!isCaseId(caseId)) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    const { role } = await releaseClaim(user.id, caseId);
     target = role === "DEFENSE" ? "/defend?released=1" : "/prosecute?released=1";
   } catch (e) {
     return toFailure(e);

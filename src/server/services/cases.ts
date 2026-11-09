@@ -323,7 +323,7 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
       throw new CourtError("INVALID_STATE", "You don't hold the claim on this case. It may have expired and been requeued.");
     }
     if (!c.claimExpiresAt || c.claimExpiresAt.getTime() + gameConfig.claimGraceMs < now.getTime()) {
-      throw new CourtError("INVALID_STATE", "Your claim expired before you filed. The case has been returned to the docket.");
+      throw new CourtError("INVALID_STATE", "Your claim expired before you filed, so the case goes back on the docket. Your draft is still here if you claim it again.");
     }
 
     const isProsecution = role === "PROSECUTION";

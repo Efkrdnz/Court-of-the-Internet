@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run: **68/68 Playwright** and **159/159 Vitest** passing; `tsc`, ESLint and `next build` clean.
+Last full run: **68/68 Playwright** and **172/172 Vitest** passing; `tsc`, ESLint and `next build` clean.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run: **68/68 Playwright** and **159/159 Vitest** passing; `tsc`, ESLin
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 159 Vitest + 68 Playwright tests (43 desktop project, 25 Pixel 7 project) |
+| Important gameplay flows have automated tests | 172 Vitest + 68 Playwright tests (43 desktop project, 25 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -473,6 +473,29 @@ Unchanged:
 | 7 | Malformed percent-encoding (`/cases/%E0%A4%A`) gave a bare-text 500 | `src/proxy.ts` answers 400 | e2e |
 | 8 | The moderation console showed the live guilty/not-guilty split (staff can also be jurors) | total only until the verdict | — |
 | 9 | Deleted accounts still received notifications | `notify` skips them | — |
+
+## Eighteenth independent audit (fresh agent, build of commit d4fb93f)
+
+**Result: 14 PASS, 3 CONCERN (10, 12, 17), 0 FAIL.**
+
+It confirmed the seventeenth round:
+- bans remove votes even under a race, with consistent tallies
+- the server exits on a bad secret
+- 17-way claim races are safe
+- its SQL recount matched all 47 users
+- axe found no violations on 14 more pages
+- hidden tallies and anonymous identities don't leak
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **A seal could be silently undone by a concurrent "Dismiss reports"**: the case was left visible with a removal reason, and both moderators were told they succeeded | every moderation action on a case first takes its row lock (`lockCase`), so they run one at a time. Dismissing reports only makes an *under-review* case visible, and it says so when the case stays sealed | integration `a seal racing 'dismiss reports' always ends sealed` (12 races): **fails on the old code 3/3** |
+| 2 | "gonna kill my roommate" passed: the regex demanded a "t" after "gonna". Also "k i l l", `evil[.]com`, `evil.c0m`, `555-123-45six7`, "forty two Wallaby Way", "ig: coolguy" | fixed the pattern. Threats, links and phone numbers are also checked on decoded variants (bracketed dots, leetspeak, number words → digits, spaced letters joined); "way" added for spelled addresses; `platform:` handles caught | unit: 9 rejected, 3 hyperboles ("mom is gonna kill me") still accepted; seed clean |
+| 3 | The achievement toast covered the open account menu on phones | toasts sit below the header and its menus | — |
+| 4 | "Dismiss reports" on a sealed case said "visible again"; adjourn racing a seal said "Nothing to close" | accurate messages | — |
+| 5 | A NUL byte in `claimAction`/`releaseAction`'s case id reached Postgres | case ids are validated | — |
+| 6 | Emoji ZWJ sequences (👩‍👩‍👧) were split apart | joiners are kept between emoji and stripped elsewhere | unit |
+| 7 | "The case has been returned to the docket" before maintenance had requeued it | wording says it goes back on the docket, and that the draft is kept | — |
+| 9 | Reaction buttons looked tappable to participants and banned players | visible reason text under the disabled buttons | — |
 
 ## Per-phase evidence
 
