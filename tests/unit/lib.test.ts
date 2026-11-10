@@ -440,7 +440,7 @@ describe("joined words count as one long word (audit 44 #3)", () => {
 });
 
 describe("anonymous look-alike names and spelled-out domains (audit 47 D3, D4)", () => {
-  it.each(["Anonymous", "anonymous defendant", "Anon Pigeon", "An Anonymous Confessor", "Citizen 1234", "Anonymous Pigeon 2", "anonymous_defendant_7"])("refuses the name %j", (name) => {
+  it.each(["Anonymous", "anonymous defendant", "Anon Pigeon", "An Anonymous Confessor", "Citizen 1234", "Anonymous Pigeon 2", "anonymous_defendant_7", "Former Citizen 2", "Former Citizen Bob"])("refuses the name %j", (name) => {
     expect(signupRefuses(name)).toBe(true);
   });
   it.each(["Anonymous Andy fan club", "Benchwarmer Bob", "Court Jester"])("allows the name %j", (name) => {
@@ -461,14 +461,15 @@ describe("headings and bios (audit 49 D3, D5)", () => {
   it.each(["I ate the cake!!!", "Who ate my fries?! (Not me...)", "Pizza \u{1F355}\u{1F355}\u{1F355}\u{1F355}\u{1F355}\u{1F355} forever", "Café — c’est moi"])("allows %j", (text) => {
     expect(headingFriendly(text)).toBe(true);
   });
-  it.each(["Official court moderator here.", "Head of Moderation. I speak for the bench.", "I am a moderator, DM me", "Mod here, report issues to me"])("flags the bio %j", (bio) => {
+  it.each(["Official court moderator here.", "Head of Moderation. I speak for the bench.", "I am a moderator, DM me", "Mod here, report issues to me", "I'm on the mod team, message me to get unbanned", "admin of this site", "Court of the Internet staff", "Official account. Want free XP?"])("flags the bio %j", (bio) => {
     expect(bioImpersonatesStaff(bio)).toBe(true);
   });
   it.each(["I work in admin and eat cake", "Everything in moderation, except pizza", "My mum was a court reporter"])("allows the bio %j", (bio) => {
     expect(bioImpersonatesStaff(bio)).toBe(false);
   });
   it("refuses asking for passwords", () => {
-    expect(screenText("Appeal your ban by messaging me your password.")).toMatchObject({ ok: false, issue: "personal-info" });
+    expect(screenText("Appeal your ban by messaging me your password.")).toMatchObject({ ok: false, issue: "phishing" });
+    for (const ask of ["Want free XP? Send your username and password", "Reply with your login and I will unban you", "Give me your pw", "I can remove your case if you give me your credentials"]) expect(screenText(ask)).toMatchObject({ ok: false, issue: "phishing" });
     expect(screenText("I forgot my password three times today and blamed the cat").ok).toBe(true);
   });
 });
@@ -493,7 +494,9 @@ describe("court titles in names (audit 44 #1)", () => {
     // Joined, numbered or split up (audit 46 D1).
     "moderator9", "ModeratorBob", "Site Moderation Team", "Ad-min", "administrator1", "theadmin", "Sysadmin", "Head of Moderation", "C l e r k", "Mod Erator",
     // Audit 47 D4.
-    "Supreme Court", "Magistrate Bob", "Your Worship", "The Bench", "Official Judge"])(
+    "Supreme Court", "Magistrate Bob", "Your Worship", "The Bench", "Official Judge",
+    // Audit 51 #3.
+    "Court of the Internet", "Official Court Account", "COTI Official", "Trust and Safety", "Site Owner", "Court Team", "M o d", "M.o.d", "helpdesk_coti"])(
     "refuses %s",
     (name) => expect(hasCourtTitle(name)).toBe(true),
   );

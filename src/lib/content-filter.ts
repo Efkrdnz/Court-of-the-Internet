@@ -12,6 +12,7 @@ export type FilterIssue =
   | "hate"
   | "violence"
   | "serious-crime"
+  | "phishing"
   | "spam";
 
 export interface FilterResult {
@@ -29,6 +30,7 @@ const MESSAGES: Record<FilterIssue, string> = {
   violence: "Threats or encouragement of violence are out of order. This court only hears petty crimes.",
   "serious-crime":
     "This court only hears ridiculous, harmless offenses. Serious real-world crimes belong with real authorities.",
+  phishing: "Asking for someone's password, login or codes isn't allowed. Nobody at this court will ever ask for them.",
   spam: "That reads like spam (repeated characters, all-caps, or copy-paste). Tidy it up, counselor.",
 };
 /** Specific message for the 36+ character word rule, which isn't about repetition or caps. */
@@ -69,8 +71,9 @@ const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // 9+ digits: real numbers (with area code) are caught. Shorter runs like years ("2019-2020") never
 // match, and dates, times, score lists and counting are blanked out first (withoutEverydayNumbers).
 // Bare 7-digit local numbers are a known gap (see README).
-// Asking for someone's password or login code ("message me your password"), audit 49 D3.
-const CREDENTIAL_ASK = /\b(?:send(?:ing)?|giv(?:e|ing)|tell(?:ing)?|messag(?:e|ing)|dm(?:ing)?|pm(?:ing)?|email(?:ing)?|text(?:ing)?|whisper(?:ing)?)\s+(?:me|us|the\s+(?:court|clerks?|mods?))\s+(?:with\s+)?your\s+(?:password|login|pin|passcode|2fa|two[\s-]factor|verification\s+code|security\s+code|session|cookie)s?\b/i;
+// Asking for someone's password or login ("message me your password", "reply with your login",
+// "give me your pw", "if you give me your credentials"), audit 49 D3 and audit 51 #2.
+const CREDENTIAL_ASK = /\b(?:send|give|tell|share|reply|respond|dm|pm|messag|email|text|whisper|post|drop|hand\s+over|type)\w*\s+(?:\w+\s+){0,4}?(?:your|ur|yer|their|his|her)\s+(?:\w+\s+(?:and|&|or)\s+)?(?:password|passwords|passwd|pw|pwd|pass\s*word|login|log-?in(?:\s+details)?|credentials|creds|2fa|two[\s-]factor|passcode|pin|verification\s+code|security\s+code|session|cookies?)\b/i;
 const PHONE = /(?:\+?\p{Nd}[\s()./_,\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
 // Explicit URLs, or a domain with any two-letter country TLD or a common generic TLD.
 const URL =
@@ -536,7 +539,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   // …and words broken up or stretched inside: "st.abbed", "stab_bed", "stabbbbed" (audit 49 D2).
   const squeezed = joined.replace(/(\p{L})[.\-_*]+(?=\p{L})/gu, "$1").replace(/(\p{L})\1{2,}/gu, "$1$1");
-  if (CREDENTIAL_ASK.test(text)) return fail("personal-info");
+  if (CREDENTIAL_ASK.test(text)) return fail("phishing");
   if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").

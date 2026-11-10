@@ -6,7 +6,7 @@ import { gameConfig } from "../config";
 import { CourtError, isUniqueViolation } from "../errors";
 import { casePath, formatCaseNumber, truncate } from "@/lib/text";
 import { bioImpersonatesStaff, hasCourtTitle } from "@/lib/validation";
-import { nameClashesWithOfficer } from "./accounts";
+import { lockStaffNames, nameClashesWithOfficer } from "./accounts";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
 import { accusedBannedNotice, releaseClaims, sealedCaseNotice } from "./claims";
@@ -566,6 +566,7 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
     // Officers' names are reserved, so a new clerk needs a name no other player already goes by
     // (audit 48 D2: two "Honest Harriet"s, one of them now a clerk without the badge's name to itself).
     if (role === "MODERATOR") {
+      await lockStaffNames(tx);
       const me = await tx.user.findUniqueOrThrow({ where: { id: targetUserId }, select: { displayName: true } });
       const others = await tx.user.findMany({ where: { id: { not: targetUserId }, deletedAt: null }, select: { displayName: true }, take: 50_000 });
       const lookalikes = others.filter((o) => nameClashesWithOfficer(me.displayName, o.displayName)).length;

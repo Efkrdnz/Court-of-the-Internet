@@ -103,7 +103,7 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
     message: "That's what anonymous confessors are called. Pick something else.",
   })
   // "Citizen 1234" is the stand-in name for a demoted officer, and "Former Citizen" a deleted account's.
-  .refine((s) => !/^\s*citizen\s*\d+\s*$/iu.test(s.normalize("NFKC")), {
+  .refine((s) => !/^\s*(?:former\s+citizen\b.*|citizen\s*\d+)\s*$/iu.test(s.normalize("NFKC")), {
     message: "That name is reserved by the court. Pick something else.",
   })
   // An alias's two words alone ("Mysterious Walrus") would pass for one too.
@@ -133,6 +133,8 @@ const COURT_TITLES = [
   "administrator", "administrators", "sysop", "sysops", "staff", "support team", "site team", "officer", "officers",
   // Audit 47 D4.
   "supreme court", "high court", "magistrate", "magistrates", "your worship", "his worship", "her worship", "the bench", "official judge",
+  // Audit 51 #3: names posing as the site itself or its staff.
+  "court of the internet", "coti", "official court", "official account", "court account", "court team", "trust and safety", "trust safety", "site owner", "site official", "support", "helpdesk", "help desk",
 ].map(foldTitle);
 
 // Distinctive stems also caught inside joined, numbered or split-up names ("ModeratorBob",
@@ -141,9 +143,13 @@ const COURT_TITLES = [
 const TITLE_STEMS = ["moderator", "moderation", "admin", "clerk", "bailiff", "sysop", "officer", "yourhonour", "yourhonor", "courtstaff"].map((t) => foldTitle(t).trim());
 const NOT_A_TITLE = /\b(?:badminton\w*|administ(?:er|ers|ered|ering|rative)|clerkenwell|staff(?:ie|ies|y|ordshire|ord)|officers?\s+mess)\b/giu;
 
+// Short titles spelled out letter by letter ("M o d", "M.o.d"), audit 51 #3.
+const SHORT_TITLES = new Set(["mod", "mods", "admin", "admins", "staf", "cierk", "coti"].map((t) => foldTitle(t).trim()));
+
 export function hasCourtTitle(name: string): boolean {
   const folded = foldTitle(name);
   if (COURT_TITLES.some((title) => folded.includes(title))) return true;
+  if (SHORT_TITLES.has(folded.replace(/[^\p{L}]+/gu, "").replace(/\d+$/, ""))) return true;
   // Split camel case before folding ("ModeratorBob"), drop harmless words, then squash to letters.
   const spaced = foldFullWidth(name).replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2").replace(NOT_A_TITLE, " ");
   const squashed = foldTitle(spaced).replace(/[^\p{L}]+/gu, "");
@@ -162,6 +168,11 @@ const BIO_IMPERSONATION = [
   /\b(?:moderator|mod|admin|clerk)\s+here\b/iu,
   /\bpresiding\s+judge\b|\bofficer\s+of\s+the\s+court\b|\bspeak\s+for\s+the\s+(?:bench|court)\b/iu,
   /\bappeal\s+(?:your|a|the)\s+(?:ban|contempt|verdict)\b/iu,
+  // Audit 51 #2: "I'm on the mod team", "admin of this site", "Court of the Internet staff", "I can unban you".
+  /\b(?:on|in|with|from|part\s+of|member\s+of)\s+the\s+(?:mod(?:eration)?|admin|staff|support|safety|trust\s+(?:and|&)\s+safety|court)\s+team\b/iu,
+  /\b(?:admin(?:istrator)?|moderator|mod|owner|staff|official\s+account)\s+(?:of|for|at|on)\s+(?:this|the)\s+(?:site|court|app|game|website)\b/iu,
+  /\b(?:court\s+of\s+the\s+internet|coti)(?:'s)?\s+(?:staff|team|admin|support|official|moderator|mod|account|owner|trust)\b|\bofficial\s+(?:court\s+)?account\b/iu,
+  /\b(?:i\s*(?:'ll|will|can)|let\s+me)\s+(?:get\s+you\s+)?(?:unban|un-ban|pardon|restore|reinstate)\s+(?:you|your)\b|\bget\s+(?:you\s+)?unbanned\b|\bremove\s+your\s+(?:ban|case|contempt)\b/iu,
 ];
 export function bioImpersonatesStaff(bio: string): boolean {
   const text = skeleton(foldFullWidth(bio)).normalize("NFKD").replace(/\p{M}/gu, "");

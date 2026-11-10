@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
-import { db } from "../db";
+import { db, type Tx } from "../db";
 import { CourtError, isUniqueViolation } from "../errors";
 import { burnPasswordCheck, hashPassword, verifyPassword } from "../auth/password";
 import { destroyAllSessions } from "../auth/sessions";
@@ -63,7 +63,7 @@ function containsNearly(hay: string, needle: string): boolean {
 }
 
 /** Titles and filler that don't identify a particular officer. */
-const TITLE_WORDS = new Set(["judge", "clerk", "the", "court", "your", "honour", "honor", "justice", "officer", "bailiff", "chief", "presiding", "moderator", "admin", "marshal", "sheriff", "sir", "lord", "lady", "madam", "mister", "dame"]);
+const TITLE_WORDS = new Set(["judge", "clerk", "the", "court", "your", "honour", "honor", "justice", "officer", "bailiff", "chief", "presiding", "moderator", "admin", "marshal", "sheriff", "sir", "lord", "lady", "madam", "mister", "dame", "citizen", "former"]);
 
 /** Whether `candidate` could pass for the officer called `staffName` (exact, contained, a typo away, or their distinctive name word). */
 export function nameClashesWithOfficer(staffName: string, candidate: string): boolean {
@@ -79,8 +79,17 @@ export function nameClashesWithOfficer(staffName: string, candidate: string): bo
 }
 
 /** Nobody (player or another officer) can take an officer of the court's display name ("Judge Wigsworth" is the real one). */
-export async function assertNotStaffName(displayName: string, selfId?: string, field: "displayName" | "username" = "displayName") {
-  const staff = await db.user.findMany({
+/**
+ * Display names are checked against officers' names, and promotions against everyone's names: both
+ * take this lock first, so a save and an appointment at the same moment can't both pass and leave a
+ * player sharing a new officer's reserved name (audit 51 #1).
+ */
+export async function lockStaffNames(tx: Tx) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('staff-names'))`;
+}
+
+export async function assertNotStaffName(displayName: string, selfId?: string, field: "displayName" | "username" = "displayName", client: Tx | typeof db = db) {
+  const staff = await client.user.findMany({
     where: { role: { in: ["ADMIN", "MODERATOR"] }, deletedAt: null, ...(selfId ? { id: { not: selfId } } : {}) },
     select: { displayName: true, username: true },
     take: 200,
@@ -114,7 +123,14 @@ export async function registerUser(input: {
   }
   const passwordHash = await hashPassword(input.password);
   try {
-    return await db.user.create({
+    return await db.$transaction(async (tx) => {
+      // Re-checked under the staff-names lock, so an appointment racing this signup is seen.
+      if ((input.role ?? "PLAYER") === "PLAYER") {
+        await lockStaffNames(tx);
+        await assertNotStaffName(input.displayName, undefined, "displayName", tx);
+        await assertNotStaffName(input.username.replace(/_/g, " "), undefined, "username", tx);
+      }
+      return tx.user.create({
       data: {
         username: input.username,
         displayName: input.displayName,
@@ -125,6 +141,7 @@ export async function registerUser(input: {
         stats: { create: {} },
       },
       select: { id: true, username: true },
+    });
     });
   } catch (e) {
     if (isUniqueViolation(e)) throw new CourtError("CONFLICT", "That username is already taken.", "username");
@@ -205,6 +222,8 @@ export async function updateProfile(
     // takes: a save racing a demotion either lands first (and the demotion resets the title) or
     // sees the new role (audit 47 D1: "Moderator Jay" outlived the demotion 1 time in 8).
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR NO KEY UPDATE`;
+    await lockStaffNames(tx);
+    await assertNotStaffName(input.displayName, userId, "displayName", tx);
     const me = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
     if (me.role === "PLAYER" && hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
     // …or a bio that claims to speak for the court (audit 49 D3).

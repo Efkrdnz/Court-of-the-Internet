@@ -29,7 +29,12 @@ export async function claimRandomAction(role: "DEFENSE" | "PROSECUTION"): Promis
           await refundClaim(); // the other click's claim already counted
           break;
         }
-        throw new CourtError("NOT_FOUND", "The docket is empty! Every case has a lawyer. Check back soon, or confess something yourself.");
+        throw new CourtError(
+          "NOT_FOUND",
+          user.mutedCategories.length
+            ? "No case you can take right now, outside the categories you've muted. Check back soon, or unmute some in Settings."
+            : "The docket is empty! Every case has a lawyer. Check back soon, or confess something yourself.",
+        );
       }
       try {
         if ((await claimCase(user.id, pick.id, role)).alreadyHeld) await refundClaim();

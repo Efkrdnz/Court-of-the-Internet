@@ -103,7 +103,7 @@ function ReportForm({ caseId, available: current, close }: { caseId: string; ava
         <div className="grid gap-1.5">
           {REPORT_REASONS.map((r) => (
             <label key={r.value} className="flex min-h-9 items-center gap-2 text-sm">
-              <input type="radio" name="reason" value={r.value} required className="h-4 w-4 accent-burgundy" /> {r.label}
+              <input type="radio" name="reason" value={r.value} required className="h-4 w-4 shrink-0 accent-burgundy" /> {r.label}
             </label>
           ))}
         </div>

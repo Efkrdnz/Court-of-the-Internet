@@ -648,6 +648,33 @@ describe("moderation", () => {
     await updateProfile(player, { displayName: "Plain Pat", bio: "Everything in moderation, except pizza.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 
+  it("an appointment racing a profile save never leaves two people with the new officer's name (audit 51 #1)", async () => {
+    const admin = await makeUser("race_judge", "ADMIN");
+    for (let i = 0; i < 6; i++) {
+      // Distinct words per round: an appointed officer's username reserves its words too.
+      const word = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot"][i];
+      const [a, b] = [await makeUser(`${word}_one`), await makeUser(`${word}_two`)];
+      const name = `${word[0].toUpperCase()}${word.slice(1)}ella ${word[0].toUpperCase()}${word.slice(1)}worth`;
+      await db.user.update({ where: { id: a }, data: { displayName: name } });
+      await Promise.allSettled([
+        setUserRole(admin, a, "MODERATOR"),
+        updateProfile(b, { displayName: name, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+      ]);
+      const [ua, ub] = [await db.user.findUniqueOrThrow({ where: { id: a } }), await db.user.findUniqueOrThrow({ where: { id: b } })];
+      // Exactly one of them happened: the appointment, or the second player taking the name.
+      expect(ua.role === "MODERATOR" && ub.displayName === name).toBe(false);
+      expect(ua.role === "MODERATOR" || ub.displayName === name).toBe(true);
+    }
+    // A demoted officer's stand-in name doesn't block re-appointing them because of other "Citizen"s (audit 51 #4).
+    const clerk = await makeUser("citizen_clerk", "MODERATOR");
+    await db.user.update({ where: { id: clerk }, data: { displayName: "Clerk Citizen" } });
+    await setUserRole(admin, clerk, "PLAYER");
+    const other = await makeUser("other_citizen");
+    await db.user.update({ where: { id: other }, data: { displayName: "Model Citizen" } });
+    await db.user.update({ where: { id: clerk }, data: { displayName: "Citizen 6944" } });
+    await setUserRole(admin, clerk, "MODERATOR");
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });

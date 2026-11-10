@@ -144,7 +144,13 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
           <SleepingBailiff className="w-full max-w-sm" />
           <p className="mt-4 font-display text-2xl font-bold text-parchment">No cases need your judgement right now.</p>
           <p className="mt-1 max-w-md text-parchment/70">
-            {user ? "You've voted on everything in deliberation. The bailiff has fallen asleep. Come back soon!" : "Nothing is in deliberation right now."}
+            {user ? "You've voted on everything in deliberation that you can judge. The bailiff has fallen asleep. Come back soon!" : "Nothing is in deliberation right now."}
+            {user?.mutedCategories.length ? (
+            <>
+              {" "}You&apos;ve muted {user.mutedCategories.length} {user.mutedCategories.length === 1 ? "category" : "categories"}, so cases there are hidden.{" "}
+              <Link href="/settings" className="font-bold text-gold-light underline">Change that in Settings</Link>.
+            </>
+              ) : null}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link href="/prosecute" className="btn">

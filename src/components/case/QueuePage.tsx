@@ -141,7 +141,16 @@ export async function QueuePage({ role, searchParams }: { role: "DEFENSE" | "PRO
             <div className="velvet flex flex-col items-center p-10 text-center">
               <TumbleweedDocket className="w-full max-w-sm" />
               <p className="mt-4 font-display text-2xl font-bold text-parchment">The docket is empty.</p>
-              <p className="mt-1 max-w-md text-parchment/70">{category ? "Nothing in this category right now. Try another statute." : copy.empty}</p>
+              <p className="mt-1 max-w-md text-parchment/70">
+                {category ? "Nothing in this category right now. Try another statute." : copy.empty}
+                {/* Muted categories empty the docket too: say so rather than "every case has a lawyer" (audit 51 #5). */}
+                {user?.mutedCategories.length ? (
+                <>
+                  {" "}You&apos;ve muted {user.mutedCategories.length} {user.mutedCategories.length === 1 ? "category" : "categories"}, so cases there are hidden.{" "}
+                  <Link href="/settings" className="font-bold text-gold-light underline">Change that in Settings</Link>.
+                </>
+              ) : null}
+              </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link href="/confess" className="btn">
                   Confess a crime yourself

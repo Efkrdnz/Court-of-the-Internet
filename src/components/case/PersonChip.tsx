@@ -1,5 +1,6 @@
 import Link from "next/link";
 import clsx from "clsx";
+import { longestWordEm } from "@/lib/fit-text";
 import { Avatar } from "@/components/art/avatar";
 import type { PersonDTO } from "@/server/queries/cases";
 
@@ -48,6 +49,7 @@ export function PersonChip({
   ) : (
     <AnonymousMugshot className={clsx(avatarSize, "shrink-0")} critter={person.anonymousCritter} />
   );
+  const longName = longestWordEm(person.displayName) > 9;
   const content = (
     <>
       {avatar}
@@ -55,7 +57,12 @@ export function PersonChip({
         {role ? <span className={clsx("block text-[11px] font-bold uppercase tracking-widest", dark ? "text-gold-light/80" : "text-sepia")}>{role}</span> : null}
         {/* Long names wrap onto a second line (and show in full on hover) rather than being cut off. */}
         <span
-          className={clsx("line-clamp-2 break-words font-bold [overflow-wrap:anywhere]", size === "lg" ? "text-lg" : "text-sm", dark ? "text-parchment" : "text-ink")}
+          className={clsx(
+            "break-words font-bold [overflow-wrap:anywhere]",
+            // Long words get a smaller size and a third line rather than being broken and cut (audit 51 #7).
+            longName ? "line-clamp-3 text-xs" : clsx("line-clamp-2", size === "lg" ? "text-lg" : "text-sm"),
+            dark ? "text-parchment" : "text-ink",
+          )}
           title={person.displayName}
         >
           {person.displayName}
