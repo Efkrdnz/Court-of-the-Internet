@@ -51,7 +51,9 @@ async function assertStaff(tx: Tx, userId: string) {
 }
 
 async function log(tx: Tx, moderatorId: string, action: string, extra: { caseId?: string; targetUserId?: string; note?: string }) {
-  await tx.moderationAction.create({ data: { moderatorId, action, ...extra, createdAt: clock.now() } });
+  // Notes (reasons) are capped like the reasons stored on cases and users.
+  const note = extra.note && extra.note.length > 300 ? `${extra.note.slice(0, 299)}…` : extra.note;
+  await tx.moderationAction.create({ data: { moderatorId, action, ...extra, note, createdAt: clock.now() } });
 }
 
 export async function fileReport(
@@ -360,42 +362,62 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
  * officers pressing Adjourn together could extend a below-quorum trial and then dismiss it.
  */
 export async function adjournNow(moderatorId: string, caseId: string, seen?: { endsAt: Date; extensionsUsed: number }) {
-  await db.$transaction(async (tx) => {
+  // What this press found: it adjourned (or the trial was already due), the trial had changed
+  // since the officer's console loaded, or it had already closed.
+  const found = await db.$transaction(async (tx): Promise<"adjourn" | "changed" | "closed-before"> => {
     await assertStaff(tx, moderatorId);
     await lockCase(tx, caseId, moderatorId);
-    if (seen) {
-      const current = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, deliberationEndsAt: true, extensionsUsed: true } });
-      const changed = current?.deliberationEndsAt?.getTime() !== seen.endsAt.getTime() || current?.extensionsUsed !== seen.extensionsUsed;
-      if (current?.status === "DELIBERATION" && changed) return;
+    const current = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, deliberationEndsAt: true, extensionsUsed: true } });
+    if (current?.status === "CLOSED") return "closed-before";
+    if (seen && current?.status === "DELIBERATION") {
+      const changed = current.deliberationEndsAt?.getTime() !== seen.endsAt.getTime() || current.extensionsUsed !== seen.extensionsUsed;
+      if (changed) return "changed";
     }
     // Already adjourned (or simply due) by someone else a moment ago: nothing to change or log,
     // the close below reports what happened.
     const due = await tx.case.count({ where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE", deliberationEndsAt: { lte: clock.now() } } });
-    if (due) return;
+    if (due) return "adjourn";
     const res = await tx.case.updateMany({
       where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE" },
       data: { deliberationEndsAt: clock.now() },
     });
     if (res.count === 0) {
-      const c = await tx.case.findUnique({ where: { id: caseId }, select: { status: true } });
-      // Another officer's adjourn (or the clock) closed it a moment ago: report that verdict below.
-      if (c?.status === "CLOSED") return;
       throw new CourtError(
         "INVALID_STATE",
-        c?.status === "DELIBERATION" ? "That case is sealed or under review. Restore it or dismiss the reports first." : "That case is not in deliberation.",
+        current?.status === "DELIBERATION" ? "That case is sealed or under review. Restore it or dismiss the reports first." : "That case is not in deliberation.",
       );
     }
     await log(tx, moderatorId, "ADJOURN_NOW", { caseId });
+    return "adjourn";
   });
+
+  const reread = () =>
+    db.case.findUnique({
+      where: { id: caseId },
+      select: { status: true, verdict: true, guiltyVotes: true, notGuiltyVotes: true, moderationState: true, deliberationEndsAt: true, extensionsUsed: true },
+    });
+  if (found === "closed-before") {
+    const c = await reread();
+    return { kind: "already-closed" as const, verdict: c!.verdict!, guilty: c!.guiltyVotes, notGuilty: c!.notGuiltyVotes };
+  }
+  if (found === "changed") {
+    // Another officer acted first. Report what they did; never claim this press did it.
+    let c = await reread();
+    // Their adjourn may still be closing the trial: let that finish (closing is idempotent) first.
+    if (c?.status === "DELIBERATION" && c.moderationState === "VISIBLE" && c.deliberationEndsAt && c.deliberationEndsAt <= clock.now()) {
+      await closeDeliberation(caseId);
+      c = await reread();
+    }
+    if (c?.status === "CLOSED" && c.verdict) return { kind: "already-closed" as const, verdict: c.verdict, guilty: c.guiltyVotes, notGuilty: c.notGuiltyVotes };
+    if (c && seen && c.extensionsUsed > seen.extensionsUsed && c.deliberationEndsAt) return { kind: "extended" as const, endsAt: c.deliberationEndsAt };
+    return { kind: "changed" as const };
+  }
   const outcome = await closeDeliberation(caseId);
   if (outcome.kind !== "not-due") return outcome;
   // Someone else's close may have won the race: report what actually happened.
-  const now = await db.case.findUnique({
-    where: { id: caseId },
-    select: { status: true, verdict: true, guiltyVotes: true, notGuiltyVotes: true, moderationState: true, deliberationEndsAt: true },
-  });
+  const now = await reread();
   if (now?.status === "CLOSED" && now.verdict) {
-    return { kind: "closed" as const, verdict: now.verdict, guilty: now.guiltyVotes, notGuilty: now.notGuiltyVotes };
+    return { kind: "already-closed" as const, verdict: now.verdict, guilty: now.guiltyVotes, notGuilty: now.notGuiltyVotes };
   }
   // …or extended it for low participation a moment ago (still visible, deadline back in the future).
   if (now?.status === "DELIBERATION" && now.moderationState === "VISIBLE" && now.deliberationEndsAt && now.deliberationEndsAt > clock.now()) {
@@ -437,6 +459,8 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
   return db.$transaction(async (tx) => {
     const mod = await assertStaff(tx, adminId);
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can appoint moderators.");
+    // Lock the player's row so two simultaneous role changes don't both act and log.
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${targetUserId} FOR NO KEY UPDATE`;
     const target = await liveTarget(tx, targetUserId);
     if (target.role === "ADMIN") throw new CourtError("FORBIDDEN", "Admins can't be demoted here.");
     if (target.role === role) {

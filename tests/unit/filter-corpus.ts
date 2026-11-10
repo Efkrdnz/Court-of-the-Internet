@@ -173,6 +173,17 @@ export const BENIGN = [
   "The accused deserves to be beaten at chess",
   "I stole from the biscuit tin at work",
   "I stole my mom's diamond ring idea for my Halloween costume",
+  // Audit 38 (a false positive) and near-misses of its patterns
+  "I typed until my keyboard broke: Qzxkvjhgfdsplmnbvcxzqtyuiopasdfgwww.", // 35-letter mash ending in "www."
+  "I poisoned my own protein shake with too much peanut butter",
+  "I mixed lemonade into my own iced tea and called it an Arnold Palmer",
+  "I drove home from the pub completely sober and gave everyone a lift",
+  "I took photos of my neighbour's undressed Christmas tree to shame her",
+  "I used my aunt's library card to borrow twelve romance novels",
+  "I found a wallet and handed it in, but kept the loyalty stamps",
+  "I threw a stress ball at the wall during a long meeting",
+  "I drove my drunk friend home after the party and charged him for petrol",
+  "I took my coworker's phone charger and never gave it back",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -357,4 +368,17 @@ export const EVASIONS: [string, string][] = [
   ["I stole my mom's diamond ring and pawned it", "serious-crime"],
   ["I stole my roommate's laptop and sold it", "serious-crime"],
   ["I pepper sprayed my neighbour", "serious-crime"],
+  // Audit 38
+  ["I poisoned my roommate's protein shake", "serious-crime"],
+  ["I put rat poison in my roommate's protein shake", "serious-crime"],
+  ["I mixed antifreeze into my neighbour's lemonade", "serious-crime"],
+  ["I drove home from the pub completely drunk after eight pints and hit a parked car.", "serious-crime"],
+  ["I was hammered and drove my car home", "serious-crime"],
+  ["I secretly recorded my coworker changing in the locker room and sent the video around.", "serious-crime"],
+  ["I took photos of my neighbour undressing through her window", "serious-crime"],
+  ["I used my aunt's credit card number to buy concert tickets", "serious-crime"],
+  ["I found a wallet and used the debit card inside", "serious-crime"],
+  ["I threw a brick at a stranger's head", "serious-crime"],
+  ["I slapped my little sister so hard her lip bled", "serious-crime"],
+  ["I took my coworker's phone and sold it at a pawn shop", "serious-crime"],
 ];

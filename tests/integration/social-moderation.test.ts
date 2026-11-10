@@ -163,10 +163,12 @@ describe("moderation", () => {
     await voteAll(c.id, jurors, 7);
     // Two moderators adjourning at once: one close, one audit entry, both told the verdict (audit 28 #6).
     const outcomes = await Promise.all([adjournNow(admin, c.id), adjournNow(admin, c.id)]);
-    for (const outcome of outcomes) expect(outcome).toMatchObject({ kind: "closed", verdict: "GUILTY" });
+    // One press closes it; the other is told it had closed (never that it closed it too).
+    expect(outcomes.filter((o) => o.kind === "closed")).toHaveLength(1);
+    for (const outcome of outcomes) expect(outcome).toMatchObject({ kind: expect.stringMatching(/^(closed|already-closed)$/), verdict: "GUILTY" });
     expect(await db.moderationAction.count({ where: { action: "ADJOURN_NOW", caseId: c.id } })).toBe(1);
     // A later adjourn (the close already committed) is told the verdict too, and logs nothing (audit 34 D4).
-    expect(await adjournNow(admin, c.id)).toMatchObject({ kind: "closed", verdict: "GUILTY" });
+    expect(await adjournNow(admin, c.id)).toMatchObject({ kind: "already-closed", verdict: "GUILTY" });
     expect(await db.moderationAction.count({ where: { action: "ADJOURN_NOW", caseId: c.id } })).toBe(1);
 
     await removeCase(admin, c.id, "Names a real person");
@@ -389,6 +391,22 @@ describe("moderation", () => {
     await expect(removeCase(clerk, c.id, "Hiding my own case")).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(dismissReports(clerk, c.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
     await removeCase(other, c.id, "Another officer can");
+  });
+
+  it("an adjourn from a stale console does nothing and says so (audit 38 D2)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const [modA, modB] = [await makeUser("stale_a", "ADMIN"), await makeUser("stale_b", "MODERATOR")];
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    const seen = { endsAt: row.deliberationEndsAt!, extensionsUsed: row.extensionsUsed };
+    // Officer B seals and restores while A's console is open: the deadline moves by the paused time.
+    await removeCase(modB, c.id, "Checking");
+    advance(minutes(5));
+    await restoreCase(modB, c.id);
+    expect(await adjournNow(modA, c.id, seen)).toEqual({ kind: "changed" });
+    expect(await db.moderationAction.count({ where: { action: "ADJOURN_NOW", caseId: c.id } })).toBe(0);
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).extensionsUsed).toBe(0);
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
@@ -647,6 +665,19 @@ describe("moderation", () => {
     expect(await db.moderationAction.count({ where: { action: "GRANT_COSMETIC", targetUserId: player } })).toBe(2);
     // Role changes refuse no-ops (audit 35 D4).
     await expect(setUserRole(admin, player, "PLAYER")).rejects.toMatchObject({ code: "INVALID_STATE" });
+    // …also two arriving at once: one acts and logs (audit 38 D5).
+    const promos = await Promise.allSettled([setUserRole(admin, player, "MODERATOR"), setUserRole(admin, player, "MODERATOR")]);
+    expect(promos.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await db.moderationAction.count({ where: { action: "SET_ROLE_MODERATOR", targetUserId: player } })).toBe(1);
+    await setUserRole(admin, player, "PLAYER");
+    // A huge reason is capped in the audit log too (audit 38 D4).
+    const target = await makeUser();
+    await setBan(admin, target, true, "x".repeat(100_000));
+    expect((await db.moderationAction.findFirstOrThrow({ where: { action: "BAN_USER", targetUserId: target } })).note!.length).toBeLessThanOrEqual(300);
+    // Two simultaneous account deletions: one deletes, the other is told (audit 38 note).
+    const quitter = await makeUser();
+    const dels = await Promise.allSettled([deleteAccount(quitter, "objection!"), deleteAccount(quitter, "objection!")]);
+    expect(dels.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     // Unknown and deleted accounts are refused cleanly, for every console action (audit 31 #3).
     await expect(grantEntitlement(admin, "cnotarealuserid000000000", "theme:velvet-rope")).rejects.toMatchObject({ code: "NOT_FOUND" });
     const gone = await makeUser();

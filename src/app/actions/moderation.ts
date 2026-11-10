@@ -66,9 +66,13 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
         message =
           outcome.kind === "closed"
             ? `Deliberation closed: ${VERDICT_LABEL[outcome.verdict] ?? outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
-            : outcome.kind === "extended"
-              ? "Below quorum, so deliberation was extended (low-participation rule)."
-              : "The case was sealed or put under review before it could close. It will close as soon as it is visible again.";
+            : outcome.kind === "already-closed"
+              ? `That trial had already closed: ${VERDICT_LABEL[outcome.verdict] ?? outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
+              : outcome.kind === "extended"
+                ? "Below quorum, so deliberation was extended (low-participation rule)."
+                : outcome.kind === "changed"
+                  ? "The trial changed since you opened it (it was sealed, restored or reviewed). Nothing was done; check it and adjourn again if you still mean to."
+                  : "The case was sealed or put under review before it could close. It will close as soon as it is visible again.";
         break;
       }
       case "feature":

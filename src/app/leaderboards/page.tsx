@@ -168,6 +168,8 @@ export default async function LeaderboardsPage() {
           subtitle="Reputation is earned only through verdicts"
           rows={lb.reputation}
           stat={(r) => r.reputation}
+          tieKey={(r) => r.reputation}
+          moreTied={lb.reputationMoreTied}
           detail={(r) => `Level ${r.level} · ${r.xp} XP`}
           empty="Nobody has a reputation yet. Lucky them."
           tone="teal"

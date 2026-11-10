@@ -846,6 +846,19 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6 | "That case could not be found" for a vote or reaction on a just-sealed case; refused filings used the argument limit | says it was sealed; refused filings give their attempt back | — |
 | note | "Most entertaining" ignored muted categories | filtered for the viewer | — |
 
+## Thirty-eighth independent audit (fresh agent, build of commit b18bb82)
+
+**Result: 15 PASS, 2 CONCERN (7, 17), 0 FAIL.** No errors, 500s or deadlocks in any race; vitest 618/618 on 3 of 3 runs; 13 stats counters recomputed for every user with 0 mismatches; all 48 new everyday confessions accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Filter misses: poisoning or rat poison/antifreeze in someone's shake or lemonade; "drove home from the pub completely drunk", "was hammered and drove"; secret recordings and photos of someone undressing; an aunt's card, a found wallet's card; a brick at someone's head; "slapped my sister so hard her lip bled"; taking a coworker's phone to pawn. False positive: a keyboard-mash word ending in "www." read as a link | patterns for each, near-misses kept ("drove my drunk friend home", "completely sober", "my aunt's library card", "handed the wallet in", "a coworker's phone charger"); "www." needs a domain after it | corpus: 168 everyday sentences, 184 evasions; 341 seed texts pass |
+| 2 | "Adjourn now" from a stale console (the trial had been sealed and restored meanwhile) said it had been extended though nothing happened; adjourning a long-closed trial said "Deliberation closed" as if this press closed it | the press reports what it found: "changed" (nothing done), "already closed: verdict", or what another officer's simultaneous adjourn did, never claiming another officer's action | integration: stale console → "changed", no log, no extension; concurrent and later presses → one "closed", the rest "already-closed" (5/5 runs) |
+| 3 | "Most reputable" didn't share ranks for ties or say who was cut off | ties share a rank and "…and N more tied" | — |
+| 4 | A 100,000-character seal reason went into the audit log in full and stretched the console | log notes are capped at 300 characters and wrap | integration |
+| 5 | Two simultaneous role changes both acted and logged | the player's row is locked first | integration |
+| note | Two simultaneous account deletions both said "deleted" | the second is told it's already gone | integration |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

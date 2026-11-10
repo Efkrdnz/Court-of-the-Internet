@@ -223,8 +223,8 @@ export async function deleteAccount(userId: string, password: string) {
   await db.$transaction(async (tx) => {
     // Write the user row first: in-flight actions hold a share lock on it (assertActiveUser),
     // so this waits for them, and the claim sweep below then sees everything they did.
-    await tx.user.update({
-      where: { id: userId },
+    const deleted = await tx.user.updateMany({
+      where: { id: userId, deletedAt: null },
       data: {
         // The username stays on the row (never shown: deleted players appear as "Former Citizen"),
         // so nobody can re-register it and inherit old /u/<name> links.
@@ -235,6 +235,8 @@ export async function deleteAccount(userId: string, password: string) {
         featuredBadge: null,
       },
     });
+    // A second, simultaneous request finds the account already gone.
+    if (deleted.count === 0) throw new CourtError("INVALID_STATE", "This account has already been deleted.");
     // Free any case they were drafting so other players aren't blocked until it expires.
     await releaseClaims(tx, { userId });
     // Their open reports stop counting toward the queue and auto-review (their votes stand).

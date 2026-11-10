@@ -243,7 +243,7 @@ const SERIOUS = [
   /\bset\s+(?:my|his|her|their|the|our)\s+[\w-]+(?:'s|s')\s+(?:\w+\s+)?\w+\s+on\s+fire\b|\bset\s+fire\s+to\s+(?:my|his|her|their)\s+[\w-]+(?:'s|s')\b/i,
   /\bkeyed\s+(?:a|someone'?s|somebody'?s|his|her|their|(?:my|our)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:car|truck|van|motorcycle)\b/i,
   // Poisoning food or drink with something dangerous.
-  /\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b.{0,50}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b/i,
+  /\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b.{0,50}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine|shake|lemonade|juice|beer|wine|dinner|breakfast|cereal)\b/i,
   /\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|machine)\b.{0,50}\b(?:bleach|antifreeze|rat\s+poison|drain\s+cleaner|roofies?)\b/i,
   // Breaking into someone's accounts or devices.
   /\bhacked\s+(?:into\s+)?(?:my|his|her|their|someone'?s|somebody'?s|a)\s+(?:[\w-]+(?:'s|s')\s+)?(?:email|e-mail|account|accounts|phone|instagram|facebook|bank|computer|laptop|icloud|wifi)\b/i,
@@ -280,13 +280,25 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
+  // Drink-driving, however it's phrased ("drove home from the pub completely drunk", "was hammered and drove").
+  /\bdrove\b.{0,40}\b(?:drunk|wasted|hammered|plastered|smashed|blackout\s+drunk)\b(?!\s+(?:friend|friends|mate|mates|brother|sister|roommate|flatmate|people|guests|colleague|coworker|dad|mum|mom|uncle|aunt|neighbou?r)s?\b)/i,
+  /\b(?:i\s+was|i\s+got|while)\s+(?:\w+\s+)?(?:drunk|hammered|wasted|plastered|smashed|high)\s+(?:and|when|but)\s+(?:i\s+|still\s+)?(?:drove|drive|got\s+behind\s+the\s+wheel)\b/i,
+  // Secret recordings, and photos of someone undressing.
+  /\bsecretly\s+(?:recorded|filmed|photographed|videoed)\b/i,
+  /\b(?:took|snapped)\s+(?:photos|pictures|pics|videos?)\s+of\s+(?:\w+\s+){1,3}(?:undressing|changing|naked|in\s+the\s+shower|showering|in\s+(?:her|his|their)\s+underwear)\b/i,
+  // Using a relative's or a stranger's card, or a found one.
+  /\bused\s+(?:my|his|her|a|the|our)\s+(?:aunt|uncle|grandma|grandmother|grandpa|grandfather|nan|nana|cousin|teacher|in-laws?|sister-in-law|brother-in-law)['’]s\s+(?:credit|debit|bank)\s+card\b/i,
+  /\bfound\s+(?:a|an|someone'?s|somebody'?s)\s+(?:wallet|purse|bank\s+card|credit\s+card|debit\s+card)\b.{0,40}\bused\s+(?:the|their|his|her|it|its)\b/i,
+  // Throwing something at someone's head; injuries ("so hard her lip bled").
+  /\b(?:threw|chucked|hurled|lobbed)\s+(?:a|an|the|some)\s+(?:brick|rock|stone|bottle|glass|pint\s+glass|chair|knife)s?\s+at\s+(?:\w+(?:'s|’s|s')?\s+){0,3}(?:head|face|eye)s?\b/i,
+  /\b(?:hit|slapped|punched|kicked|pushed|shoved|bit|scratched|beat)\s+(?:\w+\s+){1,4}so\s+hard\s+(?:that\s+)?(?:\w+\s+){0,2}(?:bled|was\s+bleeding|broke|fractured|passed\s+out|went\s+to\s+(?:the\s+)?hospital|lost\s+a\s+tooth|needed\s+stitches)\b/i,
   // A knife or gun drawn on, held to, or used to threaten someone.
   /\b(?:pulled|drew|brandished|waved|held|pointed|put)\s+(?:a|my|the)\s+(?:knife|gun|machete|blade|pistol|rifle)\s+(?:on|at|to|against)\s+(?:him|her|them|someone|somebody|(?:my|his|her|their|a|an|the)\s+[\w'’-]+)/i,
   /\bthreatened\s+(?:\w+\s+){1,3}with\s+(?:a|my|his|her)\s+(?:knife|gun|bat|machete|hammer|crowbar|blade)\b/i,
   new RegExp(`\\b(?:pepper[\\s-]?sprayed|maced|tasered|tased)\\s+${VICTIM}\\b`, "i"),
   // Stealing someone's jewellery, or their gadgets to sell.
   /\bstole\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+){0,2}(?:rings?|necklaces?|jewel\w*|earrings?|bracelets?|watch(?:es)?)\b(?!\s+(?:idea|design|style|look))/i,
-  /\bstole\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:laptops?|phones?|iphones?|ipads?|tablets?|cameras?|consoles?|bikes?|wallets?|purses?)\b.{0,40}\b(?:pawned|sold|flogged|fenced|kept\s+it)\b/i,
+  /\b(?:stole|took|nicked|pinched|swiped)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:laptops?|phones?|iphones?|ipads?|tablets?|cameras?|consoles?|bikes?|wallets?|purses?)\b.{0,40}\b(?:pawned|sold|flogged|fenced|kept\s+it)\b/i,
   // Hitting a stranger, a bouncer, an old lady…; attacking someone with something.
   /\bi\s+(?:punched|kicked|slapped|headbutted|elbowed|bit|attacked|assaulted|hit)\s+(?:a|an|the|some|this|that)\s+(?:\w+\s+)?(?:stranger|bouncer|old\s+lady|old\s+man|old\s+woman|pensioner|woman|man|guy|girl|lady|passenger|driver|cyclist|customer|waiter|waitress|cashier|bartender|referee|teenager|kid|child|security\s+guard|cop|police\s+officer)\b/i,
   /\b(?:pushed|shoved|knocked)\s+(?:a|an|the|some|this|that|my|his|her)\s+(?:\w+\s+)?(?:stranger|bouncer|old\s+lady|old\s+man|old\s+woman|pensioner|woman|man|guy|girl|lady|passenger|cyclist|kid|child|neighbou?r|roommate|flatmate|coworker|colleague)\s+(?:over|down|into|off|against|onto|out\s+of|in\s+front\s+of)\b/i,
@@ -321,7 +333,7 @@ const SERIOUS = [
   // Using someone else's card (a parent's, borrowed, is left to moderators).
   /\bused\s+(?:my|his|her|a|the|our)\s+(?:flatmate|roommate|room-mate|coworker|co-worker|colleague|neighbou?r|boss|friend|stranger|ex|landlord|customer|client|guest)['’]s\s+(?:credit|debit|bank)\s+card\b/i,
   // Poisoning someone's food or drink ("poisoned my coworker's coffee").
-  /\b(?:poisoned|drugged|laced)\s+(?:(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:coffee|tea|drink|food|lunch|water|meal|dinner|breakfast|soup|smoothie|juice|beer|wine|snack|sandwich)\b/i,
+  /\b(?:poisoned|drugged|laced)\s+(?:(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:coffee|tea|drink|food|lunch|water|meal|dinner|breakfast|soup|smoothie|juice|beer|wine|snack|sandwich|shake|protein\s+shake|milkshake|lemonade|cocktail|cereal|coke|soda|tea)\b/i,
   // Image-based abuse and voyeurism, groping.
   /\b(?:posted|shared|leaked|sent|uploaded|spread|sold|forwarded|texted|airdropped|showed)\s+(?:[\w'’-]+\s+){0,2}(?:nudes?|nude\s+(?:photos?|pics?|pictures?|images?|videos?)|intimate\s+(?:photos?|pics?|pictures?|images?|videos?)|naked\s+(?:photos?|pics?|pictures?|videos?)|sex\s+tape)\b|\brevenge\s+porn\b|\bupskirt/i,
   // Filming someone in the shower or undressing, unless they plainly asked for it.
@@ -469,7 +481,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
       .replace(/([a-z0-9])\.(so|my|no|it|is|in|am|at|by|do|go|as|on|or|we|hi|ok|up|if|of|he|an)(?=\s+[a-z])/gi, "$1. $2");
   // Version numbers ("firmware 2.10.3.1") look like IP addresses.
   const IPV4 = /(?<!\b(?:v|ver|version|firmware|update|build|release|patch|ios|android|windows|macos|python|node|chrome|firefox)\s?)\b(?:\d{1,3}\.){3}\d{1,3}\b/i;
-  if (IPV4.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(sentences(text)) || URL.test(sentences(undotted)) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\./i.test(text.replace(/\s+/g, ""))) return fail("link");
+  if (IPV4.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(sentences(text)) || URL.test(sentences(undotted)) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\.[a-z0-9-]{2,}\.[a-z]{2,}/i.test(text.replace(/\s+/g, ""))) return fail("link");
   // "@ pettyking on twitter": a detached @name next to a platform name.
   const detachedHandle = /@\s+[a-z0-9_.]{3,}\b.{0,25}\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b/i.test(text);
   // "pettyking#1234" (Discord tag), "u/pettyking" (Reddit).

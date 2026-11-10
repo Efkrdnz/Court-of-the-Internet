@@ -310,7 +310,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 <span>by @{l.moderator.username}</span>
                 {l.targetUserId ? <span>→ @{targetNames.get(l.targetUserId) ?? "unknown"}</span> : null}
                 {l.case ? <Link href={casePath(l.case)} className="inline-flex min-h-9 items-center underline">case {formatCaseNumber(l.case.number)}</Link> : null}
-                {l.note ? <span className="italic">“{l.note}”</span> : null}
+                {l.note ? <span className="min-w-0 break-words italic [overflow-wrap:anywhere]">“{l.note}”</span> : null}
                 <span className="ml-auto text-parchment/50">{relativeTime(l.createdAt)}</span>
               </li>
             ))}

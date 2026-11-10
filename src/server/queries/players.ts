@@ -234,6 +234,11 @@ export async function getLeaderboards() {
       });
     })(),
     reputation: xpLeaders.map((r) => ({ ...lbPerson(r.user), xp: r.xp, reputation: r.reputation, level: levelProgress(r.xp).level })),
+    reputationMoreTied:
+      xpLeaders.length === 10
+        ? (await db.userStats.count({ where: { user: activeUser, xp: { gt: 0 }, reputation: xpLeaders[9].reputation } })) -
+          xpLeaders.filter((r) => r.reputation === xpLeaders[9].reputation).length
+        : 0,
     entertaining: await toCaseCards(entertaining, null),
     thresholds: { decided: LEADERBOARD_MIN_DECIDED, juryVotes: LEADERBOARD_MIN_JURY_VOTES },
   };
