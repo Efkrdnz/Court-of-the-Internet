@@ -14,7 +14,7 @@ import {
   type UnlockContext,
 } from "@/lib/cosmetics";
 import { levelForXp } from "@/lib/progression";
-import { bioImpersonatesStaff, COURT_TITLE_MESSAGE, hasAdminTitle, hasCourtTitle } from "@/lib/validation";
+import { bioClaimsAdmin, bioImpersonatesStaff, COURT_TITLE_MESSAGE, hasAdminTitle, hasCourtTitle } from "@/lib/validation";
 import { getAchievement } from "@/lib/achievements";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
@@ -214,6 +214,9 @@ export async function updateProfile(
     // A moderator may wear clerk titles, but not the presiding judge's (audit 47 D2).
     if (me.role === "MODERATOR" && hasAdminTitle(input.displayName)) {
       throw new CourtError("VALIDATION", "That title belongs to the presiding judge. Pick your own.", "displayName");
+    }
+    if (me.role === "MODERATOR" && bioClaimsAdmin(input.bio)) {
+      throw new CourtError("VALIDATION", "Your bio can't claim the presiding judge's role.", "bio");
     }
     await tx.user.update({
       where: { id: userId },

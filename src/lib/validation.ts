@@ -99,7 +99,7 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
   })
   // "Anonymous", "Anonymous Defendant", "Anon Pigeon": what anonymous confessors are labelled as (audit 47 D4).
-  .refine((s) => !new RegExp(`^\\s*(?:an?\\s+)?anon(?:ymous)?\\b(?:\\s+(?:defendant|confessor|user|player|citizen|accused|${CRITTERS.join("|")}))?\\s*$`, "iu").test(s.normalize("NFKC")), {
+  .refine((s) => !new RegExp(`^\\s*(?:an?\\s+)?anon(?:ymous)?(?!\\p{L})(?:[\\s_.-]+(?:defendant|confessor|user|player|citizen|accused|${CRITTERS.join("|")}))?(?:[\\s#._-]*[\\p{N}a-f]{0,6})?\\s*$`, "iu").test(s.normalize("NFKC")), {
     message: "That's what anonymous confessors are called. Pick something else.",
   })
   // "Citizen 1234" is the stand-in name for a demoted officer, and "Former Citizen" a deleted account's.
@@ -172,7 +172,22 @@ export function bioImpersonatesStaff(bio: string): boolean {
 const ADMIN_TITLES = ["presiding judge", "chief justice", "chief judge", "head judge", "lord justice", "the judge", "your honour", "your honor", "his honour", "his honor", "her honour", "her honor", "their honour", "their honor", "administrator"].map(foldTitle);
 export function hasAdminTitle(name: string): boolean {
   const folded = foldTitle(name);
-  return ADMIN_TITLES.some((title) => folded.includes(title));
+  if (ADMIN_TITLES.some((title) => folded.includes(title))) return true;
+  // "Head Admin Pemberton", "Chief Admin", "SiteAdmin" (audit 50 D1): "admin" is the judge's role.
+  const spaced = foldFullWidth(name).replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2").replace(NOT_A_TITLE, " ");
+  return foldTitle(spaced).replace(/[^\p{L}]+/gu, "").includes(foldTitle("admin").trim());
+}
+
+/** A bio claiming the presiding judge's role ("I am the presiding judge and site administrator"). */
+const BIO_ADMIN_CLAIM = [
+  /\bpresiding\s+judge\b|\bchief\s+justice\b|\byour\s+hono(?:u)?r\b/iu,
+  /\b(?:site|head|chief|the|an?|main)\s+admin(?:istrator)?\b/iu,
+  /\b(?:i\s*(?:'m|am)|we\s*(?:'re|are))\s+(?:the\s+|an?\s+)?admin(?:istrator)?s?\b/iu,
+  /\bappeal\s+(?:your|a|the)\s+(?:ban|contempt|verdict)\b/iu,
+];
+export function bioClaimsAdmin(bio: string): boolean {
+  const text = skeleton(foldFullWidth(bio)).normalize("NFKD").replace(/\p{M}/gu, "");
+  return BIO_ADMIN_CLAIM.some((re) => re.test(text));
 }
 
 export const COURT_TITLE_MESSAGE = "That's an official title of the court. Pick your own name.";

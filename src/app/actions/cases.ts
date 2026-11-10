@@ -153,7 +153,7 @@ export async function reactAction(
   }
 }
 
-export async function reportAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+export async function reportAction(_prev: ActionResult<{ autoReview: boolean }> | null, formData: FormData): Promise<ActionResult<{ autoReview: boolean }>> {
   try {
     assertForm(formData);
     const user = await requireActiveUser();
@@ -178,6 +178,7 @@ export async function reportAction(_prev: ActionResult | null, formData: FormDat
     refresh();
     return {
       ok: true,
+      data: { autoReview },
       message: autoReview
         ? "Thank you. This case has been sent to the clerks for review."
         : "Thank you. The court clerks will review your report.",

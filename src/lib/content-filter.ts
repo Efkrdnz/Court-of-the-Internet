@@ -100,6 +100,9 @@ const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
 // "court-of-pettiness dot com"
 // Common endings, newer ones included ("bakery dot shop", audit 47 D3). Endings that are everyday
 // English words only count after a name, not after "polka" ("polka dot top").
+// "bit . ly / 3xYz": a dot set apart by spaces, before an ending that can't start a sentence
+// (lower case, and not one that reads as a word: no ". me", ". it", ". co"), audit 50 D2.
+const DOMAIN_SPACED = /\b(?!polka\b)[A-Za-z0-9-]{2,}(?:\s+\.\s*|\s*\.\s+)(?:com|net|org|io|ly|gg|xyz|app|dev|info|shop|biz|tv|uk|ru|de)\b(?:\s*\/|\s|$)/;
 const DOMAIN_SPELLED = /\b(?!polka\b)[a-z0-9-]{2,}\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|shop|store|online|site|blog|link|ly|biz|club|live|art|page|ai|ca|au|fr|nl|ie|tech|website|space|top|vip|cc|eu|nz|fm|lol|wtf|fun)\b/i;
 const EMAIL_SPELLED =
   /\b[\w.+-]+\s*(?:[[({]\s*at\s*[\])}]|\sat\s)\s*[\w-]+\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*[a-z]{2,}\b/i;
@@ -167,6 +170,8 @@ const HATE_STATEMENTS = [
 ];
 
 const VIOLENCE = [
+  // "Kill all [group]" (audit 50 D2), with or without "lol jk".
+  new RegExp(`\\b(?:kill|murder|exterminate|gas|shoot|nuke|wipe\\s+out)\\s+(?:all|every|each)\\s+(?:of\\s+)?(?:the\\s+|those\\s+)?(?:${GROUPS})\\b`, "i"),
   // Wishing a disease on someone ("I hope you all get cancer", audit 45).
   new RegExp(`\\b(?:hope|wish|pray|praying)\\s+(?:that\\s+)?(?:${TARGET}|you\\s+all|they|he|she)\\s+(?:all\\s+)?(?:gets?|catch(?:es)?|develops?)\\s+(?:cancer|aids|ebola|a\\s+tumou?r|leprosy|the\\s+plague)\\b`, "i"),
   // "My roommate is getting a knife in the ribs", "he'll get a bullet in the head" (audit 44 #2).
@@ -245,6 +250,9 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 50: spitting (or worse) in someone else's food or drink: "a customer's soup", "the soup of a customer".
+  /\b(?:spat|spit|spitting|peed|pissed|urinated|sneezed|coughed|snotted)\s+(?:in|into|on)\s+(?:a|the|my|his|her|their|that)\s+(?:customer|guest|diner|client|patron|boss|coworker|co-worker|colleague|roommate|flatmate|teacher|manager|neighbou?r)(?:'s|’s)\s+(?:\w+\s+)?(?:food|soup|drink|coffee|tea|meal|burger|sandwich|pizza|salad|dish|order|plate|smoothie|latte|lunch|dinner|pasta|curry|beer|water)\b/i,
+  /\b(?:spat|spit|spitting|peed|pissed|urinated|sneezed|coughed|snotted)\s+(?:in|into|on)\s+(?:the|a|his|her|their)\s+(?:\w+\s+)?(?:food|soup|drink|coffee|tea|meal|burger|sandwich|pizza|salad|dish|order|plate|smoothie|latte|lunch|dinner|pasta|curry|beer|water)\s+(?:of|for)\s+(?:a|the|my|his|her|that|some)\s+(?:\w+\s+)?(?:customer|guest|diner|client|patron|boss|coworker|co-worker|colleague|roommate|flatmate|teacher|manager|neighbou?r)\b/i,
   // Audit 49: choking someone until they black out.
   new RegExp(`\\b(?:choked|strangled|throttled)\\s+${VICTIM}\\s+(?:until|till|til)\\s+(?:he|she|they)\\s+(?:passed\\s+out|blacked\\s+out|went\\s+limp|fainted|turned\\s+blue|couldn'?t\\s+breathe)\\b`, "i"),
   // Audit 46: a slap across the face, a head held under water.
@@ -558,7 +566,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
       .replace(/([a-z0-9])\.(so|my|no|it|is|in|am|at|by|do|go|as|on|or|we|hi|ok|up|if|of|he|an)(?=\s+[a-z])/gi, "$1. $2");
   // Version numbers ("firmware 2.10.3.1") look like IP addresses.
   const IPV4 = /(?<!\b(?:v|ver|version|firmware|update|build|release|patch|ios|android|windows|macos|python|node|chrome|firefox)\s?)\b(?:\d{1,3}\.){3}\d{1,3}\b/i;
-  if (IPV4.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(sentences(text)) || URL.test(sentences(undotted)) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || /https?:\/\/|www\.[a-z0-9-]{2,}\.[a-z]{2,}/i.test(text.replace(/\s+/g, ""))) return fail("link");
+  if (IPV4.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(sentences(text)) || URL.test(sentences(undotted)) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || DOMAIN_SPACED.test(text) || /https?:\/\/|www\.[a-z0-9-]{2,}\.[a-z]{2,}/i.test(text.replace(/\s+/g, ""))) return fail("link");
   // "@ pettyking on twitter": a detached @name next to a platform name.
   const detachedHandle = /@\s+[a-z0-9_.]{3,}\b.{0,25}\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b/i.test(text);
   // "pettyking#1234" (Discord tag), "u/pettyking" (Reddit).

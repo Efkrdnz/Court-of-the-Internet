@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { changePasswordSchema, preferencesSchema, profileSchema } from "@/lib/validation";
 import { clearSessionCookie, getSessionToken, requireActiveUser, getCurrentUser } from "@/server/auth/current-user";
 import { changePassword, deleteAccount, updatePreferences, updateProfile } from "@/server/services/accounts";
-import { enforceRateLimit } from "@/server/rate-limit";
+import { enforceRateLimit, reserveAttempt } from "@/server/rate-limit";
 import { screenText } from "@/lib/content-filter";
 import { CourtError } from "@/server/errors";
 import { assertForm, toFailure, type ActionResult } from "./_util";
@@ -33,9 +33,15 @@ export async function updateProfileAction(_prev: ActionResult | null, formData: 
       const screened = screenText(value, { allowSpamCheck: false });
       if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, field);
     }
-    // Validated first: rejected saves don't use up the budget.
-    await enforceRateLimit(`profile:${user.id}`, 20, 600);
-    await updateProfile(user.id, input);
+    // Only saves that go through count: a save the service refuses (locked cosmetics, a court
+    // title, a staff claim in the bio) gives its attempt back (audit 50 D5).
+    const refund = await reserveAttempt([{ key: `profile:${user.id}`, limit: 20, windowSeconds: 600, message: "Order in the court! You're doing that too fast. Try again in a moment." }]);
+    try {
+      await updateProfile(user.id, input);
+    } catch (e) {
+      await refund();
+      throw e;
+    }
     refresh();
     return { ok: true, message: "Profile updated. Looking sharp, counselor." };
   } catch (e) {

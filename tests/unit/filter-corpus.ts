@@ -250,6 +250,11 @@ export const BENIGN = [
   "I smacked my head on the cupboard door and blamed the cat.",
   "I choked on my coffee when my boss walked in early.",
   "I was soooo hungry I ate my roommate's cheese at 3am.",
+  // Audit 50 near-misses.
+  "I ate the cake . Me and my brother blamed the dog for it.",
+  "I spat out my coffee when the boss walked in during my nap.",
+  "We should kill all the zombies in the game first, said my brother.",
+  "I finished the report . It was late, but I blamed the printer.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -523,4 +528,10 @@ export const EVASIONS: [string, string][] = [
   ["I choked my brother until he passed out","serious-crime"],
   ["I smacked my wife for burning dinner","serious-crime"],
   ["I shanked my cellmate","serious-crime"],
+  // Audit 50.
+  ["see bit . ly / 3xYz for the proof","link"],
+  ["I spat in the soup of a customer who was rude","serious-crime"],
+  ["I spat in a customer's soup","serious-crime"],
+  ["I peed in my roommate's smoothie","serious-crime"],
+  ["Kill all immigrants lol jk","violence"],
 ];

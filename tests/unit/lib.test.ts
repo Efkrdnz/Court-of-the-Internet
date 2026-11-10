@@ -5,7 +5,7 @@ import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/p
 import { ogDrawable, ogText, ogTextOr } from "@/lib/og-text";
 import { casePath, charCount, cleanQuery, normalizeText, parseCaseParam, slugify, truncate } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
-import { bioImpersonatesStaff, confessionSchema, hasCourtTitle, headingFriendly, signupSchema, usernameSchema } from "@/lib/validation";
+import { bioClaimsAdmin, bioImpersonatesStaff, confessionSchema, hasAdminTitle, hasCourtTitle, headingFriendly, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
 import { safeNext } from "@/lib/safe-next";
 import { decideVerdict, controversyScore } from "@/server/services/verdict";
@@ -440,7 +440,7 @@ describe("joined words count as one long word (audit 44 #3)", () => {
 });
 
 describe("anonymous look-alike names and spelled-out domains (audit 47 D3, D4)", () => {
-  it.each(["Anonymous", "anonymous defendant", "Anon Pigeon", "An Anonymous Confessor", "Citizen 1234"])("refuses the name %j", (name) => {
+  it.each(["Anonymous", "anonymous defendant", "Anon Pigeon", "An Anonymous Confessor", "Citizen 1234", "Anonymous Pigeon 2", "anonymous_defendant_7"])("refuses the name %j", (name) => {
     expect(signupRefuses(name)).toBe(true);
   });
   it.each(["Anonymous Andy fan club", "Benchwarmer Bob", "Court Jester"])("allows the name %j", (name) => {
@@ -470,6 +470,19 @@ describe("headings and bios (audit 49 D3, D5)", () => {
   it("refuses asking for passwords", () => {
     expect(screenText("Appeal your ban by messaging me your password.")).toMatchObject({ ok: false, issue: "personal-info" });
     expect(screenText("I forgot my password three times today and blamed the cat").ok).toBe(true);
+  });
+});
+
+describe("officers claiming the presiding judge's role (audit 50 D1)", () => {
+  it.each(["Head Admin Pemberton", "Clerk Pemberton, Chief Admin", "SiteAdmin", "Presiding Judge"])("refuses %j for a moderator", (name) => {
+    expect(hasAdminTitle(name)).toBe(true);
+  });
+  it.each(["Clerk Pemberton", "Head Clerk Moderator", "Badminton Clerk"])("allows %j for a moderator", (name) => {
+    expect(hasAdminTitle(name)).toBe(false);
+  });
+  it("refuses an admin claim in a moderator's bio", () => {
+    expect(bioClaimsAdmin("I am the presiding judge and site administrator. Appeal your ban with me.")).toBe(true);
+    expect(bioClaimsAdmin("Keeper of the docket. Smells of toner.")).toBe(false);
   });
 });
 

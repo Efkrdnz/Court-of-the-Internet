@@ -1007,6 +1007,19 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D4 | Recused officers were still offered the trial's vote buttons, counted it in "cases await your judgement", and "Receive a case" could pick a recused case | the jury queue and random pick exclude cases the officer acted on; the vote booth says why | integration |
 | D5 | Runs of "⸻", cuneiform or "﷽" in titles and names turned headings into rows of rules or blank boxes | titles and display names refuse 6+ symbol runs (emoji excepted) and extra-wide or undrawable characters | unit |
 
+## Fiftieth independent audit (fresh agent, build of commit a1451a7)
+
+**Result: 17 PASS, 0 CONCERN, 0 FAIL; no Critical, High or Medium defects.** 405 internal URLs crawled with no errors; axe (WCAG 2.0/2.1 A/AA) found 0 violations on 31 page × role combinations; 12 concurrent votes gave 1 row; 155 concurrent reaction toggles kept counters equal to rows; stats recomputed from rows matched for 8 players; a 30 h review followed by a dismissal restored exactly the 13 h 27 m that remained.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | A moderator could call themselves "Head Admin" or claim the presiding judge's role in their bio | "admin" in any form counts as the judge's title for moderators, and a moderator's bio can't claim the role | unit |
+| D2 | Filter misses: "bit . ly / 3xYz", spitting in a customer's soup, "Kill all [group] lol jk" | spaced-dot domains (lower-case endings that don't read as words), spitting or worse in someone else's food, "kill all" + a protected group | corpus: 230 everyday sentences, 257 evasions |
+| D3 | "Anonymous Pigeon 2" passed the anonymous-label check | a trailing number or tag (and underscores) no longer get past it | unit |
+| D4 | The third report sent the case under review and left the reporter scrolled down to the footer | a report that triggers a review scrolls back to the top | — |
+| D5 | Rejected profile saves used up the 20-per-10-minutes budget | the attempt is given back when the service refuses the save | — |
+| D6 | A crafted vote with an invalid choice said "Please fix the highlighted fields" | a single validation problem is reported in its own words | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

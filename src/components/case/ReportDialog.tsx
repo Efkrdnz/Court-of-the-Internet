@@ -50,12 +50,16 @@ function ReportForm({ caseId, available: current, close }: { caseId: string; ava
   const [available] = useState(current);
   const [state, formProps, pending] = useFormAction(reportAction);
   const done = state?.ok === true;
+  const sentForReview = state?.ok === true && state.data?.autoReview === true;
 
   useEffect(() => {
     if (!done) return;
+    // A report that sends the case for review turns the page into a short notice; bring the reader
+    // back to the top of it rather than leaving them looking at the footer (audit 50 D4).
+    if (sentForReview) window.scrollTo({ top: 0 });
     const t = setTimeout(close, 2500);
     return () => clearTimeout(t);
-  }, [done, close]);
+  }, [done, sentForReview, close]);
 
   if (done) {
     return (
