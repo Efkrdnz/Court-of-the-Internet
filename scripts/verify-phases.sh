@@ -15,7 +15,7 @@ run() { # run <phase label> <command...>
 # Each Playwright run starts its own production server on 3100: wait for the previous one to be gone first.
 pwt() {
   for _ in $(seq 1 60); do (exec 3<>/dev/tcp/127.0.0.1/3100) 2>/dev/null || break; sleep 1; done
-  FRESH_SERVER=1 pwt "$@"
+  FRESH_SERVER=1 npx playwright test --trace off "$@"
 }
 export -f pwt
 pw() { pwt "$@"; }
