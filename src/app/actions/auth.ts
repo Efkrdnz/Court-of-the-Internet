@@ -23,22 +23,45 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
     assertForm(formData);
     if (isBot(formData)) throw new CourtError("VALIDATION", "The bailiff suspects you are a robot.");
     const input = signupSchema.parse(formObject(formData));
-    // Same content rules as Settings, checked (like a taken username) before spending the signup budget.
+    // Same content rules as Settings, checked (like a taken username) before spending the signup
+    // budget. Every problem is reported at once, per field, so a player doesn't fix one only to
+    // meet the next (audit 54 D5).
+    const problems: Partial<Record<"username" | "displayName", string>> = {};
+    const check = async (field: "username" | "displayName", run: () => Promise<void> | void) => {
+      if (problems[field]) return;
+      try {
+        await run();
+      } catch (e) {
+        if (e instanceof CourtError) problems[field] = e.message;
+        else throw e;
+      }
+    };
     for (const [field, value] of [
       ["username", input.username],
       ["displayName", input.displayName],
     ] as const) {
       const screened = screenText(value, { allowSpamCheck: false });
-      if (!screened.ok) throw new CourtError("CONTENT_REJECTED", screened.message!, field);
+      if (!screened.ok) problems[field] = screened.message!;
     }
-    if (hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
-    await assertNotStaffName(input.displayName);
+    await check("displayName", () => {
+      if (hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
+    });
+    await check("displayName", () => assertNotStaffName(input.displayName));
     // Usernames show on profiles, case chips and leaderboards too: no "judge_wigsworth_" or
     // "court_moderator" (audit 45 D1).
-    if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username uses an official title of the court. Pick your own.", "username");
-    await assertNotStaffName(input.username.replace(/_/g, " "), undefined, "username");
-    if (await db.user.findUnique({ where: { username: input.username }, select: { id: true } })) {
-      throw new CourtError("CONFLICT", "That username is already taken.", "username");
+    await check("username", () => {
+      if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username uses an official title of the court. Pick your own.", "username");
+    });
+    await check("username", () => assertNotStaffName(input.username.replace(/_/g, " "), undefined, "username"));
+    await check("username", async () => {
+      if (await db.user.findUnique({ where: { username: input.username }, select: { id: true } })) {
+        throw new CourtError("CONFLICT", "That username is already taken.", "username");
+      }
+    });
+    const fields = Object.entries(problems) as ["username" | "displayName", string][];
+    if (fields.length === 1) throw new CourtError("VALIDATION", fields[0][1], fields[0][0]);
+    if (fields.length > 1) {
+      return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: Object.fromEntries(fields.map(([f, m]) => [f, [m]])) };
     }
     const ip = await clientIp();
     if (ip) await enforceRateLimit(`signup:${ip}`, 6, 3600, "Too many new identities from here. Try again later.");

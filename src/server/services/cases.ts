@@ -62,13 +62,14 @@ async function checkConfessionAllowed(client: Tx | typeof db, userId: string, in
 
   const recent = await client.case.findMany({
     where: { accusedId: userId, createdAt: { gte: monthAgo } },
-    select: { title: true, confession: true },
+    select: { title: true, confession: true, number: true },
     take: 50,
     orderBy: { createdAt: "desc" },
   });
   for (const r of recent) {
     if (r.title.toLowerCase() === input.title.toLowerCase() || similarity(r.confession, input.confession) > 0.6) { // one changed word still counts as the same crime
-      throw new CourtError("CONFLICT", "You've already confessed to this crime recently. Double jeopardy!", "confession");
+      // Name the case: after a lost response the player may not know their first try went through (audit 54 D3).
+      throw new CourtError("CONFLICT", `You've already confessed to this crime recently (Case No. ${formatCaseNumber(r.number)}). Double jeopardy!`, "confession");
     }
   }
   const globalDupe = await client.case.findFirst({

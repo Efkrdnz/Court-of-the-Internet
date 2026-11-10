@@ -1063,6 +1063,18 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 6 | Vote stuffing with sockpuppets when exposed without a proxy | documented deployment requirement; no change | — |
 | 7 | 404 page gradient "ends halfway" | the fixed body background in a full-page screenshot (a capture artefact noted in audit 44); a real viewport shows no seam | — |
 
+## Fifty-fourth independent audit (fresh agent, build of commit 1d33544)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** 15 concurrent claimers gave 1 winner; 12 concurrent votes from 2 users gave 1 row each; stats matched SQL for 8 players and the admin audit after cron closed 3 trials; axe clean on 21 page/viewport combinations; a paused trial whose deadline passed resumed with exactly 10 minutes left.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **Hate speech, animal cruelty and sexual misconduct got through** ("I hate all muslims … gas the jews, heil hitler", "tortured the neighbour's cat", "photos up her skirt", Holocaust denial, "women belong in the kitchen", "hidden camera in the girls locker room", "touched her without asking", "grabbed her butt", unsolicited nudes, "free robux, just need your login") | patterns for each (hating or harming a group, Nazi slogans and denial; cruelty to a pet named by a possessive; upskirting, hidden cameras in changing rooms, groping and touching without consent, unsolicited nudes; scam asks for logins); near-misses kept (hating olives, touching her lunch, grabbing her coffee, sending memes, a cat torturing a mouse) | corpus: 236 everyday sentences, 269 evasions |
+| D2 | The moderation console offered strike/seal/adjourn to a recused officer, failing only on press | a recused officer sees a notice instead of the actions | — |
+| D3 | When the answer was lost after the court acted, the form said "nothing was lost"; a retried confession got "Double jeopardy!" with no case; the vote booth showed the error beside the sealed vote | the message says to refresh to see whether it went through; the duplicate refusal names the case on file; the booth drops the error once the vote shows sealed | e2e (message) |
+| D4 | "Court of the Interwebs", "Court Of The Web", "Courtroom Bot", "The Gavel Team" passed; "Staff Sergeant" was refused | "court of the …", courtroom and gavel teams/bots added; everyday words containing a title are set aside before every check | unit |
+| D5 | Signup reported only the first server-side problem | every field's problem is reported at once | e2e |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

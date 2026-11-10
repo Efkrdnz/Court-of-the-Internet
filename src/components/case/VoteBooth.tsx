@@ -186,7 +186,9 @@ export function VoteBooth({
             <p className="mt-3 text-xs text-parchment/55">The tally stays hidden until you vote, to keep the jury honest.</p>
           </div>
         )}
-        {error ? (
+        {/* Once the refresh shows the vote sealed (the request had gone through after all, or another
+            tab voted), the sealed state says it all (audit 54 D3). */}
+        {error && !vote ? (
           <p role="alert" className="mt-3 text-sm font-bold text-[#ff9d9d]">
             {error}
           </p>

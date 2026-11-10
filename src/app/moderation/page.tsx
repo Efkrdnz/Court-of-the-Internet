@@ -14,6 +14,7 @@ import { REPORT_REASONS } from "@/lib/validation";
 import { ModFlashProvider } from "@/components/forms/ModFlash";
 import { ModForm } from "@/components/forms/ModForm";
 import { JudgeOwl } from "@/components/art/characters";
+import { FormAlert } from "@/components/ui/FormAlert";
 
 // Neutral title: non-staff get a 404 here, and the tab shouldn't reveal what the page is.
 export const metadata: Metadata = { title: "Officers only", robots: { index: false } };
@@ -94,6 +95,12 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             reports: { where: { status: "OPEN" }, select: { id: true } },
             accused: { select: { username: true } },
             arguments: { select: { role: true, body: true, stricken: true } },
+            // For recusal: the console only offers actions this officer may take (audit 54 D2).
+            accusedId: true,
+            attorneyId: true,
+            prosecutorId: true,
+            claimedById: true,
+            votes: { where: { userId: user.id }, select: { id: true }, take: 1 },
           },
         })
       : null,
@@ -108,6 +115,8 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
     db.featuredCase.findUnique({ where: { day: utcDay() }, select: { caseId: true } }),
   ]);
   // The seal this console shows, so a stale "Restore" can't lift a newer seal.
+  const recused =
+    !!focusCase && ([focusCase.accusedId, focusCase.attorneyId, focusCase.prosecutorId, focusCase.claimedById].includes(user.id) || focusCase.votes.length > 0);
   const sealSeen =
     focusCase?.moderationState === "REMOVED"
       ? ((await db.moderationAction.findFirst({ where: { caseId: focusCase.id, action: "REMOVE_CASE" }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true } }))?.id ?? "")
@@ -152,6 +161,12 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
       {sp.case && !focusCase ? <p className="mt-4 text-[#ff9d9d]">No case with that number.</p> : null}
       {focusCase ? (
         <section aria-labelledby="focus-case" className="velvet mt-6 space-y-4 p-6">
+          {recused ? (
+            <FormAlert kind="info">
+              You&apos;re part of this case (as a party, the claim holder or a juror who voted), so you&apos;re recused: another officer of the court has to seal, restore,
+              strike, dismiss, adjourn or pin it.
+            </FormAlert>
+          ) : null}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-[1_1_14rem] break-words">
               <p className="eyebrow">
@@ -185,7 +200,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 {a.role === "DEFENSE" ? "Defense" : "Prosecution"} {a.stricken ? "(stricken)" : ""}
               </p>
               <p className="font-type text-sm text-parchment/85">{a.body}</p>
-              <div className="mt-2">
+              <div className={recused ? "hidden" : "mt-2"}>
                 <ModForm
                   op={`${a.stricken ? "unstrike" : "strike"}-${a.role === "DEFENSE" ? "defense" : "prosecution"}`}
                   label={a.stricken ? "Reinstate argument" : "Strike from the record"}
@@ -195,7 +210,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               </div>
             </div>
           ))}
-          <div className="flex flex-col gap-3 border-t border-gold/20 pt-4">
+          <div className={recused ? "hidden" : "flex flex-col gap-3 border-t border-gold/20 pt-4"}>
             {focusCase.moderationState === "REMOVED" ? (
               <ModForm op="restore" label="Restore case" caseId={focusCase.id} tone="teal" hidden={{ sealSeen }} />
             ) : (

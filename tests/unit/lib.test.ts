@@ -504,11 +504,13 @@ describe("court titles in names (audit 44 #1)", () => {
     // Audit 52 D2.
     "courtoftheinternet", "CourtOfTheInternet", "CourtSupport", "Court Internet Official", "Internet Court HQ", "The Presiding Owl", "System", "Notifications",
     // Audit 53 #3.
-    "C.O.T.I. Team", "The Internet's Court", "Kourt of the Internet", "Court ov da Internet", "Court Notification", "System Message", "Verified \u2714", "\u2714 Official", "Deleted User", "[deleted]"])(
+    "C.O.T.I. Team", "The Internet's Court", "Kourt of the Internet", "Court ov da Internet", "Court Notification", "System Message", "Verified \u2714", "\u2714 Official", "Deleted User", "[deleted]",
+    // Audit 54 D4.
+    "Court of the Interwebs", "Court Of The Web", "Courtroom Bot", "The Gavel Team"])(
     "refuses %s",
     (name) => expect(hasCourtTitle(name)).toBe(true),
   );
-  it.each(["Judge Mental", "Marshal Law", "Wordsworth Fan", "Modest Mouse", "Administer Snacks", "Clerkenwell Kid", "Staffie Lover", "Courtney", "Justice League Fan", "Clark Kent", "Office Goblin", "Model Citizen", "Bailey", "duchess_of_dishes", "Sheriff Bob", "Badminton Queen", "Administer Snacks", "Officially Snacking", "System Of A Down Fan", "Internet Explorer", "Basketball Court Hero", "Internet Cat Lover", "Court Jester"])(
+  it.each(["Judge Mental", "Marshal Law", "Wordsworth Fan", "Modest Mouse", "Administer Snacks", "Clerkenwell Kid", "Staffie Lover", "Courtney", "Justice League Fan", "Clark Kent", "Office Goblin", "Model Citizen", "Bailey", "duchess_of_dishes", "Sheriff Bob", "Badminton Queen", "Administer Snacks", "Officially Snacking", "System Of A Down Fan", "Internet Explorer", "Basketball Court Hero", "Internet Cat Lover", "Court Jester", "Staff Sergeant", "Gavel Collector"])(
     "allows %s",
     (name) => expect(hasCourtTitle(name)).toBe(false),
   );

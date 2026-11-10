@@ -5,7 +5,9 @@
  * end", losing what the player had typed (audit 52 D1). Next.js navigation (a redirect from the
  * action) still has to propagate.
  */
-export const NETWORK_ERROR = "Couldn't reach the court. Check your connection and try again; nothing was lost.";
+// Not "nothing was lost": the request may have reached the court even though its answer didn't
+// (audit 54 D3), so say how to find out.
+export const NETWORK_ERROR = "Couldn't confirm with the court. Check your connection: if it went through, you'll see it after a refresh; otherwise try again.";
 
 export function isNavigationError(e: unknown): boolean {
   const digest = typeof e === "object" && e !== null && "digest" in e ? (e as { digest: unknown }).digest : undefined;

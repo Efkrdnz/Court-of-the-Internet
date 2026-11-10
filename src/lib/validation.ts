@@ -144,8 +144,10 @@ const TITLE_STEMS = ["moderator", "moderation", "admin", "clerk", "bailiff", "sy
   // The site's own name, however it's joined or reordered (audit 52 D2).
   "courtoftheinternet", "courtinternet", "internetcourt", "courtsupport", "courtofficial", "courthq", "courtbot", "courtnews", "courtnotices",
   // Audit 53 #3.
-  "internetscourt", "cotiteam", "cotiofficial", "cotistaff", "cotisupport", "cotiadmin", "court notification", "court message", "system message", "system notice", "deleted user", "removed user"].map((t) => foldTitle(t).replace(/[^\p{L}]+/gu, ""));
-const NOT_A_TITLE = /\b(?:badminton\w*|administ(?:er|ers|ered|ering|rative)|clerkenwell|staff(?:ie|ies|y|ordshire|ord)|officers?\s+mess)\b/giu;
+  "internetscourt", "cotiteam", "cotiofficial", "cotistaff", "cotisupport", "cotiadmin", "court notification", "court message", "system message", "system notice", "deleted user", "removed user",
+  // Audit 54 D4: "Court of the Interwebs" / "of the Web", "Courtroom Bot", "The Gavel Team".
+  "court of the", "courtroom bot", "courtroom team", "gavel team", "gavel staff", "gavel official"].map((t) => foldTitle(t).replace(/[^\p{L}]+/gu, ""));
+const NOT_A_TITLE = /\b(?:badminton\w*|administ(?:er|ers|ered|ering|rative)|clerkenwell|staff(?:ie|ies|y|ordshire|ord)|staff\s+sergeants?|officers?\s+mess)\b/giu;
 
 // Short titles spelled out letter by letter ("M o d", "M.o.d"), audit 51 #3.
 const SHORT_TITLES = new Set(["mod", "mods", "admin", "admins", "staf", "cierk", "coti"].map((t) => foldTitle(t).trim()));
@@ -154,7 +156,8 @@ const SHORT_TITLES = new Set(["mod", "mods", "admin", "admins", "staf", "cierk",
 const SYSTEM_NAMES = new Set(["system", "notifications", "notification", "announcements", "announcement", "the system", "court notices", "news", "bot", "court bot", "server", "root"].map((t) => foldTitle(t)));
 
 export function hasCourtTitle(name: string): boolean {
-  const folded = foldTitle(name);
+  // Everyday words containing a title ("Staff Sergeant", "Badminton") are set aside first (audit 54 D4).
+  const folded = foldTitle(foldFullWidth(name).replace(NOT_A_TITLE, " "));
   if (SYSTEM_NAMES.has(folded)) return true;
   // Verification ticks ("Verified ✔", "✔ Official") and the site's name misspelled around
   // "internet" ("Kourt of the Internet", "Court ov da Internet"), audit 53 #3.

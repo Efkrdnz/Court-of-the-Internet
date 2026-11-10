@@ -73,6 +73,8 @@ const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // Bare 7-digit local numbers are a known gap (see README).
 // Asking for someone's password or login ("message me your password", "reply with your login",
 // "give me your pw", "if you give me your credentials"), audit 49 D3 and audit 51 #2.
+// "just need your login", "all I need is your password", "free robux": scam asks (audit 54 D1).
+const CREDENTIAL_NEED = /\b(?:need|want|require|needs|wants)\s+(?:is\s+)?(?:your|ur)\s+(?:\w+\s+(?:and|&|or)\s+)?(?:password|passwords|passwd|pw|pwd|login|log-?in(?:\s+details)?|credentials|creds|2fa|passcode|pin|verification\s+code|security\s+code)\b|\bfree\s+(?:robux|v-?bucks|nitro|xp|gems|coins|skins)\b.{0,40}\b(?:login|password|account|creds|credentials)\b/i;
 const CREDENTIAL_ASK = /\b(?:send|give|tell|share|reply|respond|dm|pm|messag|email|text|whisper|post|drop|hand\s+over|type)\w*\s+(?:\w+\s+){0,4}?(?:your|ur|yer|their|his|her)\s+(?:\w+\s+(?:and|&|or)\s+)?(?:password|passwords|passwd|pw|pwd|pass\s*word|login|log-?in(?:\s+details)?|credentials|creds|2fa|two[\s-]factor|passcode|pin|verification\s+code|security\s+code|session|cookies?)\b/i;
 const PHONE = /(?:\+?\p{Nd}[\s()./_,\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
 // Explicit URLs, or a domain with any two-letter country TLD or a common generic TLD.
@@ -181,6 +183,14 @@ const GROUPS =
 const HATE_STATEMENTS = [
   new RegExp(`\\b(?:all\\s+)?(?:${GROUPS})\\s+(?:are|r)\\s+(?:all\\s+|just\\s+|nothing\\s+but\\s+)?(?:disgusting|vermin|animals|subhuman|scum|parasites|rats|cockroaches|filth|trash|garbage|evil|inferior|a\\s+disease|a\\s+plague|a\\s+cancer|savages|degenerates|criminals|terrorists|abominations?)\\b`, "i"),
   /\bjews\s+(?:control|run|own)\s+(?:the|all|every)\b/i,
+  // Audit 54 D1: hating or harming a group, Nazi slogans and Holocaust denial, "women belong in the kitchen".
+  // (Not bare "men"/"women" after "I hate": that's everyday breakup hyperbole.)
+  new RegExp(`\\b(?:hate|despise|loathe|detest|can'?t\\s+stand)\\s+(?:all\\s+)?(?:the\\s+|those\\s+)?(?!(?:wo)?men\\b)(?:${GROUPS})\\b`, "i"),
+  new RegExp(`\\b(?:gas|exterminate|lynch|deport\\s+all|burn|kill|shoot|nuke|wipe\\s+out|get\\s+rid\\s+of)\\s+(?:all\\s+)?(?:the\\s+|those\\s+)(?:${GROUPS})\\b`, "i"),
+  new RegExp(`\\b(?:${GROUPS})\\b[^.!?]{0,25}\\bthey\\s*(?:are|'re|r)\\s+(?:all\\s+|just\\s+)?(?:animals|vermin|subhuman|scum|parasites|rats|cockroaches|filth|savages|terrorists|a\\s+disease|a\\s+plague)\\b`, "i"),
+  /\b(?:heil\s+hitler|sieg\s+heil|white\s+power|hitler\s+(?:did\s+nothing\s+wrong|was\s+right)|gas\s+chambers?\s+(?:were|was)\s+(?:fake|a\s+lie|a\s+hoax))\b/i,
+  /\bholocaust\s+(?:never\s+happened|didn'?t\s+happen|did\s+not\s+happen|(?:is|was)\s+(?:a\s+)?(?:hoax|lie|myth|fake|exaggerated|made\s+up))\b|\b(?:never\s+was\s+a|there\s+was\s+no)\s+holocaust\b/i,
+  /\bwomen\s+(?:belong\s+in\s+the\s+kitchen\b(?!\s*\?)|(?:should(?:n'?t|\s+not)|shouldnt)\s+(?:be\s+allowed\s+to\s+)?(?:vote|work|drive|have\s+rights))/i,
   // A people named only by where they're from ("people from that country are vermin"). Words
   // that are everyday hyperbole for co-workers or fans ("animals", "savages") are left out.
   /\b(?:people|immigrants|migrants|foreigners|refugees|those\s+people|they|them|everyone|everybody)\s+from\s+(?:that|this|those|their|there|over\s+there|(?:that|this)\s+\w+|\w+\s+\w+|\w+)\s+(?:are|r)\s+(?:all\s+|just\s+|nothing\s+but\s+)?(?:vermin|subhuman|cockroaches|rats|parasites|filth|a\s+disease|a\s+plague|an\s+infestation|a\s+cancer)\b/i,
@@ -267,6 +277,16 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 54 D1: a pet tortured or set alight ("the neighbour's cat"), upskirt photos, hidden
+  // cameras in changing rooms, groping, touching without consent, unsolicited nudes.
+  /\b(?:tortured|torturing|abused|mutilated|skinned|drowned|strangled|kicked|burned|burnt|stabbed|starved|hanged|poisoned)\s+(?:my|his|her|their|the|a|an|our|someone'?s)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bunny|bird|parrot|pet|guinea\s+pig|horse|goat|chicken|duck|tortoise|ferret|budgie)s?\b/i,
+  /\bset\s+(?:fire\s+to|alight)\s+(?:my|his|her|their|the|a|an|our|someone'?s)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|horse|goat|chicken|duck)s?\b/i,
+  /\bup-?\s?skirt|\b(?:took|taking|snapped|filmed|recorded)\s+(?:photos?|pictures?|pics?|videos?)?\s*up\s+(?:her|his|their|a\s+\w+'s|someone'?s|women'?s|girls'?)\s+(?:skirt|dress|kilt)\b/i,
+  /\b(?:put|hid|placed|installed|set\s+up|hide|hiding)\s+(?:a|my|the)\s+(?:hidden|secret|spy|tiny)\s+cam(?:era)?s?\s+in\s+(?:the|a)\s+(?:girls'?\s+|boys'?\s+|women'?s\s+|men'?s\s+|ladies'?\s+|staff\s+|school\s+|gym\s+|office\s+)?(?:locker\s+room|changing\s+rooms?|toilets?|bathroom|showers?|restroom|dressing\s+room)\b/i,
+  /\b(?:put|hid|placed|installed|set\s+up|hide|hiding)\s+(?:a|my|the)\s+cam(?:era)?s?\s+in\s+(?:the|a)\s+(?:girls'?\s+|boys'?\s+|women'?s\s+|men'?s\s+|ladies'?\s+|staff\s+|school\s+|gym\s+)?(?:locker\s+room|changing\s+rooms?|dressing\s+room)\b/i,
+  /\b(?:grabbed|groped|touched|squeezed|pinched|felt\s+up|fondled|slapped)\s+(?:her|his|their|a\s+\w+'s|my\s+\w+'s|someone'?s|the\s+\w+'s)\s+(?:butt|bum|ass|arse|breasts?|boobs?|tits|chest|crotch|privates|thighs?|bottom|behind)\b/i,
+  /\b(?:touched|groped|kissed|fondled|felt\s+up|grabbed|hugged)\s+(?:her|him|them|someone|somebody|a\s+(?:girl|woman|guy|man|stranger)|my\s+\w+)\s+without\s+(?:asking|consent|permission|her\s+consent|his\s+consent|their\s+consent)\b/i,
+  /\b(?:sent|send|sending|showed|texted|dm'?d|airdropped|air-dropped)\s+(?:\w+\s+){0,3}(?:unsolicited\s+)?(?:nudes?|nude\s+(?:pics?|photos?|images?|selfies?)|dick\s+pics?|explicit\s+(?:pics?|photos?|images?))\b/i,
   // Audit 50: spitting (or worse) in someone else's food or drink: "a customer's soup", "the soup of a customer".
   /\b(?:spat|spit|spitting|peed|pissed|urinated|sneezed|coughed|snotted)\s+(?:in|into|on)\s+(?:a|the|my|his|her|their|that)\s+(?:customer|guest|diner|client|patron|boss|coworker|co-worker|colleague|roommate|flatmate|teacher|manager|neighbou?r)(?:'s|’s)\s+(?:\w+\s+)?(?:food|soup|drink|coffee|tea|meal|burger|sandwich|pizza|salad|dish|order|plate|smoothie|latte|lunch|dinner|pasta|curry|beer|water)\b/i,
   /\b(?:spat|spit|spitting|peed|pissed|urinated|sneezed|coughed|snotted)\s+(?:in|into|on)\s+(?:the|a|his|her|their)\s+(?:\w+\s+)?(?:food|soup|drink|coffee|tea|meal|burger|sandwich|pizza|salad|dish|order|plate|smoothie|latte|lunch|dinner|pasta|curry|beer|water)\s+(?:of|for)\s+(?:a|the|my|his|her|that|some)\s+(?:\w+\s+)?(?:customer|guest|diner|client|patron|boss|coworker|co-worker|colleague|roommate|flatmate|teacher|manager|neighbou?r)\b/i,
@@ -553,7 +573,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   // …and words broken up or stretched inside: "st.abbed", "stab_bed", "stabbbbed" (audit 49 D2).
   const squeezed = joined.replace(/(\p{L})[.\-_*]+(?=\p{L})/gu, "$1").replace(/(\p{L})\1{2,}/gu, "$1$1");
-  if (CREDENTIAL_ASK.test(text)) return fail("phishing");
+  if (CREDENTIAL_ASK.test(text) || CREDENTIAL_NEED.test(text)) return fail("phishing");
   if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").

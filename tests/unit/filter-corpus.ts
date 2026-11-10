@@ -255,6 +255,13 @@ export const BENIGN = [
   "I spat out my coffee when the boss walked in during my nap.",
   "We should kill all the zombies in the game first, said my brother.",
   "I finished the report . It was late, but I blamed the printer.",
+  // Audit 54 near-misses.
+  "I hate all olives and I told the waiter so at my own birthday dinner.",
+  "I touched her lunch without asking and ate the crisps.",
+  "I grabbed her coffee by mistake at the office party and drank it.",
+  "I sent my coworker unsolicited memes about the printer every morning.",
+  "I tortured my brother with the same song all weekend on the car trip.",
+  "My cat tortured a mouse and left it in my shoe, and I blamed the dog.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -534,4 +541,17 @@ export const EVASIONS: [string, string][] = [
   ["I spat in a customer's soup","serious-crime"],
   ["I peed in my roommate's smoothie","serious-crime"],
   ["Kill all immigrants lol jk","violence"],
+  // Audit 54.
+  ["I hate all muslims they are animals and honestly gas the jews, heil hitler.","hate"],
+  ["I tortured the neighbour's cat for fun all weekend","serious-crime"],
+  ["I took photos up her skirt on the escalator","serious-crime"],
+  ["hitler did nothing wrong","hate"],
+  ["the holocaust never happened","hate"],
+  ["I set fire to a cat","serious-crime"],
+  ["I put a hidden camera in the girls locker room","serious-crime"],
+  ["I touched her without asking","serious-crime"],
+  ["I grabbed her butt at the office party","serious-crime"],
+  ["I sent my coworker unsolicited nude pics","serious-crime"],
+  ["dm me for free robux, just need your login","phishing"],
+  ["women belong in the kitchen and should not vote","hate"],
 ];

@@ -836,7 +836,7 @@ test("§12 forms: a dropped connection shows an inline error and keeps what was 
   // The next server-action request fails in transit, like a phone dropping its connection.
   await page.route("**/*", (route) => (route.request().method() === "POST" && route.request().headers()["next-action"] ? route.abort("internetdisconnected") : route.continue()));
   await page.getByRole("button", { name: /^Submit my confession/ }).click();
-  await expect(page.getByText(/Couldn't reach the court/)).toBeVisible();
+  await expect(page.getByText(/Couldn't confirm with the court/)).toBeVisible();
   await expect(page.getByText(/Something went wrong on our end/)).toHaveCount(0);
   await expect(page.getByLabel("Case title")).toHaveValue("I taught the cat to open the treat cupboard");
   await page.close();
@@ -857,4 +857,16 @@ test("§12 settings: a refused account deletion keeps the player's drafts (audit
   await expect(page.getByLabel("Case title")).toHaveValue("Draft that must survive a typo");
   await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("coti-draft-")).forEach((k) => localStorage.removeItem(k)));
   await page.close();
+});
+
+test("§12 forms: signup reports every server-side problem at once (audit 54 D5)", async ({ page }) => {
+  await page.goto("/signup");
+  await page.locator("#su-username").fill("counselor_coo"); // taken
+  await page.locator("#su-display").fill("Moderator Max"); // a court title
+  await page.locator("#su-password").fill("objection-sustained");
+  await page.locator("#su-confirm").fill("objection-sustained");
+  await page.getByRole("checkbox").first().check();
+  await page.getByRole("button", { name: /sign up|join|sworn|create/i }).first().click();
+  await expect(page.getByText("That username is already taken.").first()).toBeVisible();
+  await expect(page.getByText(/official title of the court/).first()).toBeVisible();
 });
