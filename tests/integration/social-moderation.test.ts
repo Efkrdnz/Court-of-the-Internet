@@ -8,6 +8,7 @@ import { toggleReaction } from "@/server/services/reactions";
 import { bumpViewCount, getCaseDetail, listQueue } from "@/server/queries/cases";
 import {
   adjournNow,
+  assertNotYetReported,
   dismissReports,
   fileReport,
   grantEntitlement,
@@ -458,6 +459,79 @@ describe("moderation", () => {
     await removeCase(b, c.id, "Second, more serious problem");
     await expect(restoreCase(a, c.id, firstSeal)).rejects.toMatchObject({ code: "CONFLICT" });
     expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("REMOVED");
+  });
+
+  it("an officer holding a claim on a case recuses from it (audit 41 D1)", async () => {
+    const [accused, attorney, juror] = [await makeUser(), await makeUser(), await makeUser()];
+    const clerk = await makeUser("claiming_clerk", "MODERATOR");
+    const neutral = await makeUser("neutral_clerk", "MODERATOR");
+    const c = await makeCase(accused);
+    await claimCase(attorney, c.id, "DEFENSE");
+    await submitArgument(attorney, c.id, "DEFENSE", DEFENSE_TEXT);
+    await claimCase(clerk, c.id, "PROSECUTION");
+    // The prosecutor-to-be can't strike the defense they're about to rebut, seal the case, or ban its attorney.
+    await expect(strikeArgument(clerk, c.id, "DEFENSE")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(removeCase(clerk, c.id, "Inconvenient defense")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(setBan(clerk, attorney, true, "Opposing counsel")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await db.argument.findFirstOrThrow({ where: { caseId: c.id, role: "DEFENSE" } })).toMatchObject({ stricken: false });
+    expect((await db.user.findUniqueOrThrow({ where: { id: attorney } })).bannedAt).toBeNull();
+    await setBan(neutral, juror, true, "Unrelated"); // a neutral officer is unaffected
+    await strikeArgument(neutral, c.id, "DEFENSE");
+  });
+
+  it("striking the reported argument puts an under-review case back on view and resumes its trial (audit 41 D4)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const mod = await makeUser("strike_review_clerk", "MODERATOR");
+    const reporters = await makeUsers(3, "srv");
+    advance(hours(25)); // established accounts
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    for (const r of reporters) await fileReport(r, { caseId: c.id, target: "DEFENSE", reason: "HARASSMENT" });
+    expect(await db.case.findUniqueOrThrow({ where: { id: c.id } })).toMatchObject({ moderationState: "UNDER_REVIEW", openReports: 3 });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).deliberationPausedAt).not.toBeNull();
+    expect(await strikeArgument(mod, c.id, "DEFENSE")).toEqual({ madeVisible: true, stillUnderReview: false });
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ moderationState: "VISIBLE", openReports: 0, deliberationPausedAt: null });
+    expect(await db.notification.count({ where: { userId: accused, title: { contains: "back in session" } } })).toBe(1);
+
+    // With a report on the confession still open, it stays under review.
+    const c2 = await makeCase(accused);
+    await toDeliberation(c2.id, attorney, prosecutor);
+    await fileReport(reporters[0], { caseId: c2.id, target: "CASE", reason: "SPAM" });
+    for (const r of reporters.slice(1)) await fileReport(r, { caseId: c2.id, target: "DEFENSE", reason: "SPAM" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c2.id } })).moderationState).toBe("UNDER_REVIEW");
+    expect(await strikeArgument(mod, c2.id, "DEFENSE")).toEqual({ madeVisible: false, stillUnderReview: true });
+    expect(await db.case.findUniqueOrThrow({ where: { id: c2.id } })).toMatchObject({ moderationState: "UNDER_REVIEW", openReports: 1 });
+  });
+
+  it("reasons with emoji at the length cut-off are stored, never half a character (audit 41 D2)", async () => {
+    const accused = await makeUser();
+    const mod = await makeUser("emoji_clerk", "ADMIN");
+    const victim = await makeUser();
+    const c = await makeCase(accused);
+    const reason = `${"x".repeat(199)}\u{1F64F} thanks`;
+    await removeCase(mod, c.id, reason);
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.moderationState).toBe("REMOVED");
+    const note = (await db.notification.findFirstOrThrow({ where: { userId: accused, title: { contains: "was sealed" } } })).body;
+    expect(note).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/); // no lone high surrogate
+    const emojiBan = "\u{1F64F}".repeat(200);
+    await setBan(mod, victim, true, emojiBan);
+    const banned = await db.user.findUniqueOrThrow({ where: { id: victim } });
+    expect(banned.banReason!.length).toBeLessThanOrEqual(300);
+    expect(banned.banReason!.length % 2).toBe(0); // whole emoji only
+    const logged = await db.moderationAction.findFirstOrThrow({ where: { targetUserId: victim, action: { contains: "BAN" } } });
+    expect(logged.note!.endsWith("…")).toBe(true);
+  });
+
+  it("a repeat report is answered as already reported, not as rate-limited (audit 41 D5)", async () => {
+    const accused = await makeUser();
+    const reporter = await makeUser();
+    const c = await makeCase(accused);
+    await assertNotYetReported(reporter, c.id, "CASE");
+    await fileReport(reporter, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    await expect(assertNotYetReported(reporter, c.id, "CASE")).rejects.toMatchObject({ code: "ALREADY_DONE", message: expect.stringContaining("already reported") });
+    await assertNotYetReported(reporter, c.id, "DEFENSE");
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {

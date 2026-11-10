@@ -886,6 +886,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6 | "Most entertaining" gave equal scores different ranks; win-rate and streak boards took 500 unordered rows before ranking | equal scores share a rank; those boards fetch the strongest players first (2,000-row window) | — |
 | D7 | Spoofable per-IP limits without a proxy | already documented | — |
 
+## Forty-first independent audit (fresh agent, build of commit 86df58b)
+
+**Result: 13 PASS, 4 CONCERN (3, 10, 17, plus minor notes), 0 FAIL.** Full lifecycle on Pixel 7, 320px and 1280px; 12 simultaneous claimers gave 1 winner; 10 concurrent votes gave 1 row; stats recomputed for 5 players and the home counters with 0 mismatches; vitest 678/678 on 3 of 3 runs; all 50 new everyday confessions accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **An officer holding a claim (prosecution claimed, not yet filed) could strike the defense they were about to rebut, seal the case or ban its attorney** (recusal looked at accused, attorney, prosecutor and voters, not the claim holder) | the claim holder counts as a party for every case action and for bans on open trials; README recusal list updated | integration: the claiming clerk is refused strike, seal and ban; a neutral officer can |
+| D2 | A reason with an emoji at the 200/300-character cut-off split a surrogate pair, and Postgres rejected the whole seal or ban ("The court stenographer fainted") | `truncate()` cuts on grapheme (or at least code-point) boundaries; used for seal and ban reasons, the notice to the accused, audit-log notes, session user agents, archive search and the case page description; the console's reason box has `maxLength` 300 | unit: truncate; integration: a seal and a ban with emoji at the cut-off are stored, the log note ends in "…" |
+| D3 | Filter misses: a pet thrown "out the window" / "over the fence", a flatmate's card used to withdraw cash (or "card" without "debit"), "guessing her phone password", "shoplifted a pair of AirPods", a knife brought to work "to scare" a manager, "stole my grandma's savings", "people from that country are vermin" | patterns for each; near-misses kept (a hamster's birthday party, a treat over the fence, a roommate's birthday card or card game, the wifi password, a pair of socks, a knife for the cake, grandma's scone recipe or savings-jar idea, "people from accounts are animals" at a party) | corpus: 196 everyday sentences, 219 evasions |
+| D4 | Striking the reported argument resolved the reports but left the case under review with its clock paused and 0 open reports | if that settles the last open report, the case goes back on view, the trial resumes and its parties are told; otherwise the officer is told it stays under review | integration: both cases |
+| D5 | Inaccurate messages: a stale "Dismiss" on a case sealed meanwhile blamed another dismiss; a repeat report after the report limit got the rate-limit message; the second of two simultaneous adjourns said "deliberation was extended" as if it had done so | "this case was sealed since you opened it"; the repeat check runs before the rate limit; "another officer (or the court clock) closed this trial a moment ago…" | integration: repeat report |
+| D6 | A reaction could be counted on a case sealed at the same moment (moderation state read without a row lock) | `toggleReaction` locks the case row (`FOR NO KEY UPDATE`) before reading its state | existing concurrency tests |
+| N4 | A crafted action call with a `null` body gets a framework 500 (TypeError) | documented with the other framework status codes | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

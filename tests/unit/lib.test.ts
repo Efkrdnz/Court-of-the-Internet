@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { screenFields, screenText, similarity } from "@/lib/content-filter";
 import { shareCardStatus } from "@/lib/share-card";
 import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/progression";
-import { casePath, charCount, normalizeText, parseCaseParam, slugify } from "@/lib/text";
+import { casePath, charCount, cleanQuery, normalizeText, parseCaseParam, slugify, truncate } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
 import { confessionSchema, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
@@ -417,6 +417,24 @@ describe("emoji joiner chains (audit 19 #1)", () => {
     const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
     expect(signupSchema.safeParse({ ...base, displayName: "Bob " + chain }).success).toBe(false);
     expect(charCount("\u{1F469}\u200D\u{1F469}\u200D\u{1F467}")).toBeLessThanOrEqual(3); // a real family emoji is still short
+  });
+});
+
+describe("truncate (audit 41 D2)", () => {
+  it("never cuts an emoji or grapheme in half", () => {
+    const pray = "\u{1F64F}";
+    const cut = truncate("x".repeat(199) + pray + " thanks", 200);
+    expect(cut).toBe("x".repeat(199));
+    expect(truncate(pray.repeat(200), 300)).toBe(pray.repeat(150));
+    expect(truncate("x".repeat(298) + pray + "y", 300, "…")).toBe("x".repeat(298) + "…");
+    const family = "\u{1F469}\u200D\u{1F469}\u200D\u{1F467}";
+    expect(truncate("ab" + family, 5)).toBe("ab");
+    expect(truncate("short", 300)).toBe("short");
+    expect(cleanQuery("q".repeat(79) + pray)).toBe("q".repeat(79));
+    // One giant joiner chain still gives whole code points.
+    const chain = "\u{1F468}" + "\u200D\u{1F468}".repeat(400);
+    expect(truncate(chain, 10)).not.toMatch(/[\uD800-\uDBFF]$/);
+    expect(truncate(chain, 10).length).toBeGreaterThan(0);
   });
 });
 

@@ -4,7 +4,7 @@ import { db, type Tx } from "../db";
 import { clock } from "../clock";
 import { gameConfig } from "../config";
 import { CourtError, isUniqueViolation } from "../errors";
-import { casePath, formatCaseNumber } from "@/lib/text";
+import { casePath, formatCaseNumber, truncate } from "@/lib/text";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
 import { releaseClaims, sealedCaseNotice } from "./claims";
@@ -20,14 +20,16 @@ import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from
  */
 async function lockCase(tx: Tx, caseId: string, moderatorId: string) {
   await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
-  // Officers recuse themselves from cases they're part of (accused, attorney, prosecutor, or a
-  // juror who voted): another officer has to seal, restore, dismiss, strike, adjourn or pin it.
+  // Officers recuse themselves from cases they're part of (accused, attorney, prosecutor, the
+  // player holding a claim to argue it, or a juror who voted): another officer has to seal,
+  // restore, dismiss, strike, adjourn or pin it. A claim holder could otherwise strike the
+  // defense they're about to rebut (audit 41 D1).
   // A juror-officer could otherwise adjourn the moment the live split favoured their vote.
   const parties = await tx.case.findUnique({
     where: { id: caseId },
-    select: { accusedId: true, attorneyId: true, prosecutorId: true, votes: { where: { userId: moderatorId }, select: { id: true }, take: 1 } },
+    select: { accusedId: true, attorneyId: true, prosecutorId: true, claimedById: true, votes: { where: { userId: moderatorId }, select: { id: true }, take: 1 } },
   });
-  if (parties && ([parties.accusedId, parties.attorneyId, parties.prosecutorId].includes(moderatorId) || parties.votes.length > 0)) {
+  if (parties && ([parties.accusedId, parties.attorneyId, parties.prosecutorId, parties.claimedById].includes(moderatorId) || parties.votes.length > 0)) {
     throw new CourtError("FORBIDDEN", "You're part of this case (as a party or a juror), so another officer of the court has to handle it.");
   }
 }
@@ -56,7 +58,8 @@ async function assertStaff(tx: Tx, userId: string) {
 
 async function log(tx: Tx, moderatorId: string, action: string, extra: { caseId?: string; targetUserId?: string; note?: string }) {
   // Notes (reasons) are capped like the reasons stored on cases and users.
-  const note = extra.note && extra.note.length > 300 ? `${extra.note.slice(0, 299)}…` : extra.note;
+  // Cut on character boundaries: half an emoji's surrogate pair makes Postgres reject the query.
+  const note = extra.note === undefined ? undefined : truncate(extra.note, 300, "…");
   await tx.moderationAction.create({ data: { moderatorId, action, ...extra, note, createdAt: clock.now() } });
 }
 
@@ -130,15 +133,25 @@ export async function fileReport(
     });
   } catch (e) {
     if (isUniqueViolation(e)) {
-      // One report per player, case and target. Say whether the clerks are still on it or already ruled.
-      const prior = await db.report.findFirst({ where: { caseId: input.caseId, reporterId, target: input.target }, select: { status: true } });
-      throw new CourtError(
-        "ALREADY_DONE",
-        prior && prior.status !== "OPEN" ? "You reported this before and the clerks already reviewed it." : "You've already reported this. The clerks are on it.",
-      );
+      await assertNotYetReported(reporterId, input.caseId, input.target);
+      throw new CourtError("ALREADY_DONE", "You've already reported this. The clerks are on it.");
     }
     throw e;
   }
+}
+
+/**
+ * One report per player, case and target. Checked before the report rate limit too, so a repeat
+ * report says "already reported" rather than "too many reports" (audit 41 D5). Says whether the
+ * clerks are still on it or have already ruled.
+ */
+export async function assertNotYetReported(reporterId: string, caseId: string, target: "CASE" | "DEFENSE" | "PROSECUTION") {
+  const prior = await db.report.findFirst({ where: { caseId, reporterId, target }, select: { status: true } });
+  if (!prior) return;
+  throw new CourtError(
+    "ALREADY_DONE",
+    prior.status !== "OPEN" ? "You reported this before and the clerks already reviewed it." : "You've already reported this. The clerks are on it.",
+  );
 }
 
 export async function removeCase(moderatorId: string, caseId: string, reason: string) {
@@ -153,14 +166,14 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
     if (c.moderationState === "REMOVED") throw new CourtError("ALREADY_DONE", "That case is already sealed.");
     // A sealed case can't be argued: hand any claim back so a later restore finds it on the docket.
     await releaseClaims(tx, { caseId }, sealedCaseNotice);
-    await tx.case.update({ where: { id: caseId }, data: { moderationState: "REMOVED", removalReason: reason.slice(0, 300) } });
+    await tx.case.update({ where: { id: caseId }, data: { moderationState: "REMOVED", removalReason: truncate(reason, 300) } });
     await pauseDeliberation(tx, caseId);
     await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "ACTIONED", resolvedAt: clock.now() } });
     await tx.case.update({ where: { id: caseId }, data: { openReports: 0 } });
     await notify(tx, c.accusedId, {
       type: "MODERATION",
       title: `Case No. ${formatCaseNumber(c.number)} was sealed`,
-      body: `A moderator removed “${c.title}”: ${reason.slice(0, 200)}`,
+      body: `A moderator removed “${c.title}”: ${truncate(reason, 200, "…")}`,
     });
     // Counsel on a live trial learn why it stopped (the accused got the notice above).
     if (c.status === "DELIBERATION") {
@@ -241,6 +254,30 @@ export async function restoreCase(moderatorId: string, caseId: string, sealSeen?
 }
 
 /**
+ * A case under review whose last open report was just resolved goes back on view: its paused
+ * trial resumes, and the participants (told the clock waits for the review) learn it's running.
+ */
+async function backInSession(tx: Tx, caseId: string) {
+  await resumeDeliberation(tx, caseId);
+  const t = await tx.case.findUniqueOrThrow({
+    where: { id: caseId },
+    select: { status: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, deliberationEndsAt: true },
+  });
+  if (t.status !== "DELIBERATION") return;
+  for (const id of [t.accusedId, t.attorneyId, t.prosecutorId].filter(Boolean) as string[]) {
+    await notify(tx, id, {
+      type: "MODERATION",
+      title: `Case No. ${formatCaseNumber(t.number)}: the jury is back in session`,
+      body:
+        t.deliberationEndsAt && t.deliberationEndsAt > clock.now()
+          ? "The review is over and deliberation is running again with its remaining time."
+          : "The review is over. Its time had already run out (it was adjourned), so the verdict is being read now.",
+      href: casePath(t),
+    });
+  }
+}
+
+/**
  * Dismisses a case's open reports. `seenReportIds` are the reports the officer's console showed:
  * only those are dismissed, so a report filed after the console loaded is never thrown out
  * unread (it stays open and keeps the case under review).
@@ -259,32 +296,13 @@ export async function dismissReports(moderatorId: string, caseId: string, seenRe
     if (dismissed.count === 0) {
       // Nothing this console knew about is left: say so instead of filling the log.
       if (stillOpen.length > 0) throw new CourtError("CONFLICT", "New reports arrived since you opened this case. Reload the console and review them first.");
+      if (c.moderationState === "REMOVED") throw new CourtError("INVALID_STATE", "This case was sealed since you opened it, which closed its reports. Reload the console to see the seal.");
       if (c.moderationState !== "UNDER_REVIEW") throw new CourtError("INVALID_STATE", "Those reports were already handled (another officer may have just dismissed them).");
     }
     // Only an *under review* case with nothing left open is made visible again; a sealed one stays sealed.
     const madeVisible = c.moderationState === "UNDER_REVIEW" && stillOpen.length === 0;
     await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
-    if (madeVisible) {
-      await resumeDeliberation(tx, caseId);
-      // Participants of a live trial were told the clock waits for the review; tell them it's running.
-      const t = await tx.case.findUniqueOrThrow({
-        where: { id: caseId },
-        select: { status: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, deliberationEndsAt: true },
-      });
-      if (t.status === "DELIBERATION") {
-        for (const id of [t.accusedId, t.attorneyId, t.prosecutorId].filter(Boolean) as string[]) {
-          await notify(tx, id, {
-            type: "MODERATION",
-            title: `Case No. ${formatCaseNumber(t.number)}: the jury is back in session`,
-            body:
-              t.deliberationEndsAt && t.deliberationEndsAt > clock.now()
-                ? "The review is over and deliberation is running again with its remaining time."
-                : "The review is over. Its time had already run out (it was adjourned), so the verdict is being read now.",
-            href: casePath(t),
-          });
-        }
-      }
-    }
+    if (madeVisible) await backInSession(tx, caseId);
     await log(tx, moderatorId, "DISMISS_REPORTS", { caseId });
     return { madeVisible, sealed: c.moderationState === "REMOVED", newer: stillOpen.length };
   });
@@ -307,8 +325,15 @@ export async function strikeArgument(moderatorId: string, caseId: string, role: 
     });
     // Keep the queue's "N reporters" in step with the reports still open.
     const stillOpen = await tx.report.findMany({ where: { caseId, status: "OPEN" }, select: { reporterId: true }, distinct: ["reporterId"] });
-    await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length } });
+    // Striking the reported argument settles those reports; if they were what put the case under
+    // review and nothing else is open, it goes back on view and its paused trial resumes (it used
+    // to stay hidden with its clock stopped until someone also pressed "Dismiss", audit 41 D4).
+    const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { moderationState: true } });
+    const madeVisible = c.moderationState === "UNDER_REVIEW" && stillOpen.length === 0;
+    await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
+    if (madeVisible) await backInSession(tx, caseId);
     await log(tx, moderatorId, stricken ? `STRIKE_${role}` : `UNSTRIKE_${role}`, { caseId });
+    return { madeVisible, stillUnderReview: c.moderationState === "UNDER_REVIEW" && !madeVisible };
   });
 }
 
@@ -329,7 +354,7 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     const conflicted = await tx.case.count({
       where: {
         status: { not: "CLOSED" },
-        OR: [{ accusedId: moderatorId }, { attorneyId: moderatorId }, { prosecutorId: moderatorId }, { votes: { some: { userId: moderatorId } } }],
+        OR: [{ accusedId: moderatorId }, { attorneyId: moderatorId }, { prosecutorId: moderatorId }, { claimedById: moderatorId }, { votes: { some: { userId: moderatorId } } }],
         AND: [{ OR: [{ accusedId: targetUserId }, { attorneyId: targetUserId }, { prosecutorId: targetUserId }, { claimedById: targetUserId }, { votes: { some: { userId: targetUserId } } }] }],
       },
     });
@@ -345,7 +370,7 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     }
     await tx.user.update({
       where: { id: targetUserId },
-      data: banned ? { bannedAt: clock.now(), banReason: reason?.slice(0, 300) ?? "Contempt of court" } : { bannedAt: null, banReason: null },
+      data: banned ? { bannedAt: clock.now(), banReason: reason ? truncate(reason, 300) : "Contempt of court" } : { bannedAt: null, banReason: null },
     });
     if (banned) {
       // Release anything they were holding so other players aren't blocked.
@@ -457,7 +482,7 @@ export async function adjournNow(moderatorId: string, caseId: string, seen?: { e
       c = await reread();
     }
     if (c?.status === "CLOSED" && c.verdict) return { kind: "already-closed" as const, verdict: c.verdict, guilty: c.guiltyVotes, notGuilty: c.notGuiltyVotes };
-    if (c && seen && c.extensionsUsed > seen.extensionsUsed && c.deliberationEndsAt) return { kind: "extended" as const, endsAt: c.deliberationEndsAt };
+    if (c && seen && c.extensionsUsed > seen.extensionsUsed && c.deliberationEndsAt) return { kind: "extended" as const, endsAt: c.deliberationEndsAt, byOther: true };
     return { kind: "changed" as const };
   }
   const outcome = await closeDeliberation(caseId);
@@ -469,7 +494,7 @@ export async function adjournNow(moderatorId: string, caseId: string, seen?: { e
   }
   // …or extended it for low participation a moment ago (still visible, deadline back in the future).
   if (now?.status === "DELIBERATION" && now.moderationState === "VISIBLE" && now.deliberationEndsAt && now.deliberationEndsAt > clock.now()) {
-    return { kind: "extended" as const, endsAt: now.deliberationEndsAt };
+    return { kind: "extended" as const, endsAt: now.deliberationEndsAt, byOther: true };
   }
   return outcome;
 }

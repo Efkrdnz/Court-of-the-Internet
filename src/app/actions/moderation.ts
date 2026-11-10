@@ -63,8 +63,10 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
       case "unstrike-defense":
       case "unstrike-prosecution": {
         const role = op.endsWith("defense") ? "DEFENSE" : "PROSECUTION";
-        await strikeArgument(mod.id, caseId, role, op.startsWith("strike"));
+        const r = await strikeArgument(mod.id, caseId, role, op.startsWith("strike"));
         message = op.startsWith("strike") ? "Argument stricken from the record." : "Argument reinstated.";
+        if (r.madeVisible) message += " That settled the last open report, so the case is visible again (and its trial clock is running).";
+        else if (r.stillUnderReview) message += " Other reports are still open, so the case stays under review.";
         break;
       }
       case "adjourn": {
@@ -78,7 +80,9 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
             : outcome.kind === "already-closed"
               ? `That trial had already closed: ${VERDICT_LABEL[outcome.verdict] ?? outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
               : outcome.kind === "extended"
-                ? "Below quorum, so deliberation was extended (low-participation rule)."
+                ? "byOther" in outcome && outcome.byOther
+                  ? "Another officer (or the court clock) closed this trial a moment ago; it was below quorum, so deliberation was extended (low-participation rule)."
+                  : "Below quorum, so deliberation was extended (low-participation rule)."
                 : outcome.kind === "changed"
                   ? "The trial changed since you opened it (it was sealed, restored or reviewed). Nothing was done; check it and adjourn again if you still mean to."
                   : "The case was sealed or put under review before it could close. It will close as soon as it is visible again.";

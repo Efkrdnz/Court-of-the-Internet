@@ -5,7 +5,7 @@ import { clientIp, getCurrentUser } from "@/server/auth/current-user";
 import { bumpViewCount, getCaseDetail, getCaseIdByNumber, relatedCases } from "@/server/queries/cases";
 import { refreshCase } from "@/server/services/maintenance";
 import { appConfig } from "@/server/config";
-import { casePath, formatCaseNumber, parseCaseParam } from "@/lib/text";
+import { casePath, formatCaseNumber, parseCaseParam, truncate } from "@/lib/text";
 import { getCategory } from "@/lib/categories";
 import { VERDICT_LABEL } from "@/lib/format";
 import { db } from "@/server/db";
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (c.moderationState === "UNDER_REVIEW") return { title: "Case under review", robots: { index: false } };
   if (c.moderationState !== "VISIBLE") return { title: "Sealed case", robots: { index: false } };
   const verdict = c.status === "CLOSED" && c.verdict ? `Verdict: ${VERDICT_LABEL[c.verdict]} (${c.guiltyVotes}–${c.notGuiltyVotes}). ` : "";
-  const description = `${verdict}“${c.confession.slice(0, 150)}${c.confession.length > 150 ? "…" : ""}”`;
+  const description = `${verdict}“${truncate(c.confession, 150, "…")}”`;
   return {
     title: `Case No. ${formatCaseNumber(c.number)}: ${c.title}`,
     description,

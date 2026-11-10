@@ -3,6 +3,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { db } from "../db";
 import { clock } from "../clock";
 import { appConfig } from "../config";
+import { truncate } from "@/lib/text";
 
 export const SESSION_COOKIE = "coti_session";
 export const SESSION_TTL_MS = 30 * 24 * 3_600_000;
@@ -23,7 +24,7 @@ export async function createSession(userId: string, userAgent?: string | null) {
       userId,
       expiresAt,
       lastSeenAt: now,
-      userAgent: userAgent?.slice(0, 200) ?? null,
+      userAgent: userAgent ? truncate(userAgent, 200) : null,
     },
   });
   return { token, expiresAt };

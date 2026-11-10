@@ -8,7 +8,7 @@ import { clientIp, requireActiveUser } from "@/server/auth/current-user";
 import { enforceRateLimit, reserveAttempt } from "@/server/rate-limit";
 import { castVote, claimCase, confess, precheckConfession, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
-import { fileReport } from "@/server/services/moderation";
+import { assertNotYetReported, fileReport } from "@/server/services/moderation";
 import { CourtError } from "@/server/errors";
 import { casePath } from "@/lib/text";
 import { assertForm, formObject, isBot, toFailure, type ActionResult } from "./_util";
@@ -158,6 +158,8 @@ export async function reportAction(_prev: ActionResult | null, formData: FormDat
     assertForm(formData);
     const user = await requireActiveUser();
     const input = reportSchema.parse(formObject(formData));
+    // A repeat report is answered as such, whatever the rate limit says.
+    await assertNotYetReported(user.id, input.caseId, input.target);
     // Only reports actually filed count: a duplicate or a missing case gives its attempt back.
     const refund = await reserveAttempt([{ key: `report:${user.id}`, limit: 10, windowSeconds: 3600, message: "You've filed a lot of reports. The clerks need a minute." }]);
     let filed;

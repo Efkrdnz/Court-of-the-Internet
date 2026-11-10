@@ -15,6 +15,11 @@ export async function toggleReaction(userId: string, caseId: string, type: React
       await assertActiveUser(tx, userId);
       // One toggle per player and case at a time, so each reports the state it actually left.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`react:${caseId}:${userId}`}))`;
+      // Lock the case row before reading its moderation state, so a seal (or review) committing
+      // at the same moment is either seen here or waits for this reaction: never a reaction
+      // counted on a case sealed between the check and the update (audit 41 D6). NO KEY UPDATE,
+      // since the counters on this row are updated below anyway.
+      await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR NO KEY UPDATE`;
       const c = await tx.case.findUnique({
         where: { id: caseId },
         select: { status: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true, anonymous: true },

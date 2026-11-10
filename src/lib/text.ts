@@ -41,6 +41,25 @@ export function charCount(s: string): number {
   return Math.max(visible, Math.ceil(Array.from(s).length / 2));
 }
 
+/**
+ * Cuts `s` to at most `max` UTF-16 units without splitting a character: never half an emoji's
+ * surrogate pair (a lone surrogate makes Postgres reject the whole query) and, where the runtime
+ * can segment text, never half a grapheme. Adds `ellipsis` (counted in the budget) when it cuts.
+ */
+export function truncate(s: string, max: number, ellipsis = ""): string {
+  if (s.length <= max) return s;
+  const budget = Math.max(0, max - ellipsis.length);
+  let out = "";
+  const pieces = graphemes ? Array.from(graphemes.segment(s), (g) => g.segment) : Array.from(s);
+  for (const piece of pieces) {
+    if (out.length + piece.length > budget) break;
+    out += piece;
+  }
+  // One enormous grapheme (a long zero-width-joiner chain) still yields whole code points.
+  if (!out) for (const cp of s) { if (out.length + cp.length > budget) break; out += cp; }
+  return out + ellipsis;
+}
+
 export function slugify(input: string, maxLength = 60): string {
   const slug = input
     .normalize("NFKD")
@@ -77,7 +96,7 @@ export function pluralize(n: number, one: string, many = `${one}s`): string {
 /** Search/lookup text from a URL: control characters (NUL breaks Postgres) and invisibles removed, trimmed, capped. */
 export function cleanQuery(value: unknown, max = 80): string {
   if (typeof value !== "string") return "";
-  return value.replace(/[\u0000-\u001f\u007f]/g, "").replace(INVISIBLE, "").trim().slice(0, max);
+  return truncate(value.replace(/[\u0000-\u001f\u007f]/g, "").replace(INVISIBLE, "").trim(), max).trim();
 }
 
 /** A 1-based page number from a URL, clamped so it can't overflow a query's OFFSET. */

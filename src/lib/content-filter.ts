@@ -157,6 +157,9 @@ const GROUPS =
 const HATE_STATEMENTS = [
   new RegExp(`\\b(?:all\\s+)?(?:${GROUPS})\\s+(?:are|r)\\s+(?:all\\s+|just\\s+|nothing\\s+but\\s+)?(?:disgusting|vermin|animals|subhuman|scum|parasites|rats|cockroaches|filth|trash|garbage|evil|inferior|a\\s+disease|a\\s+plague|a\\s+cancer|savages|degenerates|criminals|terrorists|abominations?)\\b`, "i"),
   /\bjews\s+(?:control|run|own)\s+(?:the|all|every)\b/i,
+  // A people named only by where they're from ("people from that country are vermin"). Words
+  // that are everyday hyperbole for co-workers or fans ("animals", "savages") are left out.
+  /\b(?:people|immigrants|migrants|foreigners|refugees|those\s+people|they|them|everyone|everybody)\s+from\s+(?:that|this|those|their|there|over\s+there|(?:that|this)\s+\w+|\w+\s+\w+|\w+)\s+(?:are|r)\s+(?:all\s+|just\s+|nothing\s+but\s+)?(?:vermin|subhuman|cockroaches|rats|parasites|filth|a\s+disease|a\s+plague|an\s+infestation|a\s+cancer)\b/i,
 ];
 
 const VIOLENCE = [
@@ -279,13 +282,13 @@ const SERIOUS = [
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:some\s+)?coke\b(?!\s+(?:zero|cans?|bottles?))/,
   // Burglary (your own car or piggy bank is fine), shoplifting something big, fraud, hit-and-run.
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
-  /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|the|two|three|some|several|pairs?\s+of)\s+)?(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
+  /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|the|two|three|some|several)\s+)?(?:pairs?\s+of\s+)?(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|headphones|earbuds|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
   // A camera put in a bathroom or bedroom to watch someone; filming or photographing through a window.
   /\b(?:put|hid|placed|installed|set\s+up)\s+(?:a|my|the)\s+(?:hidden\s+|secret\s+|spy\s+)?cam(?:era)?s?\s+in\s+(?:the|my|her|his|their)\s+(?:bathroom|shower|bedroom|changing\s+room)\b.{0,30}\bto\s+(?:watch|film|spy|see|record)\b/i,
   /\b(?:recorded|filmed|videoed|photographed|took\s+(?:photos|pictures|pics|videos?)\s+of|watched|spied\s+on)\s+(?:my|his|her|their|a|the)\s+\w+\s+through\s+(?:her|his|their|the)\s+(?:bedroom|bathroom)\s+window\b/i,
   // Expensive shoplifting ("an expensive handbag", "designer sunglasses").
-  /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|some|two|three|pairs?\s+of)\s+)?(?:expensive|designer|luxury|branded)\b/i,
+  /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|some|two|three)\s+)?(?:pairs?\s+of\s+)?(?:expensive|designer|luxury|branded)\b/i,
   // Throwing something hard at a person.
   new RegExp(`\\b(?:threw|chucked|hurled|lobbed)\\s+(?:a|an|the|some)\\s+(?:brick|rock|stone|bottle|glass|pint\\s+glass|chair|knife)s?\\s+at\\s+${VICTIM}\\b`, "i"),
   // Injuries done to someone: broken bones, a black eye, knocked out, a concussion.
@@ -297,7 +300,7 @@ const SERIOUS = [
   /\bstole\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+identity\b/i,
   /\b(?:opened|took\s+out|applied\s+for|got)\s+(?:a|an)\s+(?:loan|credit\s+card|bank\s+account|mortgage|overdraft|phone\s+contract|store\s+card|payday\s+loan)\s+in\s+(?:[\w'’-]+\s+){0,2}name\b/i,
   // Taking someone's card and spending on it (a parent's is left to moderators).
-  /\b(?:took|grabbed|stole|nicked|swiped|borrowed)\s+(?:(?:my|his|her|their|a|the)\s+(?!(?:mom|mum|mother|dad|father|parents)['’]s)[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:credit|debit|bank)\s+card\b(?!\s+(?:statement|bill|letter|reader))(?=.{0,40}\b(?:bought|paid|spent|ordered|used\s+it|purchased|booked))/i,
+  /\b(?:took|grabbed|stole|nicked|swiped|borrowed)\s+(?:(?:my|his|her|their|a|the)\s+(?!(?:mom|mum|mother|dad|father|parents)['’]s)[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:(?:credit|debit|bank)\s+)?card\b(?!\s+(?:statement|bill|letter|reader|games?|tricks?|tables?))(?=.{0,40}\b(?:bought|paid|spent|ordered|used\s+it|purchased|booked|withdrew|withdrawn|took\s+out\s+(?:cash|money|[£$€]\s?\d)|got\s+cash))/i,
   // Shoplifting something valuable ("worth three hundred pounds", "walked out with a TV without paying").
   /\b(?:stole|shoplifted|nicked|pinched|lifted)\b.{0,50}\bworth\s+(?:over\s+|about\s+|nearly\s+|almost\s+)?(?:[$£€]?\s?\d{3,}|(?:\w+\s+)?(?:hundred|thousand|grand))\b/i,
   /\bwalked\s+out\s+(?:of\s+(?:the|a)\s+(?:\w+\s+)?(?:store|shop|supermarket|mall)\s+)?with\s+(?:a|an|the|two|some)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|consoles?|ps5|xbox|airpods|headphones|cameras?|drones?|bikes?|jewel\w*|watch(?:es)?)\b.{0,30}\bwithout\s+paying\b/i,
@@ -325,7 +328,11 @@ const SERIOUS = [
   /\b(?:pushed|shoved|knocked)\s+(?:a|an|the|some|this|that|my|his|her)\s+(?:\w+\s+)?(?:stranger|bouncer|old\s+lady|old\s+man|old\s+woman|pensioner|woman|man|guy|girl|lady|passenger|cyclist|kid|child|neighbou?r|roommate|flatmate|coworker|colleague)\s+(?:over|down|into|off|against|onto|out\s+of|in\s+front\s+of)\b/i,
   /\battacked\s+(?:\w+\s+){1,3}with\s+(?:a|an|my)\s+(?:bottle|knife|bat|brick|glass|hammer|crowbar|chair|rock|pint\s+glass)\b/i,
   // Throwing or hurting a pet ("threw my cat against the wall", "hurt my neighbour's dog").
-  /\b(?:threw|kicked|flung|hurled|slammed|swung)\s+(?:(?:my|his|her|their|the|a|our)\s+(?:[\w-]+(?:'s|’s|s')\s+)?|someone'?s\s+)(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|guinea\s+pig)\s+(?:against|across|into|at|down|out\s+of|off)\b/i,
+  /\b(?:threw|kicked|flung|hurled|slammed|swung|chucked|tossed|lobbed)\s+(?:(?:my|his|her|their|the|a|our)\s+(?:[\w-]+(?:'s|’s|s')\s+)?|someone'?s\s+)(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|guinea\s+pig|tortoise|ferret|budgie)\s+(?:against|across|into|at|down|out\s+of|off|out\s+(?:the|a|of)\s+|over\s+(?:the|a)\s+(?:fence|wall|balcony|railing|railings|edge|bridge|hedge))\b/i,
+  // Someone's life savings or pension taken ("stole my grandma's savings", "drained my nan's pension").
+  /\b(?:stole|nicked|pinched|swiped|drained|emptied|cleaned\s+out|gambled\s+away|blew)\s+(?:all\s+(?:of\s+)?)?(?:(?:my|his|her|their|a|an|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:life\s+|entire\s+|whole\s+)?(?:savings|pension|inheritance|retirement\s+(?:money|fund|savings))\b(?!\s+(?:jars?|tins?|ideas?|tips?|plans?|strategy|recipe|apps?|advice|books?|calculator|spreadsheet))/i,
+  // Bringing a weapon to school or work to scare or hurt someone (a chef's knife for the cake is fine).
+  /\b(?:bring|brings|bringing|brought|took|take|taking|carry|carries|carrying|carried)\s+(?:a|my|the|his|her)\s+(?:knife|gun|machete|blade|pistol|rifle|knuckle\s*duster|taser)\s+(?:in\s+)?(?:to|into)\s+(?:work|school|class|college|uni|the\s+office|the\s+school)\b.{0,40}\bto\s+(?:scare|threaten|intimidate|frighten|hurt|stab|shoot|use\s+(?:it\s+)?on|get\s+back\s+at)\b/i,
   /\b(?:hurt|injured|hit|kicked|beat|poisoned)\s+(?:(?:my|his|her|their|the|a|our)\s+[\w-]+(?:'s|’s|s')|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|horse|guinea\s+pig)\b(?!['’]s)/i,
   // Vandalising someone's car or house ("scratched my neighbour's car", "a brick through my ex's window").
   /\b(?:scratched|spray[\s-]?painted|egged|graffitied|keyed|smashed|vandali[sz]ed|dented)\s+(?:(?:my|his|her|their|the|a|our)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+){0,2}(?:car|truck|van|motorbike|motorcycle|house|front\s+door|garage)\b/i,
@@ -335,7 +342,7 @@ const SERIOUS = [
   /\b(?:stole|took|nicked|pinched|swiped|pocketed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|cards?)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:purse|wallet|handbag|bag|account|piggy\s+bank)\b/i,
   // Getting into someone's accounts ("logged into my ex's Snapchat", "guessed my sister's password").
   /\b(?:logged|broke|got|hacked)\s+into\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:(?!xbox|playstation|psn|steam|nintendo|switch|game|gaming|netflix|spotify|disney|minecraft|fortnite|roblox|hulu)\w+\s+)?(?:snapchat|instagram|insta|facebook|tiktok|twitter|email|e-mail|gmail|account|accounts|phone|icloud|bank|whatsapp|messages|dms|laptop)\b/i,
-  /\bguessed\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s)\s+(?:\w+\s+)?(?:password|passcode|pin)\b/i,
+  /\b(?:guess(?:ed|ing)|crack(?:ed|ing))\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s)\s+(?:\w+\s+)?(?:password|passcode|pin)\b/i,
   // Drugging someone ("drugged my date", "roofied a girl"), alcohol slipped into their drink.
   /\broofi(?:ed|es|e|ing)\b/i,
   new RegExp(`\\bdrugged\\s+${VICTIM}\\b(?!\\s+with\\s+(?:too\\s+much\\s+)?(?:\\w+\\s+)?(?:bread|pizza|cake|cookies?|food|sugar|coffee|kindness|love|snacks?|carbs))`, "i"),

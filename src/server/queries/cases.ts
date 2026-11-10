@@ -3,6 +3,7 @@ import type { CaseStatus, Prisma, Verdict } from "@prisma/client";
 import { db } from "../db";
 import { clock } from "../clock";
 import { gameConfig } from "../config";
+import { truncate } from "@/lib/text";
 import { hitRateLimit } from "../rate-limit";
 import { anonymousAlias } from "@/lib/alias";
 import { parseAvatar, type AvatarConfig } from "@/lib/avatar";
@@ -448,7 +449,7 @@ export async function listArchive(opts: {
   viewer: { id: string; mutedCategories: string[] } | null;
 }) {
   const page = Math.max(1, opts.page ?? 1);
-  const q = opts.q?.trim().slice(0, 80);
+  const q = opts.q === undefined ? undefined : truncate(opts.q.trim(), 80);
   const where: Prisma.CaseWhereInput = {
     status: "CLOSED",
     moderationState: "VISIBLE",

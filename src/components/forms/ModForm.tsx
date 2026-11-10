@@ -59,7 +59,7 @@ export function ModForm({
       {caseId ? <input type="hidden" name="caseId" value={caseId} /> : null}
       {userId ? <input type="hidden" name="userId" value={userId} /> : null}
       {hidden ? Object.entries(hidden).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />) : null}
-      {withReason ? <input name="reason" placeholder={reasonPlaceholder ?? "Reason"} className="input min-h-9 !w-56 !py-1.5 text-sm" aria-label="Reason" /> : null}
+      {withReason ? <input name="reason" maxLength={300} placeholder={reasonPlaceholder ?? "Reason"} className="input min-h-9 !w-56 !py-1.5 text-sm" aria-label="Reason" /> : null}
       {options ? (
         <select name={options.name} className="select min-h-9 !w-56 !py-1.5 text-sm" aria-label={options.label}>
           {options.values.map((v) => (
