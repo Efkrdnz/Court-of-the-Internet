@@ -119,7 +119,10 @@ export async function voteAction(
 ): Promise<ActionResult<{ choice: VoteChoice; guiltyVotes: number; notGuiltyVotes: number }>> {
   try {
     const user = await requireActiveUser();
-    const input = voteSchema.parse({ caseId, choice });
+    // A vote has no form to highlight: say what's wrong (audit 50 D6).
+    const parsed = voteSchema.safeParse({ caseId, choice });
+    if (!parsed.success) throw new CourtError("VALIDATION", "Choose Guilty or Not Guilty.");
+    const input = parsed.data;
     // Only accepted votes count toward the 60 per 10 minutes; refused ones (already voted, closed)
     // give their attempt back, under a looser ceiling on all attempts.
     await enforceRateLimit(`vote-attempt:${user.id}`, 240, 600);

@@ -14,9 +14,7 @@ export function toFailure(e: unknown): { ok: false; error: string; fieldErrors?:
   }
   if (e instanceof z.ZodError) {
     const fe = fieldErrors(e);
-    // One problem: say what it is (an action without a form, like a vote, has nothing to highlight).
-    const messages = Object.values(fe).flat();
-    return { ok: false, error: messages.length === 1 && messages[0] ? messages[0] : "Please fix the highlighted fields.", fieldErrors: fe };
+    return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fe };
   }
   // Re-throw Next.js control-flow errors (redirect / notFound).
   if (typeof e === "object" && e !== null && "digest" in e && typeof (e as { digest: unknown }).digest === "string") {

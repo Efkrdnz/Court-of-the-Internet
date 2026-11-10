@@ -1018,7 +1018,7 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D3 | "Anonymous Pigeon 2" passed the anonymous-label check | a trailing number or tag (and underscores) no longer get past it | unit |
 | D4 | The third report sent the case under review and left the reporter scrolled down to the footer | a report that triggers a review scrolls back to the top | — |
 | D5 | Rejected profile saves used up the 20-per-10-minutes budget | the attempt is given back when the service refuses the save | — |
-| D6 | A crafted vote with an invalid choice said "Please fix the highlighted fields" | a single validation problem is reported in its own words | — |
+| D6 | A crafted vote with an invalid choice said "Please fix the highlighted fields" | the vote action says "Choose Guilty or Not Guilty." (forms keep the banner plus per-field messages) | — |
 
 ## Per-phase evidence
 
