@@ -246,8 +246,13 @@ export async function strikeArgument(moderatorId: string, caseId: string, role: 
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await lockCase(tx, caseId);
-    const res = await tx.argument.updateMany({ where: { caseId, role }, data: { stricken } });
-    if (res.count === 0) throw new CourtError("NOT_FOUND", "No such argument.");
+    const res = await tx.argument.updateMany({ where: { caseId, role, stricken: !stricken }, data: { stricken } });
+    if (res.count === 0) {
+      const exists = await tx.argument.count({ where: { caseId, role } });
+      if (!exists) throw new CourtError("NOT_FOUND", "No such argument.");
+      // Already in that state (a second click, or another officer got there first): nothing to log.
+      throw new CourtError("INVALID_STATE", stricken ? "That argument is already stricken." : "That argument isn't stricken.");
+    }
     await tx.report.updateMany({
       where: { caseId, target: role, status: "OPEN" },
       data: { status: "ACTIONED", resolvedAt: clock.now() },

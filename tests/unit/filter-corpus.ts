@@ -115,6 +115,18 @@ export const BENIGN = [
   "I know where you live is what I texted the pizza guy who forgot my order",
   "My plants deserve to die after what they did to my carpet",
   "I'm going to break my roommate's record for most donuts eaten",
+  // Near-misses of the audit 33 patterns
+  "I did a Coke Zero taste test and lied about the winner",
+  "I grow tomatoes in my attic and blame the landlord for the smell",
+  "I stole my neighbour's parking spot every morning for a year",
+  "I stole a Tesla charger slot from my coworker",
+  "I set the school bake sale table on fire with too many candles... it was one candle",
+  "I'll beat him at Mario Kart tonight",
+  "I'm going to beat my sister to the last slice of pizza",
+  "I punched a hole in my homework deadline and asked for an extension",
+  "I used my flatmate's Netflix account without asking",
+  "I stole a toy car from my nephew's birthday pile",
+  "I swiped my roommate's car parking spot every morning",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -203,4 +215,22 @@ export const EVASIONS: [string, string][] = [
   ["My boss deserves to die", "violence"],
   ["My landlord should die", "violence"],
   ["I'm going to break my roommate's nose", "violence"],
+  // Audit 33
+  ["I did coke at the party", "serious-crime"],
+  ["I took MDMA at the festival", "serious-crime"],
+  ["I smoked crack behind the office", "serious-crime"],
+  ["I dealt weed at uni", "serious-crime"],
+  ["I grow weed in my attic", "serious-crime"],
+  ["I stole my neighbour's car", "serious-crime"],
+  ["I stole my boss's car for a joyride", "serious-crime"],
+  ["I stole a Tesla", "serious-crime"],
+  ["I nicked a car from the car park", "serious-crime"],
+  ["I set the school on fire", "serious-crime"],
+  ["I grabbed a woman's bum at the club", "serious-crime"],
+  ["I touched a girl on the train without her consent", "serious-crime"],
+  ["I will punch Dave", "violence"],
+  ["I'll beat him up", "violence"],
+  ["I'm going to beat my sister", "violence"],
+  ["I punched a stranger in the face at the bus stop", "serious-crime"],
+  ["I used my flatmate's credit card details to buy stuff online", "serious-crime"],
 ];

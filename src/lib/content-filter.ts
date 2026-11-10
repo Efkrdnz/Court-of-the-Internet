@@ -23,7 +23,7 @@ export interface FilterResult {
 const MESSAGES: Record<FilterIssue, string> = {
   "personal-info":
     "Objection! That looks like personal information (an email, phone number or address). Keep everyone anonymous.",
-  link: "Links are inadmissible evidence. Please describe the crime in your own words.",
+  link: "Links are inadmissible evidence. Please put it in your own words instead.",
   handle: "Usernames and @handles aren't allowed. This court protects the identities of the petty.",
   hate: "The court does not tolerate slurs or hateful language. Rephrase and try again.",
   violence: "Threats or encouragement of violence are out of order. This court only hears petty crimes.",
@@ -136,7 +136,7 @@ function spacedOutWords(text: string): string[] {
 // A person (or pet) on the receiving end, for the past-tense harm patterns below. Objects stay
 // fine: "I killed it at karaoke", "I shot a video", "I stabbed the pizza box".
 const VICTIM =
-  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex))";
+  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex|stranger|passenger|driver|customer|waiter|waitress|cashier|bartender|bouncer|referee|tourist|neighbour's\\s+kid))";
 // Who a threat is aimed at: a person (VICTIM) or "you"/"everyone".
 const TARGET = `(?:you|ya|u|y'all|everyone|everybody|people|${VICTIM})`;
 // Games and toys: "I beat my dad at chess", "killed my brother at Fortnite", "shot my sister with a water pistol".
@@ -154,10 +154,11 @@ const VIOLENCE = [
   /\bkill\s+(?:your\s*self|urself|yourselves)\b/i,
   /\bkys\b/i,
   // Threats against someone named: "I'm going to kill Kevin", "I'll murder Sarah", "Gonna stab Dave".
-  new RegExp(`\\b(?:[Gg]oing\\s+to|[Gg]onna|I\\s*(?:will|'ll|would|'d))\\s+(?:kill|murder|stab|shoot|strangle|shank|poison|choke|drown|end)\\s+${NAMED}`),
+  new RegExp(`\\b(?:[Gg]oing\\s+to|[Gg]onna|I\\s*(?:will|'ll|would|'d))\\s+(?:kill|murder|stab|shoot|strangle|shank|poison|choke|drown|end|punch|smack|hurt|beat\\s+up)\\s+${NAMED}`),
+  new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll))\\s+beat\\s+${TARGET}\\s+up\\b`, "i"),
   /\bi\s*(?:will|'ll|am\s+going\s+to|'m\s+going\s+to|'m\s+gonna|m\s+gonna)\s+end\s+(?:you|u|him|her|them)\b/i,
   // "I'm going to punch my neighbour", "beat the crap out of him".
-  new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll))\\s+(?:punch|smack|slap|headbutt|beat\\s+the\\s+(?:crap|hell|shit|snot|living\\s+daylights)\\s+out\\s+of)\\s+${TARGET}\\b${NOT_THEIR_THING}${NOT_A_GAME}`, "i"),
+  new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll))\\s+(?:punch|smack|slap|headbutt|beat|beat\\s+the\\s+(?:crap|hell|shit|snot|living\\s+daylights)\\s+out\\s+of)\\s+${TARGET}\\b${NOT_THEIR_THING}${NOT_A_GAME}`, "i"),
   // Wishing death on a person: "I hope my boss dies", "I wish my landlord would die".
   new RegExp(`\\b(?:hope|wish|pray)\\s+(?:that\\s+)?${TARGET}\\s+(?:would\\s+|will\\s+|just\\s+)?(?:dies?|drops?\\s+dead|gets?\\s+(?:hit\\s+by|killed|run\\s+over|cancer)|burns?\\s+(?:alive|to\\s+death))\\b`, "i"),
   // Wishing death on someone: "I hope you die", "go die", "you should die".
@@ -219,8 +220,11 @@ const SERIOUS = [
   // Breaking into someone's accounts or devices.
   /\bhacked\s+(?:into\s+)?(?:my|his|her|their|someone'?s|somebody'?s|a)\s+(?:[\w-]+(?:'s|s')\s+)?(?:email|e-mail|account|accounts|phone|instagram|facebook|bank|computer|laptop|icloud|wifi)\b/i,
   // Theft of vehicles, robbery, arson.
-  /\bi\s+(?:stole|hot-?wired|jacked|carjacked)\s+(?:a|an|someone'?s|somebody'?s|his|her|their|the\s+neighbou?r'?s)\s+(?:\w+\s+)?(?:car|truck|van|motorcycle|motorbike|scooter|bike)\b/i,
+  /\bi\s+(?:stole|hot-?wired|jacked|carjacked|nicked|pinched|boosted|swiped)\s+(?:a|an|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|’s|s'))\s+(?:(?!toy|model|lego|remote|rc|matchbox|play|bumper|go-?kart)\w+\s+)?(?:car|truck|van|motorcycle|motorbike|scooter|bike)\b(?!\s+(?:keys?|keychains?|chargers?|seats?|covers?|mats?|stereo|radio|parking|spot|space|freshener|wash|magnets?|stickers?|horn|lights?|batter(?:y|ies)|manual|insurance|park))/i,
+  // A car named by its make ("I stole a Tesla"), not merchandise ("a Tesla charger slot").
+  /\bi\s+(?:stole|hot-?wired|jacked|carjacked|nicked|pinched|boosted)\s+(?:a|an|the|someone'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|’s|s'))\s+(?:tesla|bmw|mercedes|porsche|ferrari|audi|toyota|honda|ford|jeep|lamborghini|range\s+rover|land\s+rover|volvo|lexus|mustang|corvette)\b(?!\s+(?:charg\w*|keys?|keychains?|stickers?|posters?|hats?|caps?|mugs?|toys?|models?|shirts?|slots?|spots?|manuals?|brochures?))/i,
   /\b(?:robbed|held\s+up|stuck\s+up)\s+(?:a|the|an)\s+(?:\w+\s+)?(?:bank|store|shop|gas\s+station|liquor\s+store|pharmacy|house|home|person|man|woman)\b|\bbank\s+robbery\b/i,
+  /\bset\s+(?:the|a|my|his|her|their|our)\s+(?:\w+\s+)?(?:house|home|school|car|building|shop|store|apartment|flat|office|garage|church|barn|shed|restaurant|bar|classroom|gym)\s+on\s+fire\b/i,
   /\barson\b|\bburn(?:ed|t)\s+down\s+(?:a|the|my|his|her|their|our)\b|\bset\s+fire\s+to\s+(?:a|the|my|his|her|their|our)\s+(?:\w+\s+)?(?:house|home|car|building|school|shop|store|apartment|flat|office|garage)\b/i,
   // Domestic violence (siblings' pillow fights stay petty).
   // ("kicked my dad out of his recliner", "hit my dad up for cash" are something else.)
@@ -246,6 +250,15 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps5|xbox|switch|jewel\w*|watch|watches|bikes?|tools?)\b/i,
   /\bembezzl/i,
+  // Taking hard drugs ("did coke", "took MDMA", "smoked crack"), dealing or growing weed.
+  /\b(?:did|doing|do|took|taking|take|smoked|smoking|snorted|snorting|injected|injecting|dropped|tried)\s+(?:some\s+|a\s+(?:line|bump|hit)\s+of\s+)?(?:coke(?!\s+zero)|cocaine|mdma|ecstasy|crack|heroin|meth|ketamine|lsd|shrooms|magic\s+mushrooms|speed|ket)\b/i,
+  /\b(?:dealt|deal|dealing|sold|sell|selling|supplied)\s+(?:\w+\s+){0,2}(?:weed|cannabis|marijuana|skunk|hash)\b/i,
+  /\bgr(?:ow|ew|owing|own)\s+(?:\w+\s+)?(?:weed|cannabis|marijuana|skunk)\b/i,
+  // Groping: someone's body grabbed, or touching without consent.
+  /\b(?:grabbed|touched|groped|pinched|slapped|squeezed)\s+(?:a|an|the|my|his|her|some|this)\s+(?:\w+\s+)?(?:woman|girl|man|guy|stranger|lady|coworker|co-worker|colleague|person|waitress|waiter)['’]s\s+(?:bum|butt|ass|arse|breasts?|boobs?|chest|crotch|private\s+parts|thigh|backside)\b/i,
+  /\b(?:touched|grabbed|kissed|groped|fondled)\b.{0,50}\bwithout\s+(?:her|his|their)\s+(?:consent|permission|agreeing)\b/i,
+  // Using someone else's card (a parent's, borrowed, is left to moderators).
+  /\bused\s+(?:my|his|her|a|the|our)\s+(?:flatmate|roommate|room-mate|coworker|co-worker|colleague|neighbou?r|boss|friend|stranger|ex|landlord|customer|client|guest)['’]s\s+(?:credit|debit|bank)\s+card\b/i,
   // Poisoning someone's food or drink ("poisoned my coworker's coffee").
   /\b(?:poisoned|drugged|laced)\s+(?:(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:coffee|tea|drink|food|lunch|water|meal|dinner|breakfast|soup|smoothie|juice|beer|wine|snack|sandwich)\b/i,
   // Image-based abuse and voyeurism, groping.

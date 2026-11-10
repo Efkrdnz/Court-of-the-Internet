@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Re-verifies each of the 10 GOAL.md development phases with its own suites and prints
-# a PASS/FAIL line per phase. Requires the three databases from .env and a prior
-# `npm run build` (Phase 10 rebuilds anyway). Usage: bash scripts/verify-phases.sh
+# a PASS/FAIL line per phase. Requires the three databases from .env. Builds first, so the
+# browser phases test the current code. Usage: bash scripts/verify-phases.sh
 set -u
 cd "$(dirname "$0")/.."
 export VITE_CONFIG_NATIVE_IGNORE_WARNING=true
+echo "== building the current code for the browser phases"
+npm run -s build >/dev/null 2>&1 || { echo "FAIL  build (run npm run build to see why)"; exit 1; }
 results=()
 run() { # run <phase label> <command...>
   local label="$1"; shift

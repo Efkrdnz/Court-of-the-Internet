@@ -15,7 +15,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
   await runMaintenance();
   const sp = await searchParams;
   const user = await getCurrentUser();
-  const [stats, featured, recent, highlights] = await Promise.all([getCommunityStats(), getFeaturedCase(user), getRecentVerdicts(user, 6), getHighlights()]);
+  const [stats, featured, recent, highlights] = await Promise.all([getCommunityStats(), getFeaturedCase(user), getRecentVerdicts(user, 6), getHighlights(user)]);
 
   const modes = [
     {

@@ -777,6 +777,24 @@ Environment note from the audit: the checkout's untracked local `.env` enables d
 
 Not changed: a concurrent confession burst exactly at the daily cap can tell one request "Slow down" instead of naming the cap (both refuse it).
 
+## Thirty-third independent audit (fresh agent, build of commit da4afd5)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** No 500s or deadlocks anywhere in its run, including two officers acting at the same moment; all 60 new everyday confessions it wrote were accepted; ~1,450 malformed URLs and ~1,300 crafted action calls produced no 5xx.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | Filter misses in covered categories: "did coke", "took MDMA", "smoked crack", "dealt weed", "grow weed", stealing a named person's car or a car by make ("a Tesla"), "nicked a car", "set the school on fire", grabbing someone's bum, touching without consent, "I will punch Dave", "I'll beat him up", "I'm going to beat my sister", punching a stranger, using a flatmate's card | patterns for each, with near-misses kept ("a Coke Zero taste test", "grow tomatoes", "stole my neighbour's parking spot", "a Tesla charger slot", "a toy car", "car keys", "set the bake sale table on fire", "beat him at Mario Kart", "beat my sister to the last slice", "my flatmate's Netflix account"); README lists the new coverage and more out-of-scope crimes | corpus: 116 everyday sentences, 98 evasions; 341 seed texts pass |
+| D2 | The moderation queue silently showed only 30 cases (and its count said 30) | real count in the header; the queue pages 30 at a time. (Also fixed: last round's audit-log page links had landed under the queue; they're back in the log section) | — |
+| D3 | The notifications page showed 60 but marked every unread one as read | only the notifications on screen are marked read; the inbox pages 50 at a time and says how many unread are on older pages | — |
+| D4 | Back after filing restored the editor ("You hold this case…") from the client cache | the editor remembers it just filed (session storage) and, if restored, asks the server again, which moves on to the case | e2e |
+| D5 | The confession draft was lost on reload | the draft is kept on the device like argument drafts; filing clears it and a rejected filing restores it | e2e |
+| D6 | Home "Community highlights" ignored muted categories | case highlights respect them | — |
+| D7 | Striking an already-stricken argument "succeeded" and logged again | strike/reinstate refuse no-ops | integration |
+| D8 | Home totals used different scopes; the link message talked about "the crime" on a profile bio; `?log=999999` offered page 999998 | public-only scope for both totals; neutral link message; past-the-end pages link back to page 1 | — |
+| D9 | A player banned mid-trial still gains the reputation from that verdict | documented in README (consistent with their record standing) | — |
+
+Verification tooling, found while confirming this round: the phase script now builds first (its browser phases had been testing the previous build), and each Playwright run starts its own server after the previous one has gone.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

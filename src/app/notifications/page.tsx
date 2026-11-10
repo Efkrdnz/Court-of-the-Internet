@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { clock } from "@/server/clock";
 import { listNotifications } from "@/server/queries/players";
 import { relativeTime } from "@/lib/format";
+import { pageParam, pluralize } from "@/lib/text";
 import { getAchievement } from "@/lib/achievements";
 import { AchievementBadge } from "@/components/art/badges";
 import { TumbleweedDocket } from "@/components/art/scenes";
@@ -24,19 +25,31 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   MODERATION: IconFlag,
 };
 
-export default async function NotificationsPage() {
+const PAGE = 50;
+
+export default async function NotificationsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUserOrRedirect("/notifications");
-  const items = await listNotifications(user.id, 60);
-  const unread = items.filter((n) => !n.readAt).length;
-  // Opening the inbox marks everything as read (items above still show as new for this view).
-  if (unread) await db.notification.updateMany({ where: { userId: user.id, readAt: null }, data: { readAt: clock.now() } });
+  const page = pageParam((await searchParams).page, 1000);
+  const [rows, unread] = await Promise.all([
+    listNotifications(user.id, PAGE + 1, (page - 1) * PAGE),
+    db.notification.count({ where: { userId: user.id, readAt: null } }),
+  ]);
+  const items = rows.slice(0, PAGE);
+  const hasOlder = rows.length > PAGE;
+  // Only what's on screen is marked as read (it still shows as new for this view); unread
+  // notifications on older pages stay unread until they're shown.
+  const shownUnread = items.filter((n) => !n.readAt).map((n) => n.id);
+  if (shownUnread.length) await db.notification.updateMany({ where: { userId: user.id, id: { in: shownUnread } }, data: { readAt: clock.now() } });
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Court correspondence</p>
           <h1 className="font-display text-4xl font-black text-parchment">Notifications</h1>
-          <p className="text-parchment/60">{unread ? `${unread} new since your last visit` : "All caught up."}</p>
+          <p className="text-parchment/60">
+            {unread ? `${pluralize(unread, "new notification")} since your last visit` : "All caught up."}
+            {unread > shownUnread.length ? ` (${shownUnread.length} on this page; the rest are on older pages).` : ""}
+          </p>
         </div>
 
       </header>
@@ -71,6 +84,20 @@ export default async function NotificationsPage() {
           })}
         </ul>
       )}
+      {page > 1 || hasOlder ? (
+        <nav aria-label="Notification pages" className="mt-4 flex gap-4 text-sm">
+          {page > 1 ? (
+            <Link href={page - 1 > 1 && items.length > 0 ? `/notifications?page=${page - 1}` : "/notifications"} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              ← Newer
+            </Link>
+          ) : null}
+          {hasOlder ? (
+            <Link href={`/notifications?page=${page + 1}`} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              Older →
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
     </div>
   );
 }

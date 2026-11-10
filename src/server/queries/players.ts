@@ -224,10 +224,11 @@ export async function getViewerSummary(userId: string) {
   return { level: levelProgress(stats?.xp ?? 0), reputation: stats?.reputation ?? 0, unread };
 }
 
-export async function listNotifications(userId: string, take = 40) {
+export async function listNotifications(userId: string, take = 40, skip = 0) {
   return db.notification.findMany({
     where: { userId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip,
     take,
     select: { id: true, type: true, title: true, body: true, href: true, readAt: true, createdAt: true, data: true },
   });

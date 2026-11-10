@@ -154,6 +154,8 @@ describe("moderation", () => {
 
     await strikeArgument(admin, c.id, "DEFENSE");
     expect((await db.argument.findFirstOrThrow({ where: { caseId: c.id, role: "DEFENSE" } })).stricken).toBe(true);
+    // A second strike is refused, not logged again (audit 33 D7).
+    await expect(strikeArgument(admin, c.id, "DEFENSE")).rejects.toMatchObject({ code: "INVALID_STATE" });
 
     const jurors = await makeUsers(10);
     await voteAll(c.id, jurors, 7);

@@ -20,6 +20,7 @@ export const metadata: Metadata = { title: "Officers only", robots: { index: fal
 const reasonLabel = (r: string) => REPORT_REASONS.find((x) => x.value === r)?.label ?? r;
 
 const LOG_PAGE = 30;
+const QUEUE_PAGE = 30;
 
 export default async function ModerationPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUserOrRedirect("/moderation");
@@ -29,20 +30,26 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   const caseNumber = sp.case ? parseCaseParam(String(sp.case)) : null;
   const lookupUser = cleanQuery(sp.user, 40).toLowerCase() || undefined;
   const logPage = pageParam(sp.log, 500);
-  const logHref = (page: number) => {
+  const queuePage = pageParam(sp.queue, 500);
+  const pageHref = (pages: { log?: number; queue?: number }, anchor: string) => {
     const q = new URLSearchParams();
     if (sp.case) q.set("case", String(sp.case));
     if (sp.user) q.set("user", String(sp.user));
-    if (page > 1) q.set("log", String(page));
+    const log = pages.log ?? logPage;
+    const queue = pages.queue ?? queuePage;
+    if (queue > 1) q.set("queue", String(queue));
+    if (log > 1) q.set("log", String(log));
     const qs = q.toString();
-    return `/moderation${qs ? `?${qs}` : ""}#log-heading`;
+    return `/moderation${qs ? `?${qs}` : ""}#${anchor}`;
   };
+  const logHref = (page: number) => pageHref({ log: page }, "log-heading");
 
-  const [queue, log, focusCase, focusUser, totals] = await Promise.all([
+  const [queue, log, focusCase, focusUser, totals, queueCount] = await Promise.all([
     db.case.findMany({
       where: { OR: [{ openReports: { gt: 0 } }, { moderationState: "UNDER_REVIEW" }] },
       orderBy: [{ moderationState: "desc" }, { openReports: "desc" }, { updatedAt: "desc" }],
-      take: 30,
+      skip: (queuePage - 1) * QUEUE_PAGE,
+      take: QUEUE_PAGE,
       select: {
         id: true,
         number: true,
@@ -93,6 +100,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         })
       : null,
     db.report.count({ where: { status: "OPEN" } }),
+    db.case.count({ where: { OR: [{ openReports: { gt: 0 } }, { moderationState: "UNDER_REVIEW" }] } }),
   ]);
   // Name the player behind ban/unban entries (stored as an id).
   const targetIds = [...new Set(log.map((l) => l.targetUserId).filter((id): id is string => !!id))];
@@ -108,7 +116,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           <p className="eyebrow">Officers of the court only</p>
           <h1 className="font-display text-4xl font-black text-parchment sm:text-5xl">Moderation console</h1>
           <p className="mt-2 text-parchment/70">
-            {totals} open reports · {queue.length} {queue.length === 1 ? "case needs" : "cases need"} attention · signed in as {isAdmin ? "Presiding Judge (admin)" : "Court Clerk (moderator)"}
+            {pluralize(totals, "open report")} · {queueCount.toLocaleString("en-US")} {queueCount === 1 ? "case needs" : "cases need"} attention · signed in as {isAdmin ? "Presiding Judge (admin)" : "Court Clerk (moderator)"}
           </p>
         </div>
         <JudgeOwl mood="stern" className="chr-sticker hidden w-36 md:block" />
@@ -236,7 +244,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           Report queue
         </h2>
         {queue.length === 0 ? (
-          <p className="velvet p-6 text-parchment/70">No open reports. The internet is behaving (for now).</p>
+          <p className="velvet p-6 text-parchment/70">{queuePage > 1 ? "No more cases on this page." : "No open reports. The internet is behaving (for now)."}</p>
         ) : (
           <ul className="space-y-4">
             {queue.map((c) => (
@@ -270,15 +278,15 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             ))}
           </ul>
         )}
-        <nav aria-label="Audit log pages" className="mt-3 flex gap-4 text-sm">
-          {logPage > 1 ? (
-            <Link href={logHref(logPage - 1)} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
-              ← Newer
+        <nav aria-label="Report queue pages" className="mt-3 flex gap-4 text-sm">
+          {queuePage > 1 ? (
+            <Link href={pageHref({ queue: queue.length > 0 ? queuePage - 1 : 1 }, "queue-heading")} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              ← Previous
             </Link>
           ) : null}
-          {log.length > LOG_PAGE ? (
-            <Link href={logHref(logPage + 1)} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
-              Older →
+          {queueCount > queuePage * QUEUE_PAGE ? (
+            <Link href={pageHref({ queue: queuePage + 1 }, "queue-heading")} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              Next →
             </Link>
           ) : null}
         </nav>
@@ -304,6 +312,18 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             ))}
           </ul>
         )}
+        <nav aria-label="Audit log pages" className="mt-3 flex gap-4 text-sm">
+          {logPage > 1 ? (
+            <Link href={logHref(log.length > 0 ? logPage - 1 : 1)} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              ← Newer
+            </Link>
+          ) : null}
+          {log.length > LOG_PAGE ? (
+            <Link href={logHref(logPage + 1)} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+              Older →
+            </Link>
+          ) : null}
+        </nav>
       </section>
     </div>
     </ModFlashProvider>

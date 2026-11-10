@@ -57,7 +57,7 @@ export async function getCommunityStats() {
   const dayAgo = new Date(now.getTime() - 86_400_000);
   const [players, cases, closed, votes, guilty, notGuilty, todayVotes, inDeliberation, awaiting, lastNumber] = await Promise.all([
     db.user.count({ where: { deletedAt: null } }),
-    db.case.count({ where: { moderationState: { not: "REMOVED" } } }),
+    db.case.count({ where: { moderationState: "VISIBLE" } }), // same scope as the vote totals: public cases only
     db.case.count({ where: { status: "CLOSED", moderationState: "VISIBLE" } }),
     db.vote.count({ where: { case: { moderationState: "VISIBLE" } } }), // same scope as the case totals
     db.case.count({ where: { status: "CLOSED", verdict: "GUILTY", moderationState: "VISIBLE" } }),
@@ -99,21 +99,23 @@ export async function getRecentVerdicts(viewer: { id: string; mutedCategories?: 
 }
 
 /** Community highlights over the last 30 days. */
-export async function getHighlights() {
+export async function getHighlights(viewer: { mutedCategories?: string[] } | null = null) {
   const since = new Date(clock.now().getTime() - 30 * 86_400_000);
   const base = { status: "CLOSED" as const, moderationState: "VISIBLE" as const, closedAt: { gte: since } };
+  // Case highlights respect the viewer's muted categories (the attorney stat counts all cases).
+  const shown = viewer?.mutedCategories?.length ? { ...base, category: { notIn: viewer.mutedCategories } } : base;
   const [closest, blowout, legendary, topAttorney] = await Promise.all([
     db.case.findFirst({
-      where: { ...base, verdict: { in: ["GUILTY", "NOT_GUILTY"] } },
+      where: { ...shown, verdict: { in: ["GUILTY", "NOT_GUILTY"] } },
       orderBy: [{ controversy: "desc" }, { guiltyVotes: "desc" }],
       select: caseCardSelect,
     }),
     db.case.findFirst({
-      where: { ...base, verdict: { in: ["GUILTY", "NOT_GUILTY"] }, controversy: { lte: 0.2 } },
+      where: { ...shown, verdict: { in: ["GUILTY", "NOT_GUILTY"] }, controversy: { lte: 0.2 } },
       orderBy: [{ guiltyVotes: "desc" }, { notGuiltyVotes: "desc" }],
       select: caseCardSelect,
     }),
-    db.case.findFirst({ where: { ...base, legendaryCount: { gt: 0 } }, orderBy: [{ legendaryCount: "desc" }], select: caseCardSelect }),
+    db.case.findFirst({ where: { ...shown, legendaryCount: { gt: 0 } }, orderBy: [{ legendaryCount: "desc" }], select: caseCardSelect }),
     db.case.groupBy({
       by: ["attorneyId"],
       where: { ...base, verdict: "NOT_GUILTY", attorneyId: { not: null } },

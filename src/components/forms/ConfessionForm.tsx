@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { motion } from "motion/react";
@@ -23,6 +23,8 @@ const PROMPTS = [
   "I've been pretending for months that…",
 ];
 
+const DRAFT_KEY = "coti-draft-confession";
+
 export function ConfessionForm({ displayName, quorum, deliberationHours }: { displayName: string; quorum: number; deliberationHours: number }) {
   const reduce = useReduceMotion();
   const [state, formProps, pending] = useFormAction(confessAction);
@@ -32,12 +34,50 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
   const [context, setContext] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
+
+  // The draft survives a reload or a closed tab on this device (like argument drafts). Filing
+  // clears it; a rejected filing puts it back.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null") as Partial<Record<"title" | "category" | "confession" | "context", string>> | null;
+        if (!saved) return;
+        setTitle((v) => v || String(saved.title ?? ""));
+        setCategory((v) => v || String(saved.category ?? ""));
+        setConfession((v) => v || String(saved.confession ?? ""));
+        setContext((v) => v || String(saved.context ?? ""));
+      } catch {
+        /* storage unavailable or malformed */
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  const draftFailed = !!state && !state.ok;
+  useEffect(() => {
+    try {
+      if (title || confession || context || category) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, category, confession, context }));
+    } catch {
+      /* ignore */
+    }
+  }, [title, category, confession, context, draftFailed]);
   const cat = category ? getCategory(category) : null;
   const previewAlias = anonymousAlias(title || "preview").name;
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-      <form {...formProps} className="space-y-7" noValidate>
+      <form
+        {...formProps}
+        onSubmit={(e) => {
+          try {
+            localStorage.removeItem(DRAFT_KEY);
+          } catch {
+            /* ignore */
+          }
+          formProps.onSubmit(e);
+        }}
+        className="space-y-7"
+        noValidate
+      >
         <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
           <label>
             Website <input name="website" tabIndex={-1} autoComplete="off" />

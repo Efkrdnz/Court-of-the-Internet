@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { submitArgumentAction, releaseAction } from "@/app/actions/cases";
 import { useFormAction } from "@/components/ui/useFormAction";
@@ -33,6 +34,20 @@ const OPENERS = {
 
 export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; role: "DEFENSE" | "PROSECUTION"; expiresAt: string }) {
   const storageKey = `coti-draft-${role}-${caseId}`;
+  const filingKey = `coti-filing-${role}-${caseId}`;
+  const router = useRouter();
+  // Back after filing restores this editor from the client cache, although the claim is gone.
+  // If this tab just filed here, ask the server again: it sends a filed case on to its page.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(filingKey)) {
+        sessionStorage.removeItem(filingKey);
+        router.refresh();
+      }
+    } catch {
+      /* storage unavailable */
+    }
+  }, [filingKey, router]);
   const [body, setBody] = useState("");
   const [state, formProps, pending] = useFormAction(submitArgumentAction.bind(null, role));
   const [releasing, startRelease] = useTransition();
@@ -61,13 +76,14 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
   // The draft is cleared when filing; a rejected filing (an expired claim, say) puts it back,
   // so it's still here after claiming the case again.
   useEffect(() => {
-    if (!state || state.ok || !body) return;
+    if (!state || state.ok) return;
     try {
-      localStorage.setItem(storageKey, body);
+      sessionStorage.removeItem(filingKey); // the filing didn't go through: this editor is still live
+      if (body) localStorage.setItem(storageKey, body);
     } catch {
       /* ignore */
     }
-  }, [state, body, storageKey]);
+  }, [state, body, storageKey, filingKey]);
 
   const count = charCount(body.trim());
   const tooShort = count < LIMITS.argument.min;
@@ -100,6 +116,11 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
       <form
         {...formProps}
         onSubmit={(e) => {
+          try {
+            sessionStorage.setItem(filingKey, "1");
+          } catch {
+            /* ignore */
+          }
           try {
             localStorage.removeItem(storageKey);
           } catch {

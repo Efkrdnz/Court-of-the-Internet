@@ -734,3 +734,43 @@ test("§12 visual assets: character art stays inside its card at desktop widths 
   await context.close();
   expect(spills).toEqual([]);
 });
+
+test("§12 navigation: Back after filing doesn't leave a stale editor (audit 33 D4)", async ({ browser }) => {
+  const whiskers = await prisma.user.findUniqueOrThrow({ where: { username: "juror_whiskers" }, select: { id: true } });
+  const held = await prisma.case.count({ where: { claimedById: whiskers.id } });
+  test.skip(held > 0, "juror_whiskers already holds a claim in this run");
+  const c = await prisma.case.findFirstOrThrow({
+    where: { status: "AWAITING_DEFENSE", moderationState: "VISIBLE", accusedId: { not: whiskers.id }, arguments: { none: {} } },
+    select: { id: true },
+  });
+  await prisma.case.update({ where: { id: c.id }, data: { status: "DEFENSE_CLAIMED", claimedById: whiskers.id, claimExpiresAt: new Date(Date.now() + 20 * 60_000) } });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.locator(`form:has(input[name="username"][value="juror_whiskers"]) button`).click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  await page.goto(`/defend/${c.id}`);
+  await page.locator('textarea[name="body"]').fill("Members of the jury, the stapler was never stolen, merely relocated to a place of greater appreciation.");
+  await page.getByRole("button", { name: "File the defense" }).click();
+  await page.waitForURL(/\/cases\//);
+  await page.goBack();
+  // The restored editor notices it already filed and asks the server again, which moves on.
+  await expect(page).not.toHaveURL(new RegExp(`/defend/${c.id}`), { timeout: 10_000 });
+  await expect(page.getByText("You hold this case.")).toHaveCount(0);
+  await context.close();
+});
+
+test("§12 forms: a confession draft survives a reload (audit 33 D5)", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.locator(`form:has(input[name="username"][value="fresh_intern"]) button`).click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  await page.goto("/confess");
+  await page.locator('input[name="title"]').fill("I alphabetised the office snacks");
+  await page.locator('textarea[name="confession"]').fill("Nobody asked me to. I did it during a meeting I was supposed to be leading.");
+  await page.reload();
+  await expect(page.locator('input[name="title"]')).toHaveValue("I alphabetised the office snacks");
+  await expect(page.locator('textarea[name="confession"]')).toHaveValue(/Nobody asked me to/);
+  await context.close();
+});
