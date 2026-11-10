@@ -917,10 +917,25 @@ describe("moderation", () => {
     expect(promos.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     expect(await db.moderationAction.count({ where: { action: "SET_ROLE_MODERATOR", targetUserId: player } })).toBe(1);
     // As an officer they may take a titled name; demoted, they don't keep it (audit 45 D2).
-    await updateProfile(player, { displayName: "Chief Justice Moderator", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "velvet-rope", featuredBadge: null });
+    // …though not the presiding judge's titles (audit 47 D2).
+    for (const judgely of ["Presiding Judge", "Chief Justice Pemberton", "The Judge"]) {
+      await expect(updateProfile(player, { displayName: judgely, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "velvet-rope", featuredBadge: null })).rejects.toMatchObject({ code: "VALIDATION" });
+    }
+    await updateProfile(player, { displayName: "Head Clerk Moderator", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "velvet-rope", featuredBadge: null });
     await setUserRole(admin, player, "PLAYER");
     const demoted = await db.user.findUniqueOrThrow({ where: { id: player } });
     expect(demoted.displayName).toBe(demoted.username);
+    // A titled save racing the demotion never leaves a player wearing the title (audit 47 D1).
+    for (let i = 0; i < 6; i++) {
+      const racer = await makeUser(`racer_${i}`, "MODERATOR");
+      await Promise.allSettled([
+        updateProfile(racer, { displayName: "Moderator Jay", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+        setUserRole(admin, racer, "PLAYER"),
+      ]);
+      const after = await db.user.findUniqueOrThrow({ where: { id: racer } });
+      expect(after.role).toBe("PLAYER");
+      expect(after.displayName).not.toBe("Moderator Jay");
+    }
     // …and when the username carries a title too, a neutral stand-in, with a titled bio cleared (audit 46 D2).
     const clerkish = await makeUser("clerk_tester", "MODERATOR");
     await db.user.update({ where: { id: clerkish }, data: { displayName: "Clerk Tester", bio: "Head clerk of the docket" } });

@@ -104,7 +104,7 @@ export function SignupForm({ next }: { next: string }) {
         <input type="checkbox" name="acceptRules" className="mt-1 h-4 w-4 accent-burgundy" required />
         <span>
           I solemnly swear to confess only harmless, petty, or fictional crimes, and to follow the{" "}
-          <Link href="/rules" target="_blank" className="font-bold text-burgundy underline">
+          <Link href="/rules" target="_blank" className="py-3 font-bold text-burgundy underline">
             community rules
           </Link>
           .

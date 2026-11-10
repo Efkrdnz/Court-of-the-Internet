@@ -359,6 +359,8 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     // actions (FOR SHARE), but lets key-share through.
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${targetUserId} FOR NO KEY UPDATE`;
     const target = await liveTarget(tx, targetUserId);
+    // Checked first, so an officer on a jury isn't told about a conflict with themselves (audit 47 D5).
+    if (targetUserId === moderatorId) throw new CourtError("FORBIDDEN", "You cannot hold yourself in contempt.");
     // Recusal reaches bans too: an officer can't ban (or unban) someone who is a party or juror on a
     // trial they're arguing or accused in. Banning the jurors who voted against you would delete
     // their votes and swing your own verdict.
@@ -375,7 +377,6 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     if (banned === !!target.bannedAt) {
       throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
     }
-    if (targetUserId === moderatorId) throw new CourtError("FORBIDDEN", "You cannot hold yourself in contempt.");
     if (target.role !== "PLAYER" && mod.role !== "ADMIN") {
       throw new CourtError("FORBIDDEN", banned ? "Only an admin can hold another officer of the court in contempt." : "Only an admin can lift contempt for another officer of the court.");
     }

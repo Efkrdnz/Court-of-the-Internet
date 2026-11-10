@@ -87,6 +87,10 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
   .refine((s) => !new RegExp(`\\b(?:${CRITTERS.join("|")})\\W*[0-9a-f]{4}\\W*$`, "iu").test(s.normalize("NFKC")), {
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
   })
+  // "Anonymous", "Anonymous Defendant", "Anon Pigeon": what anonymous confessors are labelled as (audit 47 D4).
+  .refine((s) => !new RegExp(`^\\s*(?:an?\\s+)?anon(?:ymous)?\\b(?:\\s+(?:defendant|confessor|user|player|citizen|accused|${CRITTERS.join("|")}))?\\s*$`, "iu").test(s.normalize("NFKC")), {
+    message: "That's what anonymous confessors are called. Pick something else.",
+  })
   // An alias's two words alone ("Mysterious Walrus") would pass for one too.
   .refine((s) => !new RegExp(`^\\s*(?:${ADJECTIVES.join("|")})\\s+(?:${CRITTERS.join("|")})\\s*$`, "iu").test(s.normalize("NFKC")), {
     message: "That's what anonymous confessors are called. Pick something else.",
@@ -112,6 +116,8 @@ const COURT_TITLES = [
   "clerk", "clerks", "the court", "of the court", "bailiff", "bailiffs", "your honour", "your honor", "his honour", "his honor",
   "her honour", "her honor", "their honour", "their honor", "moderator", "moderators", "mod", "mods", "modteam", "admin", "admins",
   "administrator", "administrators", "sysop", "sysops", "staff", "support team", "site team", "officer", "officers",
+  // Audit 47 D4.
+  "supreme court", "high court", "magistrate", "magistrates", "your worship", "his worship", "her worship", "the bench", "official judge",
 ].map(foldTitle);
 
 // Distinctive stems also caught inside joined, numbered or split-up names ("ModeratorBob",
@@ -128,6 +134,13 @@ export function hasCourtTitle(name: string): boolean {
   const squashed = foldTitle(spaced).replace(/[^\p{L}]+/gu, "");
   return TITLE_STEMS.some((stem) => squashed.includes(stem));
 }
+/** The presiding judge's own titles: a moderator may carry clerk titles, but not these (audit 47 D2). */
+const ADMIN_TITLES = ["presiding judge", "chief justice", "chief judge", "head judge", "lord justice", "the judge", "your honour", "your honor", "his honour", "his honor", "her honour", "her honor", "their honour", "their honor", "administrator"].map(foldTitle);
+export function hasAdminTitle(name: string): boolean {
+  const folded = foldTitle(name);
+  return ADMIN_TITLES.some((title) => folded.includes(title));
+}
+
 export const COURT_TITLE_MESSAGE = "That's an official title of the court. Pick your own name.";
 
 export const usernameSchema = z

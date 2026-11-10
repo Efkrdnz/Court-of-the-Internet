@@ -14,7 +14,7 @@ import {
   type UnlockContext,
 } from "@/lib/cosmetics";
 import { levelForXp } from "@/lib/progression";
-import { COURT_TITLE_MESSAGE, hasCourtTitle } from "@/lib/validation";
+import { COURT_TITLE_MESSAGE, hasAdminTitle, hasCourtTitle } from "@/lib/validation";
 import { getAchievement } from "@/lib/achievements";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
@@ -175,8 +175,6 @@ export async function updateProfile(
   // Officers can't take another officer's name either (audit 43 #2: a moderator could become a
   // second "Judge Wigsworth"); their own name is excluded from the check.
   await assertNotStaffName(input.displayName, userId);
-  const me = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
-  if (me.role === "PLAYER" && hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
   const current = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { avatar: true, profileTheme: true } });
   const wearing = parseAvatar(current.avatar);
   const theme = PROFILE_THEMES.find((t) => t.key === input.profileTheme);
@@ -197,15 +195,27 @@ export async function updateProfile(
       throw new CourtError("FORBIDDEN", "You can only feature a badge you have earned.", "featuredBadge");
     }
   }
-  await db.user.update({
-    where: { id: userId },
-    data: {
-      displayName: input.displayName,
-      bio: input.bio,
-      avatar: input.avatar as Prisma.InputJsonValue,
-      profileTheme: input.profileTheme,
-      featuredBadge: input.featuredBadge,
-    },
+  await db.$transaction(async (tx) => {
+    // The role decides which titles are allowed, so read it under the same row lock a role change
+    // takes: a save racing a demotion either lands first (and the demotion resets the title) or
+    // sees the new role (audit 47 D1: "Moderator Jay" outlived the demotion 1 time in 8).
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR NO KEY UPDATE`;
+    const me = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
+    if (me.role === "PLAYER" && hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
+    // A moderator may wear clerk titles, but not the presiding judge's (audit 47 D2).
+    if (me.role === "MODERATOR" && hasAdminTitle(input.displayName)) {
+      throw new CourtError("VALIDATION", "That title belongs to the presiding judge. Pick your own.", "displayName");
+    }
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        displayName: input.displayName,
+        bio: input.bio,
+        avatar: input.avatar as Prisma.InputJsonValue,
+        profileTheme: input.profileTheme,
+        featuredBadge: input.featuredBadge,
+      },
+    });
   });
 }
 

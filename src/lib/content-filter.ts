@@ -96,7 +96,9 @@ const STREET_LOWER = new RegExp(
 const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
 // "bob [at] example [dot] com", "bob (at) example dot com".
 // "court-of-pettiness dot com"
-const DOMAIN_SPELLED = /\b[a-z0-9-]{2,}\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info)\b/i;
+// Common endings, newer ones included ("bakery dot shop", audit 47 D3). Endings that are everyday
+// English words only count after a name, not after "polka" ("polka dot top").
+const DOMAIN_SPELLED = /\b(?!polka\b)[a-z0-9-]{2,}\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|shop|store|online|site|blog|link|ly|biz|club|live|art|page|ai|ca|au|fr|nl|ie|tech|website|space|top|vip|cc|eu|nz|fm|lol|wtf|fun)\b/i;
 const EMAIL_SPELLED =
   /\b[\w.+-]+\s*(?:[[({]\s*at\s*[\])}]|\sat\s)\s*[\w-]+\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*[a-z]{2,}\b/i;
 // "find him on insta as john_smith_1990": a platform name followed shortly by a handle-like token

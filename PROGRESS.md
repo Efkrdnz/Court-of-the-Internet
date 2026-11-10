@@ -967,6 +967,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6 | The share image broke a 35-letter "Mmm…m" word (lower-case m estimated at 0.8em; measured 0.92em); case cards break such words at desktop widths too | the width estimates use the measured widths; README now says narrow places (phones and card grids) | — |
 | D7 | Counsel already holding a claim on a banned player's public case could still file it | the ban releases those claims too (VOIDED, so they don't count against the holder) and tells counsel | integration |
 
+## Forty-seventh independent audit (fresh agent, build of commit 0a80894)
+
+**Result: 16 PASS, 1 CONCERN (17), 0 FAIL; no correctness or data-integrity defects.** 25 concurrent mixed votes gave 1 row; 20 concurrent claims gave 1 winner; ban/unban re-votes refused on both struck trials; 6 players' stats (including floored reputation) recomputed from rows matched; axe found no WCAG 2 A/AA violations on 20 pages at five widths.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | A moderator's titled save racing their demotion could leave a player wearing "Moderator Jay" (1 in 8) | `updateProfile` reads the role and writes the profile in one transaction under the user-row lock that `setUserRole` takes | integration: 6 save/demote races, never a titled player |
+| D2 | A moderator could take the presiding judge's titles ("Presiding Judge", "Chief Justice Pemberton", "The Judge") | moderators are checked against the admin's titles | integration |
+| D3 | Spelled-out domains with newer endings ("bakery dot shop") passed | more endings recognised after "dot" (everyday-word endings not after "polka") | unit |
+| D4 | README overstated the title rule; "Supreme Court", "Magistrate Bob", "Your Worship", "The Bench", "Official Judge" and "Anonymous" were accepted | those titles added; names shaped like an anonymous label refused; README describes the fixed list and what still gets through ("Justice Bob", "Hon. Bob") | unit |
+| D5 | An officer banning themselves while on a jury got the conflict message | the self-ban check runs first | — |
+| D6 | The "community rules" link in the accept-rules labels was 17px tall | inline padding enlarges its tap area without changing the layout | — |
+| D7 | Party chips truncated long display names at every width | names wrap to two lines (full name on hover); checked at 320 and 1280px | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

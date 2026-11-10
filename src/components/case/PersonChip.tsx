@@ -53,7 +53,11 @@ export function PersonChip({
       {avatar}
       <span className="min-w-0 leading-tight">
         {role ? <span className={clsx("block text-[11px] font-bold uppercase tracking-widest", dark ? "text-gold-light/80" : "text-sepia")}>{role}</span> : null}
-        <span className={clsx("block truncate font-bold", size === "lg" ? "text-lg" : "text-sm", dark ? "text-parchment" : "text-ink")}>
+        {/* Long names wrap onto a second line (and show in full on hover) rather than being cut off. */}
+        <span
+          className={clsx("line-clamp-2 break-words font-bold [overflow-wrap:anywhere]", size === "lg" ? "text-lg" : "text-sm", dark ? "text-parchment" : "text-ink")}
+          title={person.displayName}
+        >
           {person.displayName}
         </span>
         {person.username ? <span className={clsx("block truncate text-xs", dark ? "text-parchment/50" : "text-sepia")}>@{person.username}</span> : null}

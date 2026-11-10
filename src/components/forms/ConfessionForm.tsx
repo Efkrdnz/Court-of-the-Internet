@@ -216,7 +216,7 @@ export function ConfessionForm({
             <input type="checkbox" name="acceptRules" className="mt-1 h-5 w-5 accent-gold" required aria-invalid={!!fe?.acceptRules} />
             <span>
               This crime is harmless, petty or fictional. It names no real people and contains no personal information, per the{" "}
-              <Link href="/rules" target="_blank" className="font-bold text-gold-light underline">
+              <Link href="/rules" target="_blank" className="py-3 font-bold text-gold-light underline">
                 community rules
               </Link>
               .

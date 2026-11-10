@@ -439,12 +439,29 @@ describe("joined words count as one long word (audit 44 #3)", () => {
   });
 });
 
+describe("anonymous look-alike names and spelled-out domains (audit 47 D3, D4)", () => {
+  it.each(["Anonymous", "anonymous defendant", "Anon Pigeon", "An Anonymous Confessor"])("refuses the name %j", (name) => {
+    expect(signupRefuses(name)).toBe(true);
+  });
+  it.each(["Anonymous Andy fan club", "Benchwarmer Bob", "Court Jester"])("allows the name %j", (name) => {
+    expect(signupRefuses(name)).toBe(false);
+  });
+  it.each(["visit pettybakery dot shop for cakes", "my blog is crumbs dot blog", "find me at snackking dot online"])("refuses %j", (text) => {
+    expect(screenText(text).ok).toBe(false);
+  });
+  it.each(["I wore my polka dot top to the funeral and nobody said anything", "I drew a dot on my brother's forehead while he slept on the sofa"])("allows %j", (text) => {
+    expect(screenText(text).ok).toBe(true);
+  });
+});
+
 describe("court titles in names (audit 44 #1)", () => {
   it.each(["Head Moderator", "Site Admin", "Clerk of the Court", "Court Officer Bob", "Bob (Moderator)", "Official Court Clerk", "Chief Justice Bob", "Staff", "Bailiff", "Moderator Bob", "The Bailiff", "Mod Team", "Bob_the_Mod", "Your Honour", "\uFF2D\uFF4F\uFF44",
     // Folded like officer names (audit 45 D2), and usernames.
     "Clërk Bob", "M0derator Bob", "Adm1n", "Admln", "Moderatorr", "Officer Bob", "court_moderator", "site_admin_team",
     // Joined, numbered or split up (audit 46 D1).
-    "moderator9", "ModeratorBob", "Site Moderation Team", "Ad-min", "administrator1", "theadmin", "Sysadmin", "Head of Moderation", "C l e r k", "Mod Erator"])(
+    "moderator9", "ModeratorBob", "Site Moderation Team", "Ad-min", "administrator1", "theadmin", "Sysadmin", "Head of Moderation", "C l e r k", "Mod Erator",
+    // Audit 47 D4.
+    "Supreme Court", "Magistrate Bob", "Your Worship", "The Bench", "Official Judge"])(
     "refuses %s",
     (name) => expect(hasCourtTitle(name)).toBe(true),
   );
