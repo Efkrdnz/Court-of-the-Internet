@@ -97,7 +97,7 @@ export default async function SettingsPage() {
           <h2 id="danger-heading" className="mb-2 font-display text-2xl font-black text-crimson">
             Delete account
           </h2>
-          <DeleteAccountForm />
+          <DeleteAccountForm userId={user.id} />
         </section>
       </div>
     </div>

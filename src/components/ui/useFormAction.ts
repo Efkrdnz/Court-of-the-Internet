@@ -1,6 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, type FormEvent } from "react";
+import { startTransition, useActionState, useCallback, useEffect, useRef, type FormEvent } from "react";
+import { callAction } from "./callAction";
 import type { ActionResult } from "@/app/actions/_util";
 
 /**
@@ -14,7 +15,15 @@ import type { ActionResult } from "@/app/actions/_util";
 export function useFormAction<T = undefined>(
   serverAction: (prev: ActionResult<T> | null, formData: FormData) => Promise<ActionResult<T>>,
 ) {
-  const [state, dispatch, pending] = useActionState<ActionResult<T> | null, FormData>(serverAction, null);
+  // Without JavaScript the form posts to the server action itself (progressive enhancement)…
+  const [plainState, plainDispatch] = useActionState<ActionResult<T> | null, FormData>(serverAction, null);
+  // …with it, a request that fails in transit becomes an inline error rather than the error page.
+  const safeAction = useCallback(
+    async (prev: ActionResult<T> | null, fd: FormData) => (await callAction(() => serverAction(prev, fd))) as ActionResult<T>,
+    [serverAction],
+  );
+  const [jsState, dispatch, pending] = useActionState<ActionResult<T> | null, FormData>(safeAction, null);
+  const state = jsState ?? plainState;
   const ref = useRef<HTMLFormElement>(null);
   // After a rejected submit, bring the problem into view: on phones the error banner is
   // usually scrolled off-screen above the submit button.
@@ -29,7 +38,7 @@ export function useFormAction<T = undefined>(
   }, [state]);
   const formProps = {
     ref,
-    action: dispatch,
+    action: plainDispatch,
     onSubmit(e: FormEvent<HTMLFormElement>) {
       e.preventDefault();
       if (pending) return;

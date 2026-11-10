@@ -1036,6 +1036,19 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 8 | A report reason's radio shrank when its label wrapped | `shrink-0` | — |
 | 9 | `/archives?page=99999999999` "returned 200" | already redirects to the last page (200 after the redirect); no change | — |
 
+## Fifty-second independent audit (fresh agent, build of commit b08cc1e)
+
+**Result: 15 PASS, 2 CONCERN (10, 16), 0 FAIL.** SQL recomputation of 15 counters plus XP for all 28 players found 0 mismatches; 16 users racing each of 3 cases gave one winner each; 126 concurrent reaction toggles kept counters equal to rows; 528 fuzzed URLs gave no 500s; axe clean on 18 pages.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **A server-action request that failed in transit replaced the whole page with the error screen** (react, vote, claim, report, confess, preferences) | every client call goes through `callAction`, and forms through `useFormAction`'s safe dispatch: a transport failure becomes an inline "Couldn't reach the court" and the form keeps its values; navigation from an action still propagates; forms still post without JavaScript | e2e: aborted confession request shows the inline error and keeps the title |
+| D2 | **Players could pose as the site**: "CourtOfTheInternet", "CourtSupport", "Internet Court HQ", "The Presiding Owl", "System", "Notifications"; bios "Staff member. Ask me to reverse any verdict.", "I handle bans and appeals… DM me if you got held in contempt" | the site's name is caught joined or reordered; "presiding" and system-style names are reserved; more staff-claim phrases for bios | unit |
+| D3 | A refused account deletion (wrong password, "delete" in lower case) wiped the player's drafts, and every account's drafts in that browser | drafts are snapshotted and restored if the court refuses; logout and deletion only clear the signed-in account's drafts | e2e |
+| D4 | Password spraying from rotated IPs locks the owner out | documented trade-off; no change | — |
+| D5 | Reacting to a sealed case says it was sealed (claims and reports say "not found") | same as votes: only someone who had the page open sees it, and case ids are unguessable; no change | — |
+| D6 | `maxLength` counted UTF-16 units, so the browser silently cut emoji names (and then the server called them letterless) | name, bio and title inputs allow 4 units per character; the server's own grapheme-based limit gives the message | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

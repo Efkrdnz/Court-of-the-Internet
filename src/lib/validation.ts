@@ -134,20 +134,26 @@ const COURT_TITLES = [
   // Audit 47 D4.
   "supreme court", "high court", "magistrate", "magistrates", "your worship", "his worship", "her worship", "the bench", "official judge",
   // Audit 51 #3: names posing as the site itself or its staff.
-  "court of the internet", "coti", "official court", "official account", "court account", "court team", "trust and safety", "trust safety", "site owner", "site official", "support", "helpdesk", "help desk",
+  "court of the internet", "coti", "official court", "presiding", "official account", "court account", "court team", "trust and safety", "trust safety", "site owner", "site official", "support", "helpdesk", "help desk",
 ].map(foldTitle);
 
 // Distinctive stems also caught inside joined, numbered or split-up names ("ModeratorBob",
 // "moderator9", "siteadmin", "Ad-min", "C l e r k", "Head of Moderation"), audit 46 D1. Everyday
 // words that happen to contain one are removed first.
-const TITLE_STEMS = ["moderator", "moderation", "admin", "clerk", "bailiff", "sysop", "officer", "yourhonour", "yourhonor", "courtstaff"].map((t) => foldTitle(t).trim());
+const TITLE_STEMS = ["moderator", "moderation", "admin", "clerk", "bailiff", "sysop", "officer", "yourhonour", "yourhonor", "courtstaff",
+  // The site's own name, however it's joined or reordered (audit 52 D2).
+  "courtoftheinternet", "courtinternet", "internetcourt", "courtsupport", "courtofficial", "courthq", "courtbot", "courtnews", "courtnotices"].map((t) => foldTitle(t).trim());
 const NOT_A_TITLE = /\b(?:badminton\w*|administ(?:er|ers|ered|ering|rative)|clerkenwell|staff(?:ie|ies|y|ordshire|ord)|officers?\s+mess)\b/giu;
 
 // Short titles spelled out letter by letter ("M o d", "M.o.d"), audit 51 #3.
 const SHORT_TITLES = new Set(["mod", "mods", "admin", "admins", "staf", "cierk", "coti"].map((t) => foldTitle(t).trim()));
 
+// Names the site itself might use for notices, matched as the whole name (audit 52 D2).
+const SYSTEM_NAMES = new Set(["system", "notifications", "notification", "announcements", "announcement", "the system", "court notices", "news", "bot", "court bot", "server", "root"].map((t) => foldTitle(t)));
+
 export function hasCourtTitle(name: string): boolean {
   const folded = foldTitle(name);
+  if (SYSTEM_NAMES.has(folded)) return true;
   if (COURT_TITLES.some((title) => folded.includes(title))) return true;
   if (SHORT_TITLES.has(folded.replace(/[^\p{L}]+/gu, "").replace(/\d+$/, ""))) return true;
   // Split camel case before folding ("ModeratorBob"), drop harmless words, then squash to letters.
@@ -173,6 +179,10 @@ const BIO_IMPERSONATION = [
   /\b(?:admin(?:istrator)?|moderator|mod|owner|staff|official\s+account)\s+(?:of|for|at|on)\s+(?:this|the)\s+(?:site|court|app|game|website)\b/iu,
   /\b(?:court\s+of\s+the\s+internet|coti)(?:'s)?\s+(?:staff|team|admin|support|official|moderator|mod|account|owner|trust)\b|\bofficial\s+(?:court\s+)?account\b/iu,
   /\b(?:i\s*(?:'ll|will|can)|let\s+me)\s+(?:get\s+you\s+)?(?:unban|un-ban|pardon|restore|reinstate)\s+(?:you|your)\b|\bget\s+(?:you\s+)?unbanned\b|\bremove\s+your\s+(?:ban|case|contempt)\b/iu,
+  // Audit 52 D2: "Staff member. Ask me to reverse any verdict.", "I handle bans and appeals here".
+  /\bstaff\s+member\b|\b(?:reverse|overturn|undo|change|fix)\s+(?:any|your|a|the)\s+(?:verdict|ban|sentence|ruling)s?\b/iu,
+  /\bi\s+(?:handle|deal\s+with|process|review|run|manage|decide)\s+(?:the\s+|all\s+)?(?:bans|appeals|reports|moderation|verdicts|contempt)\b/iu,
+  /\b(?:held\s+in\s+contempt|banned|suspended)\b.{0,40}\b(?:dm|pm|message|contact|ping|write\s+to)\s+me\b|\b(?:dm|pm|message|contact|ping)\s+me\b.{0,40}\b(?:held\s+in\s+contempt|banned|unban|appeal)/iu,
 ];
 export function bioImpersonatesStaff(bio: string): boolean {
   const text = skeleton(foldFullWidth(bio)).normalize("NFKD").replace(/\p{M}/gu, "");

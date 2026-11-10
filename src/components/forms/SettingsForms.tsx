@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { changePasswordAction, deleteAccountAction, updatePreferencesAction, updateProfileAction } from "@/app/actions/settings";
-import { clearDrafts } from "@/components/ui/clearDrafts";
+import { clearDrafts, restoreDrafts, snapshotDrafts } from "@/components/ui/clearDrafts";
 import type { ActionResult } from "@/app/actions/_util";
 import { useFormAction } from "@/components/ui/useFormAction";
 import { ACCESSORIES, BACKDROPS, HEADWEAR, SPECIES, type AvatarConfig } from "@/lib/avatar";
@@ -135,7 +135,7 @@ export function ProfileForm({
           <label htmlFor="pf-name" className="field-label">
             Display name
           </label>
-          <input id="pf-name" name="displayName" defaultValue={initial.displayName} maxLength={LIMITS.displayName.max} className="input" required />
+          <input id="pf-name" name="displayName" defaultValue={initial.displayName} maxLength={LIMITS.displayName.max * 4} className="input" required />
           <FieldError errors={fe?.displayName} />
         </div>
         <div>
@@ -157,7 +157,7 @@ export function ProfileForm({
         <label htmlFor="pf-bio" className="field-label">
           Bio
         </label>
-        <textarea id="pf-bio" name="bio" defaultValue={initial.bio} maxLength={LIMITS.bio.max} rows={2} className="textarea !min-h-0" placeholder="A short, dignified statement for the record." />
+        <textarea id="pf-bio" name="bio" defaultValue={initial.bio} maxLength={LIMITS.bio.max * 4} rows={2} className="textarea !min-h-0" placeholder="A short, dignified statement for the record." />
         <FieldError errors={fe?.bio} />
       </div>
 
@@ -285,15 +285,25 @@ export function PasswordForm() {
   );
 }
 
-export function DeleteAccountForm() {
+export function DeleteAccountForm({ userId }: { userId: string }) {
   const [state, formProps, pending] = useFormAction(deleteAccountAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
+  // Drafts are cleared as the request goes out (a successful deletion signs the player out and
+  // redirects), and put back if the court refuses it (audit 52 D3: a wrong password lost them).
+  const saved = useRef<Record<string, string> | null>(null);
+  useEffect(() => {
+    if (state && !state.ok && saved.current) {
+      restoreDrafts(saved.current);
+      saved.current = null;
+    }
+  }, [state]);
   return (
     <form
       {...formProps}
       onSubmit={(e) => {
         // Unsent drafts go with the account (on this device), as they do when logging out.
-        clearDrafts();
+        saved.current = snapshotDrafts(userId);
+        clearDrafts(userId);
         formProps.onSubmit(e);
       }}
       className="grid grid-cols-1 gap-4 sm:grid-cols-2"

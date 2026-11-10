@@ -80,7 +80,7 @@ export function SignupForm({ next }: { next: string }) {
           <label htmlFor="su-display" className="field-label">
             Display name
           </label>
-          <input id="su-display" name="displayName" className="input" maxLength={LIMITS.displayName.max} required aria-invalid={!!fe?.displayName} />
+          <input id="su-display" name="displayName" className="input" maxLength={LIMITS.displayName.max * 4} required aria-invalid={!!fe?.displayName} />
           <FieldError errors={fe?.displayName} />
         </div>
       </div>

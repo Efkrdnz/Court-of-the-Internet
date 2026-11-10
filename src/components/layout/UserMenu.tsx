@@ -10,6 +10,7 @@ import type { AvatarConfig } from "@/lib/avatar";
 import { logoutAction } from "@/app/actions/auth";
 
 export function UserMenu({
+  userId,
   username,
   displayName,
   avatar,
@@ -18,6 +19,7 @@ export function UserMenu({
   pct,
   staff,
 }: {
+  userId: string;
   username: string;
   displayName: string;
   avatar: AvatarConfig;
@@ -93,7 +95,7 @@ export function UserMenu({
           ))}
           <div className="my-1 h-px bg-gold/20" />
           {/* Logging out also forgets this account's unsent drafts on this device. */}
-          <form action={logoutAction} onSubmit={clearDrafts}>
+          <form action={logoutAction} onSubmit={() => clearDrafts(userId)}>
             <button role="menuitem" type="submit" className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-parchment hover:bg-burgundy/50 hover:text-gold-light">
               Leave the courtroom (log out)
             </button>

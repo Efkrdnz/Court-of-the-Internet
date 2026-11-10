@@ -37,6 +37,7 @@ export async function SiteHeader({ user }: { user: SessionUser | null }) {
             <>
               <NotificationBell unread={summary.unread} />
               <UserMenu
+                userId={user.id}
                 username={user.username}
                 displayName={user.displayName}
                 avatar={parseAvatar(user.avatar)}

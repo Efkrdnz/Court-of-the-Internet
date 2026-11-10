@@ -11,6 +11,7 @@ import { CatJury } from "@/components/art/characters";
 import { Countdown } from "@/components/ui/Countdown";
 import { Spinner } from "@/components/ui/SubmitButton";
 import { TallyBars } from "./TallyBars";
+import { callAction } from "@/components/ui/callAction";
 
 type Choice = "GUILTY" | "NOT_GUILTY";
 
@@ -68,7 +69,7 @@ export function VoteBooth({
   function submit(choice: Choice) {
     start(async () => {
       setError(null);
-      const result = await voteAction(caseId, choice);
+      const result = await callAction(() => voteAction(caseId, choice));
       if (result.ok && result.data) {
         setVote(result.data.choice);
         setTallies({ guilty: result.data.guiltyVotes, notGuilty: result.data.notGuiltyVotes });

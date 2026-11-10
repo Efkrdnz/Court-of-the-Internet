@@ -36,7 +36,7 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
   }, [initial]);
 
   useEffect(() => {
-    if (initial.length) void markToastedAction(initial.map((t) => t.id));
+    if (initial.length) void markToastedAction(initial.map((t) => t.id)).catch(() => undefined);
   }, [initial]);
 
   const current = queue[0];

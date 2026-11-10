@@ -825,3 +825,35 @@ test("§12 navigation: Back after taking a case doesn't offer it again (audit 35
     await context.close().catch(() => {});
   }
 });
+
+test("§12 forms: a dropped connection shows an inline error and keeps what was typed (audit 52 D1)", async ({ browser }) => {
+  const page = await demoPage(browser, "fresh_intern");
+  await page.goto("/confess");
+  await page.locator(`label:has(input[value="pet-related"])`).click();
+  await page.getByLabel("Case title").fill("I taught the cat to open the treat cupboard");
+  await page.getByLabel("The confession").fill("Every night at 3am she opens it, eats the treats and leaves the door open so the dog gets blamed.");
+  await page.getByRole("checkbox", { name: /harmless, petty or fictional/ }).check();
+  // The next server-action request fails in transit, like a phone dropping its connection.
+  await page.route("**/*", (route) => (route.request().method() === "POST" && route.request().headers()["next-action"] ? route.abort("internetdisconnected") : route.continue()));
+  await page.getByRole("button", { name: /^Submit my confession/ }).click();
+  await expect(page.getByText(/Couldn't reach the court/)).toBeVisible();
+  await expect(page.getByText(/Something went wrong on our end/)).toHaveCount(0);
+  await expect(page.getByLabel("Case title")).toHaveValue("I taught the cat to open the treat cupboard");
+  await page.close();
+});
+
+test("§12 settings: a refused account deletion keeps the player's drafts (audit 52 D3)", async ({ browser }) => {
+  const page = await demoPage(browser, "fresh_intern");
+  await page.goto("/confess");
+  await page.getByLabel("Case title").fill("Draft that must survive a typo");
+  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith("coti-draft-confession-")))).toBe(true);
+  await page.goto("/settings");
+  await page.locator("#del-password").fill("objection-sustained");
+  await page.locator("#del-confirm").fill("delete"); // lower case: refused
+  await page.getByRole("button", { name: /Delete my account/ }).click();
+  await expect(page.getByText(/Type DELETE to confirm/).last()).toBeVisible();
+  await page.goto("/confess");
+  await expect(page.getByLabel("Case title")).toHaveValue("Draft that must survive a typo");
+  await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("coti-draft-")).forEach((k) => localStorage.removeItem(k)));
+  await page.close();
+});

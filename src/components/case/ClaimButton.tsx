@@ -6,6 +6,7 @@ import { claimAction } from "@/app/actions/cases";
 import { claimRandomAction } from "@/app/actions/queue";
 import { Spinner } from "@/components/ui/SubmitButton";
 import { useFreshAfterBack } from "@/components/ui/useFreshAfterBack";
+import { callAction } from "@/components/ui/callAction";
 
 export function ClaimButton({
   caseId,
@@ -35,7 +36,7 @@ export function ClaimButton({
           start(async () => {
             setError(null);
             markActed();
-            const result = await claimAction(caseId, role);
+            const result = await callAction(() => claimAction(caseId, role));
             if (result && !result.ok) {
               clearActed();
               setError(result.error);
@@ -70,7 +71,7 @@ export function AssignMeButton({ role }: { role: "DEFENSE" | "PROSECUTION" }) {
           start(async () => {
             setError(null);
             markActed();
-            const result = await claimRandomAction(role);
+            const result = await callAction(() => claimRandomAction(role));
             if (result && !result.ok) {
               clearActed();
               setError(result.error);

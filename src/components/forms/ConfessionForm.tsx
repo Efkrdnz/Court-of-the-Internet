@@ -143,7 +143,7 @@ export function ConfessionForm({
               name="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              maxLength={LIMITS.title.max + 10}
+              maxLength={LIMITS.title.max * 4}
               className="input"
               placeholder="I stole one French fry from everyone at the table"
               aria-invalid={!!fe?.title}

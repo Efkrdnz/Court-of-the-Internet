@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { useReduceMotion } from "@/components/ui/useReduceMotion";
 import { reactAction } from "@/app/actions/cases";
 import { REACTIONS, type ReactionKey } from "@/lib/reactions";
+import { callAction } from "@/components/ui/callAction";
 
 function ReactionGlyph({ type, className }: { type: ReactionKey; className?: string }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -83,7 +84,7 @@ export function ReactionBar({
     setCounts((c) => ({ ...c, [type]: Math.max(0, c[type] + (wasActive ? -1 : 1)) }));
     if (!wasActive) setBump(type);
     start(async () => {
-      const result = await reactAction(caseId, type);
+      const result = await callAction(() => reactAction(caseId, type));
       if (!result.ok) {
         setError(result.error);
         setActive((s) => {

@@ -11,6 +11,7 @@ import { CharCounter } from "@/components/ui/CharCounter";
 import { ClaimCountdown } from "@/components/ui/Countdown";
 import { LIMITS } from "@/lib/limits";
 import { charCount } from "@/lib/text";
+import { callAction } from "@/components/ui/callAction";
 
 const TIPS = {
   DEFENSE: [
@@ -104,7 +105,7 @@ export function ArgumentEditor({ caseId, role, expiresAt, draftOwner }: { caseId
           onClick={() => {
             if (!confirm("Release this case back to the docket? Your draft will be kept on this device.")) return;
             startRelease(async () => {
-              const r = await releaseAction(caseId);
+              const r = await callAction(() => releaseAction(caseId));
               if (r && !r.ok) setReleaseError(r.error);
             });
           }}
