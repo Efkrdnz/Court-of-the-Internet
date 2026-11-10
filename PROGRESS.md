@@ -1020,6 +1020,22 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D5 | Rejected profile saves used up the 20-per-10-minutes budget | the attempt is given back when the service refuses the save | — |
 | D6 | A crafted vote with an invalid choice said "Please fix the highlighted fields" | the vote action says "Choose Guilty or Not Guilty." (forms keep the banner plus per-field messages) | — |
 
+## Fifty-first independent audit (fresh agent, build of commit 4357426)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** 20 concurrent claimers gave 1 winner; 10 concurrent votes over 2 sessions gave 1; stats recomputed from rows matched for 7 players; axe clean on 19 pages; a pause across a passing deadline resumed with exactly the 20 h left.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **An appointment racing a profile save let a player keep the new moderator's reserved name** (3 of 3 tries) | signups, profile saves and appointments take one `staff-names` advisory lock, and the officer-name check runs inside it | integration: 6 appointment/save races, exactly one wins each |
+| 2 | **Bios could phish and claim staff**: "Send your username and password", "Reply with your login", "Give me your pw", "I'm on the mod team", "admin of this site", "Court of the Internet staff" | credential asks are matched with a few words in between and any login word (pw, creds, 2fa…), with their own message; more staff-claim phrases for bios; README says it's a phrase list | unit |
+| 3 | Names posing as the site ("Court of the Internet", "COTI Official", "Trust and Safety", "Site Owner") and spaced short titles ("M o d", "M.o.d") were accepted | added to the title list; short titles are matched letter by letter | unit |
+| 4 | "Former Citizen 2"/"Former Citizen Bob" were accepted; any "…Citizen" name blocked re-appointing a demoted officer ("Citizen 6944") | "Former Citizen …" reserved; "citizen" and "former" are filler words in the officer-name comparison | unit, integration |
+| 5 | With every category muted, the docket, jury and "Receive a case" said nothing was open | they say categories are muted and link to Settings | — |
+| 6 | The featuring opt-out didn't remove a case from "Fresh from the bench" | that's a plain list of recent verdicts, like the archives: settings and README now say so | — |
+| 7 | A 32-character name broke mid-word and lost its second word in the party chip at 320px | long-worded names get a smaller size and a third line | — |
+| 8 | A report reason's radio shrank when its label wrapped | `shrink-0` | — |
+| 9 | `/archives?page=99999999999` "returned 200" | already redirects to the last page (200 after the redirect); no change | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
