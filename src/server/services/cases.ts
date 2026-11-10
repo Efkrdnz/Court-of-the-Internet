@@ -219,9 +219,10 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
     }
 
     // No holding a case hostage by releasing and re-claiming it (or letting it lapse) over and over.
+    // Claims the court ended (a seal, a ban) are VOIDED and don't count (audit 43 #1).
     const windowStart = new Date(now.getTime() - gameConfig.unfiledClaimWindowMs);
     const unfiled = await tx.caseClaim.findMany({
-      where: { caseId, userId, role, outcome: { not: "SUBMITTED" }, claimedAt: { gte: windowStart } },
+      where: { caseId, userId, role, outcome: { in: ["ACTIVE", "EXPIRED", "RELEASED"] }, claimedAt: { gte: windowStart } },
       orderBy: { claimedAt: "asc" },
       select: { claimedAt: true },
     });

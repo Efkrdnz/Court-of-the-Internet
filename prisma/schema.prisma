@@ -53,6 +53,8 @@ enum ClaimOutcome {
   SUBMITTED
   EXPIRED
   RELEASED
+  /// Ended by the court, not the holder: the case was sealed, or the holder banned or deleted.
+  VOIDED
 }
 
 enum VoteChoice {

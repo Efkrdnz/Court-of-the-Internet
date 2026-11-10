@@ -17,11 +17,13 @@ import { StatusPill } from "@/components/case/StatusPill";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { ClaimCountdown, Countdown } from "@/components/ui/Countdown";
 import { FormAlert } from "@/components/ui/FormAlert";
+import { FIT_FONT, fitStyle } from "@/lib/fit-text";
 
 export const metadata: Metadata = { title: "Your courtroom" };
 
 export default async function CourtPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUserOrRedirect("/court");
+  const greetingName = user.displayName.replace(/[.!?]+$/, "");
   await runMaintenance();
   const sp = await searchParams;
   const [d, summary] = await Promise.all([getDashboard(user), getViewerSummary(user.id)]);
@@ -47,9 +49,15 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
       {/* Bench header */}
       <header className="velvet grid grid-cols-1 gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr_auto] md:items-center">
         <Avatar config={parseAvatar(user.avatar)} className="h-20 w-20 sm:h-24 sm:w-24" />
-        <div className="min-w-0">
+        <div className="@container min-w-0">
           <p className="eyebrow">Your courtroom</p>
-          <h1 className="font-display text-3xl font-black text-parchment sm:text-4xl">Good day, {user.displayName.replace(/[.!?]+$/, "")}.</h1>
+          {/* Sized so the longest word of the name (with its full stop) fits on a line: no orphaned "." */}
+          <h1
+            className={`font-display font-black leading-tight text-parchment [--fit-max:1.875rem] [--fit-min:0.75rem] sm:[--fit-max:2.25rem] ${FIT_FONT}`}
+            style={fitStyle(`${greetingName}.`)}
+          >
+            Good day, {greetingName}.
+          </h1>
           <p className="text-parchment/70">
             Level {summary.level.level} · <span className="text-gold-light">{summary.level.title}</span> · Reputation {summary.reputation}
           </p>

@@ -6,6 +6,7 @@ import { getCategory } from "@/lib/categories";
 import { anonymousAlias } from "@/lib/alias";
 import { shareCardStatus } from "@/lib/share-card";
 import { ogText, ogTextOr } from "@/lib/og-text";
+import { longestWordEm } from "@/lib/fit-text";
 
 export const alt = "Court of the Internet case file";
 export const size = { width: 1200, height: 630 };
@@ -73,7 +74,12 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const subtitle = `THE PEOPLE v. ${accused.toUpperCase()} · ${getCategory(c.category).label.toUpperCase()}`;
   const subtitleSize = lineCount(subtitle, 22, 2) <= 1 ? 22 : 18;
   const subtitleHeight = Math.min(2, lineCount(subtitle, subtitleSize, 2)) * subtitleSize * 1.3;
-  const titleSize = [48, 42, 36, 32, 28].find((size) => lineCount(title, size) <= 3) ?? 26;
+  // …and so its longest word fits the column at that size (audit 43: "…docio|us" broke mid-word
+  // at 48px though it fits at 36px). Playfair 900 is measured by the same estimate as headings.
+  const wordFits = (size: number) => longestWordEm(title) * 1.05 * size <= COLUMN;
+  const titleSize =
+    [48, 42, 36, 32, 28].find((size) => lineCount(title, size) <= 3 && wordFits(size)) ??
+    Math.max(18, Math.min(26, Math.floor(COLUMN / (Math.max(1, longestWordEm(title)) * 1.05))));
   const titleHeight = lineCount(title, titleSize) * titleSize * 1.08;
   // Card body height, minus the header row, margins and the footer line.
   // (36px of slack: Satori wraps wide words a little less tightly than estimated.)

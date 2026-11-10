@@ -561,6 +561,24 @@ describe("moderation", () => {
     expect((await db.case.findUniqueOrThrow({ where: { id: c2.id } })).moderationState).toBe("UNDER_REVIEW");
   });
 
+  it("claims the court ends (a seal, a ban) don't use up the player's claims on that case (audit 43 #1)", async () => {
+    const accused = await makeUser();
+    const player = await makeUser();
+    const admin = await makeUser("void_judge", "ADMIN");
+    const c = await makeCase(accused);
+    for (let round = 0; round < 3; round++) {
+      await claimCase(player, c.id, "DEFENSE");
+      await removeCase(admin, c.id, "Checking something");
+      await restoreCase(admin, c.id);
+    }
+    await claimCase(player, c.id, "DEFENSE"); // still allowed: none of those were the player's doing
+    await setBan(admin, player, true, "Test");
+    await setBan(admin, player, false);
+    await claimCase(player, c.id, "DEFENSE");
+    expect(await db.caseClaim.count({ where: { caseId: c.id, outcome: "VOIDED" } })).toBe(4);
+    await submitArgument(player, c.id, "DEFENSE", DEFENSE_TEXT);
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });
@@ -590,6 +608,12 @@ describe("moderation", () => {
     for (const fine of ["Judge Mental", "Marshal Law", "Wordsworth Fan"]) {
       await updateProfile(player, { displayName: fine, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
     }
+    // Another officer can't take it either (audit 43 #2), but an officer can keep (or re-save) their own.
+    const marshal = (await db.user.findUniqueOrThrow({ where: { username: "real_marshal" } })).id;
+    await expect(
+      updateProfile(marshal, { displayName: "Judge Realname", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await updateProfile(marshal, { displayName: "Marshal Wigsworth Mumford", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 
   it("a ban racing a trial's close never splits the verdict from its tally (audit 10 #2)", async () => {
@@ -684,11 +708,14 @@ describe("moderation", () => {
     await voteAll(c.id, await makeUsers(3, "pay"), 3);
     await setBan(admin, prosecutor, true, "Contempt");
     const before = await stats(prosecutor);
+    const badgesBefore = await achievementKeys(prosecutor);
     await closeNow(c.id);
     const after = await stats(prosecutor);
     expect(after.prosecutionWins).toBe(before.prosecutionWins + 1); // the record stands…
     expect(after.xp).toBe(before.xp); // …but no XP is paid
     expect((await auditStats(prosecutor)).ok).toBe(true);
+    // …nor achievements (a first win normally earns one), audit 43 note.
+    expect(await achievementKeys(prosecutor)).toEqual(badgesBefore);
 
     const open = await makeCase(accused);
     const anon = await makeCase(accused, { anonymous: true });

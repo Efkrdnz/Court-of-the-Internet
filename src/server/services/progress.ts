@@ -69,6 +69,11 @@ export async function adjustReputation(tx: Tx, userId: string, delta: number) {
 export async function grantAchievements(tx: Tx, userId: string, keys: string[], caseId?: string): Promise<string[]> {
   const unique = Array.from(new Set(keys)).filter((k) => getAchievement(k));
   if (unique.length === 0) return [];
+  // Like XP: banned (or deleted) players earn nothing new while banned, verdicts included. Their
+  // record still counts, so stat achievements they qualify for arrive with their next action
+  // after an unban (audit 43 note).
+  const who = await tx.user.findUnique({ where: { id: userId }, select: { bannedAt: true, deletedAt: true } });
+  if (!who || who.bannedAt || who.deletedAt) return [];
   const existing = await tx.userAchievement.findMany({
     where: { userId, key: { in: unique } },
     select: { key: true },

@@ -8,7 +8,8 @@ import { notify } from "./progress";
  * Puts every case matching `where` that is currently claimed back on its docket and closes
  * out the claim records. Used whenever a holder (or the case) leaves play for a reason other
  * than filing: a moderator seals the case, the holder is banned, or the holder deletes their
- * account. Leaving a case "claimed" with no holder would block it forever.
+ * account. Those claims are VOIDED (not RELEASED), so they don't count against the holder's
+ * per-case claim limit. Leaving a case "claimed" with no holder would block it forever.
  */
 export async function releaseClaims(
   tx: Tx,
@@ -34,7 +35,7 @@ export async function releaseClaims(
     });
     if (res.count === 0) continue;
     released++;
-    await tx.caseClaim.updateMany({ where: { caseId: h.id, outcome: "ACTIVE" }, data: { outcome: "RELEASED", resolvedAt: now } });
+    await tx.caseClaim.updateMany({ where: { caseId: h.id, outcome: "ACTIVE" }, data: { outcome: "VOIDED", resolvedAt: now } });
     if (holderNotice && h.claimedById) await notify(tx, h.claimedById, { type: "MODERATION", ...holderNotice(h.number) });
   }
   return released;

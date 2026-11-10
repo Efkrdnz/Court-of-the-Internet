@@ -266,7 +266,8 @@ const SERIOUS = [
   /\b(?:beat|stabbed|kicked|choked|strangled|starved|burned|burnt)\s+(?:\w+(?:'s|s')?\s+){1,3}to\s+death\b/i,
   // Arson and vandalism of someone's property.
   /\b(?:burn|burned|burnt|burning|torch|torched|torching)\s+(?:down\s+)?(?:\w+(?:'s|s')?\s+){1,2}(?:house|home|car|truck|van|apartment|flat|garage|shop|store|school|office|building)\b/i,
-  /\bslash(?:ed|ing)?\s+(?:\w+(?:'s|s')?\s+){1,2}(?:tires|tyres|tire|tyre)\b/i,
+  // "slashed his tyres", "slashed all four of my neighbour's tyres" (a sale slashing prices isn't).
+  /\bslash(?:ed|ing)?\s+(?!(?:the\s+|our\s+|its\s+)?(?:prices?|costs?|budgets?|rates?)\b)(?:[\w-]+(?:'s|’s|s')?\s+){1,5}(?:tires|tyres|tire|tyre)\b/i,
   // Hit-and-run and mugging.
   /\bhit\s+(?:a|an|the|some)\s+(?:\w+\s+)?(?:pedestrian|cyclist|biker|jogger|kid|child|person|man|woman|girl|boy)\b.{0,40}\b(?:drove|sped|took|ran)\s+(?:off|away)\b/i,
   /\bmugg(?:ed|ing)\s+(?:a|an|the|someone|somebody|him|her|them|people)\b/i,
@@ -335,7 +336,7 @@ const SERIOUS = [
   /\b(?:bring|brings|bringing|brought|took|take|taking|carry|carries|carrying|carried)\s+(?:a|my|the|his|her)\s+(?:knife|gun|machete|blade|pistol|rifle|knuckle\s*duster|taser)\s+(?:in\s+)?(?:to|into)\s+(?:work|school|class|college|uni|the\s+office|the\s+school)\b.{0,40}\bto\s+(?:scare|threaten|intimidate|frighten|hurt|stab|shoot|use\s+(?:it\s+)?on|get\s+back\s+at)\b/i,
   /\b(?:hurt|injured|hit|kicked|beat|poisoned)\s+(?:(?:my|his|her|their|the|a|our)\s+[\w-]+(?:'s|’s|s')|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|horse|guinea\s+pig)\b(?!['’]s)/i,
   // Vandalising someone's car or house ("scratched my neighbour's car", "a brick through my ex's window").
-  /\b(?:scratched|spray[\s-]?painted|egged|graffitied|keyed|smashed|vandali[sz]ed|dented)\s+(?:(?:my|his|her|their|the|a|our)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+){0,2}(?:car|truck|van|motorbike|motorcycle|house|front\s+door|garage)\b/i,
+  /\b(?:scratched|spray[\s-]?painted|egged|graffitied|keyed|smashed|vandali[sz]ed|dented)\s+(?:(?:my|his|her|their|the|a|our)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+){0,2}(?:car|truck|van|motorbike|motorcycle|house|front\s+door|garage|tesla|bmw|mercedes|porsche|ferrari|audi|toyota|honda|ford|jeep|lamborghini|range\s+rover|land\s+rover|volvo|lexus|mustang|corvette|merc|beemer|vw|volkswagen|nissan|kia|hyundai|mini|fiat|vauxhall|peugeot|renault)\b(?!\s+(?:charg\w*|keys?|keychains?|stickers?|posters?|toys?|models?|shirts?|mugs?|hats?|caps?|manuals?|brochures?))/i,
   /\b(?:threw|chucked|hurled|lobbed)\s+(?:a|an|the|some)\s+(?:brick|rock|stone|bottle|chair)s?\s+(?:through|at|into)\s+(?:(?:my|his|her|their|the|a)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|the\s+(?:neighbou?rs?'?|shop'?s?|school'?s?))\s*(?:\w+\s+)?(?:window|windscreen|windshield|car|house|door)s?\b/i,
   // Stealing kit from work, or money from someone's purse.
   /\b(?:stole|nicked|pinched|swiped)\s+(?:a|an|the|some|two|three)\s+(?:\w+\s+)?(?:laptops?|macbooks?|ipads?|tablets?|phones?|iphones?|cameras?|tvs?|monitors?|projectors?)\s+(?:from|out\s+of)\s+(?:my|the|our|work|his|her|their)\b/i,
@@ -379,8 +380,8 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:my|our|the)\s+(?:neighbou?rs?|ex|boss|coworkers?|co-workers?|landlords?|teachers?)['’]?s?\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shed|office)\b/i,
   /\b(?:hit|knocked(?:\s+over)?|ran\s+over|struck|clipped)\s+(?:a|an|the|some)\s+(?:\w+\s+)?(?:pedestrian|cyclist|biker|jogger|kid|child|person|man|woman|girl|boy)\b.{0,60}\b(?:(?:drove|sped|took|ran)\s+(?:off|away)|kept\s+(?:on\s+)?driving|didn'?t\s+stop|fled|left\s+the\s+scene)\b/i,
   // Stealing from the till at work, the safe or a charity tin.
-  /\b(?:stole|stolen|stealing)\s+(?:\w+\s+){0,2}from\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
-  /\b(?:stole|steal|stealing|took|take|taking|nicked|pocketed|skimmed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|(?:\w+\s+)?(?:dollars|pounds|quid|euros|bucks)|[$£€]\s?\d+)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
+  /\b(?:stole|stolen|stealing)\s+(?:\S+\s+){0,3}from\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
+  /\b(?:stole|steal|stealing|took|take|taking|nicked|pocketed|skimmed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|(?:\w+\s+)?(?:dollars|pounds|quid|euros|bucks)|[$£€]\s?\d[\d,.]*k?)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
   /\bhit[\s-]and[\s-]run\b/i,
   /\b(?:stole|steal|stealing|cloned|skimmed|swiped)\s+(?:\w+(?:'s|s')?\s+){0,2}(?:credit|debit|bank)\s+cards?\b|\bcredit[\s-]card\s+(?:fraud|theft)\b|\bidentity\s+theft\b/i,
   /\brap(?:e|ed|ing|ist)\b/i,

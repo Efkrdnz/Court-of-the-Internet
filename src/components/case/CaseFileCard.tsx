@@ -7,6 +7,7 @@ import { relativeTime } from "@/lib/format";
 import type { CaseCardDTO } from "@/server/queries/cases";
 import { PersonChip } from "./PersonChip";
 import { StatusPill } from "./StatusPill";
+import { FIT_FONT, fitStyle } from "@/lib/fit-text";
 
 /**
  * A manila case folder. Used in every listing; the footer slot carries
@@ -36,11 +37,14 @@ export function CaseFileCard({
       </span>
       <div className="flex items-start gap-3">
         <CategoryIcon category={c.category} className="h-9 w-9 shrink-0 min-[400px]:h-11 min-[400px]:w-11 transition-transform duration-300 group-hover:rotate-[-8deg]" title={cat.label} />
-        <div className="min-w-0 flex-1">
+        <div className="@container min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-sepia">
             {cat.label}
           </p>
-          <h3 className="font-display text-lg font-bold leading-snug text-ink min-[400px]:text-xl">
+          <h3
+            className={`font-display font-bold leading-snug text-ink [--fit-max:1.125rem] [--fit-min:0.75rem] min-[400px]:[--fit-max:1.25rem] ${FIT_FONT}`}
+            style={fitStyle(c.title)}
+          >
             {linkTitle ? (
               <Link href={href} className="after:absolute after:inset-0 after:content-[''] focus-visible:underline">
                 {c.title}

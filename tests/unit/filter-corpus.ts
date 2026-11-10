@@ -215,6 +215,13 @@ export const BENIGN = [
   "I stole my grandma's savings jar idea and now keep my coins in a pickle jar.",
   "People from that country are the friendliest I have ever met on holiday.",
   "The people from accounts are animals at the office Christmas party.",
+  // Audit 43 near-misses.
+  "The shop slashed prices on tyres so I bought four and told nobody.",
+  "We slashed our budget for new tyres this year and blamed the weather.",
+  "I took £2,500 out of my own savings to buy a sofa nobody likes.",
+  "I took $5,000 out of the bank for the deposit and spent it on the flat.",
+  "I scratched my neighbour's Tesla sticker off my laptop before the meeting.",
+  "I stole the last 2,000 calories from the cake at work.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -450,4 +457,11 @@ export const EVASIONS: [string, string][] = [
   ["I stole my nan's pension", "serious-crime"],
   ["people from that country are vermin", "hate"],
   ["immigrants from there are vermin", "hate"],
+  // Audit 43.
+  ["I stole $5,000 from the till at work and blamed the new guy", "serious-crime"],
+  ["I took £2,500 out of the safe at work", "serious-crime"],
+  ["I nicked $3k out of the till", "serious-crime"],
+  ["I slashed all four of my neighbour's tyres", "serious-crime"],
+  ["I keyed my neighbour's Tesla", "serious-crime"],
+  ["I scratched my boss's BMW with a key", "serious-crime"],
 ];

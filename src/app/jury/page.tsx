@@ -16,6 +16,7 @@ import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { CatJury } from "@/components/art/characters";
 import { CategoryIcon } from "@/components/art/props";
 import { SleepingBailiff } from "@/components/art/scenes";
+import { FIT_FONT, fitStyle } from "@/lib/fit-text";
 
 export const metadata: Metadata = {
   title: "Jury duty",
@@ -80,11 +81,11 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
         <section aria-labelledby="focus-heading" className="mt-10 space-y-6">
           <div className="flex flex-wrap items-center gap-3">
             <CategoryIcon category={focusCase.category} className="h-12 w-12" />
-            <div className="min-w-0 flex-1">
+            <div className="@container min-w-0 flex-1">
               <p className="eyebrow">
                 Now judging · Case No. {formatCaseNumber(focusCase.number)} · {getCategory(focusCase.category).label}
               </p>
-              <h2 id="focus-heading" className="font-display text-3xl font-black leading-tight text-parchment">
+              <h2 id="focus-heading" className={`font-display font-black leading-tight text-parchment [--fit-max:1.875rem] [--fit-min:0.875rem] ${FIT_FONT}`} style={fitStyle(focusCase.title)}>
                 <Link href={casePath(focusCase)} className="hover:underline">
                   {focusCase.title}
                 </Link>

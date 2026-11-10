@@ -913,6 +913,18 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D5 | A brand-new account's report filed during a review kept the case hidden after the officer dismissed the reports they saw | after a dismiss or strike a case stays under review only while a report that counts (an established, non-party reporter) is open; the throwaway's report stays in the queue | integration: throwaway vs established newer reporter |
 | D6 | Achievement toasts cover the case header on phones | kept (they sit under the header so they never cover the vote buttons, auto-dismiss in 4–5 s, can be closed); documented | — |
 
+## Forty-third independent audit (fresh agent, build of commit 9a73b41)
+
+**Result: 15 PASS, 2 CONCERN (13, 17), 0 FAIL.** Server had no outbound network: share images rendered offline with emoji, Zalgo and 32-W names; 19 players' stats matched SQL exactly; 15 concurrent votes gave 1 row; 10 votes racing an adjourn all counted; axe clean on 13 pages and 6 themes; no 500s.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **A seal/restore (or ban/unban) used up the player's 2 claims on that case**, locking them out for a day through no fault of their own | claims the court ends (seal, ban, deleted account) are recorded as `VOIDED` (new enum value, migration `20261110120000_claim_voided`) and don't count toward the limit or "Receive a case" | integration: three seal/restore rounds and a ban/unban, then the player still claims and files |
+| 2 | **A moderator could take the admin's display name** (the staff-name check only ran for players) | the check runs for everyone, excluding their own name | integration: an officer can't take another officer's name but can re-save their own |
+| 3 | Filter misses: "$5,000 from the till", "£2,500 out of the safe at work", "slashed all four of my neighbour's tyres", "keyed my neighbour's Tesla" | amounts with separators/"k"; up to five words before "tyres" (price cuts excluded); car makes after vandalism verbs; near-misses kept (tyre sales, own savings, a Tesla sticker) | corpus: 202 everyday sentences, 225 evasions |
+| 4 | Long words broke mid-word outside the case page: the jury's "Now judging" heading, case cards, the courtroom greeting (orphaned "."), and the share image at 48px | all fitted to their longest word (container units), the greeting measured with its full stop; the share-image title size also fits its longest word; README states the floors and the remaining pathological case (a one-word 32-letter name at 320px) | checked at 320px: jury heading, cards and the 46-case share image no longer break |
+| N | Banned players could earn achievements at verdict (XP was already withheld) | `grantAchievements` skips banned and deleted players, like `awardXp` | integration: a banned prosecutor's verdict adds no achievement (fails before the fix) |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

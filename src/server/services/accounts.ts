@@ -64,7 +64,7 @@ function containsNearly(hay: string, needle: string): boolean {
 /** Titles and filler that don't identify a particular officer. */
 const TITLE_WORDS = new Set(["judge", "clerk", "the", "court", "your", "honour", "honor", "justice", "officer", "bailiff", "chief", "presiding", "moderator", "admin", "marshal", "sheriff", "sir", "lord", "lady", "madam", "mister", "dame"]);
 
-/** Players can't take an officer of the court's display name ("Judge Wigsworth" is the real one). */
+/** Nobody (player or another officer) can take an officer of the court's display name ("Judge Wigsworth" is the real one). */
 export async function assertNotStaffName(displayName: string, selfId?: string) {
   const staff = await db.user.findMany({
     where: { role: { in: ["ADMIN", "MODERATOR"] }, deletedAt: null, ...(selfId ? { id: { not: selfId } } : {}) },
@@ -166,8 +166,9 @@ export async function updateProfile(
   input: { displayName: string; bio: string; avatar: AvatarConfig; profileTheme: string; featuredBadge: string | null },
 ) {
   const ctx = await getUnlockContext(userId);
-  const me = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
-  if (me.role === "PLAYER") await assertNotStaffName(input.displayName, userId);
+  // Officers can't take another officer's name either (audit 43 #2: a moderator could become a
+  // second "Judge Wigsworth"); their own name is excluded from the check.
+  await assertNotStaffName(input.displayName, userId);
   const current = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { avatar: true, profileTheme: true } });
   const wearing = parseAvatar(current.avatar);
   const theme = PROFILE_THEMES.find((t) => t.key === input.profileTheme);
