@@ -5,12 +5,12 @@ import { fieldErrors, type FieldErrors } from "@/lib/validation";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
-  | { ok: false; error: string; fieldErrors?: FieldErrors };
+  | { ok: false; error: string; fieldErrors?: FieldErrors; href?: string };
 
 /** Converts thrown errors into user-safe results. Never leaks internals. */
-export function toFailure(e: unknown): { ok: false; error: string; fieldErrors?: FieldErrors } {
+export function toFailure(e: unknown): { ok: false; error: string; fieldErrors?: FieldErrors; href?: string } {
   if (isCourtError(e)) {
-    return { ok: false, error: e.message, fieldErrors: e.field ? { [e.field]: [e.message] } : undefined };
+    return { ok: false, error: e.message, fieldErrors: e.field ? { [e.field]: [e.message] } : undefined, ...(e.href ? { href: e.href } : {}) };
   }
   if (e instanceof z.ZodError) {
     const fe = fieldErrors(e);

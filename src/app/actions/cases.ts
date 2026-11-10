@@ -23,21 +23,7 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
     // Validate first: rejected (invalid) submissions must not use up the rate-limit budget.
     const input = confessionSchema.parse(formObject(formData));
     screenConfession(input); // content-filter rejections don't count against the limit either
-    try {
-      await precheckConfession(user.id, input); // nor do duplicates or a full daily cap
-    } catch (e) {
-      // The same title filed by this player minutes ago: their first try went through but its
-      // answer was lost. Take them to it, as a successful filing would (audit 56 D4).
-      if (isCourtError(e) && e.code === "CONFLICT") {
-        const justFiled = await db.case.findFirst({
-          where: { accusedId: user.id, title: { equals: input.title, mode: "insensitive" }, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } },
-          orderBy: { createdAt: "desc" },
-          select: { number: true, slug: true },
-        });
-        if (justFiled) redirect(`${casePath(justFiled)}?filed=1`);
-      }
-      throw e;
-    }
+    await precheckConfession(user.id, input); // nor do duplicates or a full daily cap (a duplicate links to the case on file)
     const ip = await clientIp();
     // Counted up front (so a burst can't slip past), and given back if the confession is then
     // refused inside the transaction (a concurrent duplicate, the daily cap).

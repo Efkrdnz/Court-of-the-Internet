@@ -101,7 +101,20 @@ export function ConfessionForm({
             Website <input name="website" tabIndex={-1} autoComplete="off" />
           </label>
         </div>
-        {state && !state.ok ? <FormAlert className="scroll-mt-24">{state.error}</FormAlert> : null}
+        {state && !state.ok ? (
+          <FormAlert className="scroll-mt-24">
+            {state.error}
+            {/* The case already on file (e.g. a first try that went through but whose answer was lost). */}
+            {state.href ? (
+              <>
+                {" "}
+                <Link href={state.href} className="font-bold underline">
+                  Open it
+                </Link>
+              </>
+            ) : null}
+          </FormAlert>
+        ) : null}
 
         <fieldset className="velvet p-5 sm:p-6">
           <legend className="sr-only">Category</legend>

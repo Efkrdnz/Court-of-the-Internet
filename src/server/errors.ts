@@ -19,6 +19,8 @@ export class CourtError extends Error {
     public readonly code: CourtErrorCode,
     message: string,
     public readonly field?: string,
+    /** A page that resolves it (e.g. the case already on file), shown as a link. */
+    public readonly href?: string,
   ) {
     super(message);
     this.name = "CourtError";
