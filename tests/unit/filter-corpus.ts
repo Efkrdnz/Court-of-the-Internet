@@ -262,6 +262,10 @@ export const BENIGN = [
   "I sent my coworker unsolicited memes about the printer every morning.",
   "I tortured my brother with the same song all weekend on the car trip.",
   "My cat tortured a mouse and left it in my shoe, and I blamed the dog.",
+  // Audit 55 near-misses.
+  "I touched the cake inappropriately before the birthday girl blew out the candles.",
+  "I kissed my dog goodbye and she was asleep on the sofa, so I took her treat.",
+  "I hope your kids get the joke one day, I wrote on the fridge note.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -554,4 +558,8 @@ export const EVASIONS: [string, string][] = [
   ["I sent my coworker unsolicited nude pics","serious-crime"],
   ["dm me for free robux, just need your login","phishing"],
   ["women belong in the kitchen and should not vote","hate"],
+  // Audit 55.
+  ["I touched my coworker inappropriately at the party when she was drunk and could not say no.","serious-crime"],
+  ["I took a photo up my classmate's skirt on the bus and shared it with the group chat for laughs.","serious-crime"],
+  ["I left a note saying I hope your kids get cancer after the neighbor parked in my spot for the third time.","violence"],
 ];

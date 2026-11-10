@@ -199,6 +199,11 @@ const BIO_IMPERSONATION = [
   /\b(?:officially\s+)?appointed\s+by\s+(?:the\s+)?(?:judge|court|bench|presiding|admin|administrator|moderators?|clerks?|staff)\b/iu,
   /\b(?:dms?|messages?|inbox|pms?)\s+(?:are\s+|is\s+)?open\s+for\s+(?:appeals|unbans|bans|reports|pardons)\b/iu,
   /\b(?:get|have)\s+(?:your|a)\s+(?:case|ban|verdict|contempt|sentence)\s+(?:restored|unsealed|lifted|overturned|reversed|removed|cleared)\b/iu,
+  // Audit 55 D2: announcements accounts, "in charge of bans", notices from the court, "verify your account".
+  /\b(?:official\s+)?(?:court\s+of\s+the\s+internet\s+|court\s+|site\s+)?announcements?\s+(?:account|channel|page)\b/iu,
+  /\bin\s+charge\s+of\s+(?:bans|banning|reports|moderation|the\s+court|appeals|verdicts|contempt|unbans)\b/iu,
+  /\bnotice\s+from\s+(?:the\s+)?(?:judge|court|clerks?|admin|moderat|bench|bailiff|staff)/iu,
+  /\b(?:must|need\s+to|should|have\s+to)\s+verify\s+(?:your|their|all)\s+accounts?\b|\bverify\s+your\s+accounts?\s+(?:at|on|via|with|here)\b/iu,
   /\b(?:held\s+in\s+contempt|banned|suspended)\b.{0,40}\b(?:dm|pm|message|contact|ping|write\s+to)\s+me\b|\b(?:dm|pm|message|contact|ping)\s+me\b.{0,40}\b(?:held\s+in\s+contempt|banned|unban|appeal)/iu,
 ];
 export function bioImpersonatesStaff(bio: string): boolean {

@@ -343,8 +343,9 @@ export async function listJuryCases(viewer: { id: string; mutedCategories: strin
           prosecutorId: { not: viewer.id },
           ...(opts.includeVoted ? {} : { votes: { none: { userId: viewer.id } } }),
           ...(viewer.mutedCategories.length ? { category: { notIn: viewer.mutedCategories } } : {}),
-          // Officers aren't offered trials they've acted on as moderators (audit 49 D4).
-          moderationLog: { none: { moderatorId: viewer.id } },
+          // Officers aren't offered trials they've acted on as moderators (audit 49 D4), nor jurors
+          // the trials whose vote a ban struck (they can't vote there again, audit 55 D3).
+          moderationLog: { none: { OR: [{ moderatorId: viewer.id }, { action: "STRIKE_VOTE", targetUserId: viewer.id }] } },
         }
       : {}),
   };

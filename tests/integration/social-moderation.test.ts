@@ -308,6 +308,8 @@ describe("moderation", () => {
     await setBan(admin, rogue, false);
     // The struck vote isn't a second chance to vote the other way (audit 44 #6)…
     await expect(castVote(rogue, open.id, "GUILTY")).rejects.toMatchObject({ code: "ALREADY_DONE", message: expect.stringContaining("struck") });
+    // …and the jury queue doesn't keep offering it (audit 55 D3).
+    expect((await listJuryCases({ id: rogue, mutedCategories: [] })).cards.map((x) => x.id)).not.toContain(open.id);
     expect(await db.case.findUniqueOrThrow({ where: { id: open.id } })).toMatchObject({ guiltyVotes: 0, notGuiltyVotes: 0 });
     expect(await db.xpEvent.count({ where: { userId: rogue, caseId: open.id, reason: "jury-vote" } })).toBe(0); // refunded with the struck vote
     // …but other trials are open to them again.
@@ -648,6 +650,13 @@ describe("moderation", () => {
       updateProfile(player, { displayName: "Plain Pat", bio: "Official court moderator here. Appeal your ban by messaging me.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
     ).rejects.toMatchObject({ code: "VALIDATION", field: "bio" });
     await updateProfile(player, { displayName: "Plain Pat", bio: "Everything in moderation, except pizza.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
+    // A bio can't speak for a named officer (audit 55 D2), though it may mention one.
+    const quill = await makeUser("quill_clerk", "MODERATOR");
+    await db.user.update({ where: { id: quill }, data: { displayName: "Clerk Quillsworth" } });
+    await expect(
+      updateProfile(player, { displayName: "Plain Pat", bio: "Clerk Quillsworth's alt. Report problems to me.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+    ).rejects.toMatchObject({ code: "VALIDATION", field: "bio" });
+    await updateProfile(player, { displayName: "Plain Pat", bio: "Quillsworth sealed my best case and I'm still sulking.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 
   it("an appointment racing a profile save never leaves two people with the new officer's name (audit 51 #1)", async () => {

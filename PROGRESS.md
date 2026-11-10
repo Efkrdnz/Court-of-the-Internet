@@ -1075,6 +1075,18 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D4 | "Court of the Interwebs", "Court Of The Web", "Courtroom Bot", "The Gavel Team" passed; "Staff Sergeant" was refused | "court of the …", courtroom and gavel teams/bots added; everyday words containing a title are set aside before every check | unit |
 | D5 | Signup reported only the first server-side problem | every field's problem is reported at once | e2e |
 
+## Fifty-fifth independent audit (fresh agent, build of commit 4a6d80c)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** The admin stats audit reported 0 mismatches across all 41 users after ban/strike, deletion and reaction races; every illegal claim, filing and vote (recused officers included) was refused; a lost vote response followed by a reload showed the sealed vote; axe clean signed out and as admin; no 500s.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | Filter misses: "touched my coworker inappropriately … could not say no", "a photo up my classmate's skirt", "I hope your kids get cancer" | touching a person "inappropriately" or when they couldn't say no (people only: not the cake, not the dog); upskirting with an article or possessive; wishing disease on someone's family | corpus: 239 everyday sentences, 272 evasions |
+| D2 | Bios impersonating officers and the site: "Notice from Judge Wigsworth … verify their accounts", "Clerk Pemberton's alt", "announcements account", "in charge of bans" | more phrases; a player's bio can't name a real officer together with a claim to act for them (mentioning one is fine) | unit, integration |
+| D3 | A juror whose vote a ban struck kept landing on that trial as "Now judging" | the jury queue leaves out trials whose vote was struck for that player | integration |
+| D4 | Spoofable per-IP limits under plain `next start` | documented deployment requirement | — |
+| D5 | A 35-letter all-caps word wraps mid-word at 320px | documented | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

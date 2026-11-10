@@ -65,6 +65,29 @@ function containsNearly(hay: string, needle: string): boolean {
 /** Titles and filler that don't identify a particular officer. */
 const TITLE_WORDS = new Set(["judge", "clerk", "the", "court", "your", "honour", "honor", "justice", "officer", "bailiff", "chief", "presiding", "moderator", "admin", "marshal", "sheriff", "sir", "lord", "lady", "madam", "mister", "dame", "citizen", "former"]);
 
+/**
+ * A player's bio naming a real officer with a claim to act for them ("Clerk Pemberton's alt",
+ * "Notice from Judge Wigsworth", "Wigsworth told me I'm in charge"), audit 55 D2.
+ */
+const OFFICER_CLAIM = /\b(?:alt|alts|account|told\s+me|asked\s+me|sent\s+me|notice|on\s+behalf|behalf\s+of|deputy|assistant|appointed|official|speaks?\s+for|speaking\s+for|says|said|orders?|via)\b/iu;
+export async function assertBioDoesNotSpeakForOfficers(bio: string, selfId: string, client: Tx | typeof db = db) {
+  if (!OFFICER_CLAIM.test(bio)) return;
+  const staff = await client.user.findMany({
+    where: { role: { in: ["ADMIN", "MODERATOR"] }, deletedAt: null, id: { not: selfId } },
+    select: { displayName: true, username: true },
+    take: 200,
+  });
+  const key = nameKey(bio);
+  const named = staff.some((u) =>
+    [u.displayName, u.username.replace(/_/g, " ")]
+      .flatMap((n) => n.split(/[^\p{L}\p{N}]+/u))
+      .filter((w) => !TITLE_WORDS.has(w.toLowerCase()))
+      .map(nameKey)
+      .some((w) => w.length >= 5 && key.includes(w)),
+  );
+  if (named) throw new CourtError("VALIDATION", "Your bio can't speak for an officer of the court.", "bio");
+}
+
 /** Whether `candidate` could pass for the officer called `staffName` (exact, contained, a typo away, or their distinctive name word). */
 export function nameClashesWithOfficer(staffName: string, candidate: string): boolean {
   const key = nameKey(candidate);
@@ -230,6 +253,7 @@ export async function updateProfile(
     if (me.role === "PLAYER" && bioImpersonatesStaff(input.bio)) {
       throw new CourtError("VALIDATION", "Your bio can't claim to be an officer of the court or speak for it.", "bio");
     }
+    if (me.role === "PLAYER") await assertBioDoesNotSpeakForOfficers(input.bio, userId, tx);
     // A moderator may wear clerk titles, but not the presiding judge's (audit 47 D2).
     if (me.role === "MODERATOR" && hasAdminTitle(input.displayName)) {
       throw new CourtError("VALIDATION", "That title belongs to the presiding judge. Pick your own.", "displayName");
