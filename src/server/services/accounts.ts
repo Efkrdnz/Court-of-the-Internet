@@ -14,6 +14,7 @@ import {
   type UnlockContext,
 } from "@/lib/cosmetics";
 import { levelForXp } from "@/lib/progression";
+import { COURT_TITLE_MESSAGE, hasCourtTitle } from "@/lib/validation";
 import { getAchievement } from "@/lib/achievements";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
@@ -101,6 +102,8 @@ export async function registerUser(input: {
   avatar?: AvatarConfig;
   role?: "PLAYER" | "MODERATOR" | "ADMIN";
 }) {
+  // Staff titles anywhere in a player's name (officers are created with theirs).
+  if ((input.role ?? "PLAYER") === "PLAYER" && hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
   const passwordHash = await hashPassword(input.password);
   try {
     return await db.user.create({
@@ -169,6 +172,8 @@ export async function updateProfile(
   // Officers can't take another officer's name either (audit 43 #2: a moderator could become a
   // second "Judge Wigsworth"); their own name is excluded from the check.
   await assertNotStaffName(input.displayName, userId);
+  const me = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
+  if (me.role === "PLAYER" && hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
   const current = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { avatar: true, profileTheme: true } });
   const wearing = parseAvatar(current.avatar);
   const theme = PROFILE_THEMES.find((t) => t.key === input.profileTheme);

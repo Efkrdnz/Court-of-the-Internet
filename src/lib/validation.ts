@@ -89,11 +89,28 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
   // An alias's two words alone ("Mysterious Walrus") would pass for one too.
   .refine((s) => !new RegExp(`^\\s*(?:${ADJECTIVES.join("|")})\\s+(?:${CRITTERS.join("|")})\\s*$`, "iu").test(s.normalize("NFKC")), {
     message: "That's what anonymous confessors are called. Pick something else.",
-  })
-  // The court's own titles for staff.
-  .refine((s) => !/^\s*(?:presiding\s+judge|court\s+clerk|the\s+court|the\s+clerks?|the\s+judge|the\s+bailiff|(?:your|his|her|their)\s+hono(?:u)?r|officer\s+of\s+the\s+court|moderator|mod|administrator|admin)\b/i.test(s.normalize("NFKC")), {
-    message: "That's an official title of the court. Pick your own name.",
   });
+
+/**
+ * Staff titles anywhere in a name ("Head Moderator", "Bob (Moderator)", "Clerk of the Court",
+ * "Chief Justice Bob"): players may not wear them (audit 44 #1: only a title at the start was
+ * caught). Officers' own names carry titles ("Clerk Pemberton"), so the services apply this to
+ * signups and to players' profile changes. Puns stay fine: "Judge Mental", "Marshal Law".
+ */
+const COURT_TITLE = new RegExp(
+  [
+    "presiding\\s+judge", "chief\\s+(?:judge|justice|clerk)", "lord\\s+justice", "justice\\s+of\\s+the", "the\\s+judge", "head\\s+judge",
+    "court\\s+(?:clerk|officer|official|staff|admin\\w*|moderator)", "clerks?", "the\\s+court", "of\\s+the\\s+court",
+    "bailiffs?", "(?:your|his|her|their)\\s+hono(?:u)?r", "moderators?", "mods?", "modteam", "admins?", "administrators?",
+    "sysops?", "staff", "support\\s+team", "site\\s+team", "officers?\\s+of", "officials?\\s+(?:court|staff|moderator|admin\\w*)",
+  ].map((t) => `(?<![\\p{L}\\p{N}])${t}(?![\\p{L}\\p{N}])`).join("|"),
+  "iu",
+);
+
+export function hasCourtTitle(name: string): boolean {
+  return COURT_TITLE.test(foldFullWidth(name).normalize("NFKC").replace(/[_.\-]+/g, " "));
+}
+export const COURT_TITLE_MESSAGE = "That's an official title of the court. Pick your own name.";
 
 export const usernameSchema = z
   .string()

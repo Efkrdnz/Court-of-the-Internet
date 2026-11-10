@@ -22,7 +22,8 @@ import {
 import { hitRateLimit } from "@/server/rate-limit";
 import { loginWithLimits } from "@/server/services/login";
 import { auditStats } from "@/server/services/stats";
-import { getCommunityStats, getFeaturedCase, utcDay } from "@/server/queries/community";
+import { getCommunityStats, getFeaturedCase, getHighlights, utcDay } from "@/server/queries/community";
+import { getLeaderboards } from "@/server/queries/players";
 import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
@@ -296,7 +297,7 @@ describe("moderation", () => {
     expect(await db.vote.count({ where: { userId: rogue } })).toBe(1); // the closed trial's vote stands
     expect((await db.case.findUniqueOrThrow({ where: { id: closed.id } })).guiltyVotes).toBe(4);
     expect((await auditStats(rogue)).ok).toBe(true);
-    // Unban and vote again: no second jury-vote XP for the same case (audit 9 #3).
+    // Unban: no second vote (or jury-vote XP) on the same trial (audit 9 #3, audit 44 #6).
     await setBan(admin, rogue, false);
     // Lifting contempt twice (or banning twice) is refused rather than logged again (audit 28 #6).
     await expect(setBan(admin, rogue, false)).rejects.toMatchObject({ code: "INVALID_STATE" });
@@ -305,8 +306,14 @@ describe("moderation", () => {
     expect(bans.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     expect(await db.moderationAction.count({ where: { action: "BAN_USER", targetUserId: rogue } })).toBe(2); // the earlier ban + this one
     await setBan(admin, rogue, false);
-    await castVote(rogue, open.id, "GUILTY");
-    expect(await db.xpEvent.count({ where: { userId: rogue, caseId: open.id, reason: "jury-vote" } })).toBe(1);
+    // The struck vote isn't a second chance to vote the other way (audit 44 #6)…
+    await expect(castVote(rogue, open.id, "GUILTY")).rejects.toMatchObject({ code: "ALREADY_DONE", message: expect.stringContaining("struck") });
+    expect(await db.case.findUniqueOrThrow({ where: { id: open.id } })).toMatchObject({ guiltyVotes: 0, notGuiltyVotes: 0 });
+    expect(await db.xpEvent.count({ where: { userId: rogue, caseId: open.id, reason: "jury-vote" } })).toBe(0); // refunded with the struck vote
+    // …but other trials are open to them again.
+    const later = await makeCase(accused);
+    await toDeliberation(later.id, attorney, prosecutor);
+    await castVote(rogue, later.id, "GUILTY");
     expect((await auditStats(rogue)).ok).toBe(true);
   });
 
@@ -614,6 +621,13 @@ describe("moderation", () => {
       updateProfile(marshal, { displayName: "Judge Realname", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
     await updateProfile(marshal, { displayName: "Marshal Wigsworth Mumford", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
+    // Staff titles anywhere in a player's name (audit 44 #1); an officer keeps theirs.
+    for (const titled of ["Head Moderator", "Bob (Moderator)", "Clerk of the Court"]) {
+      await expect(
+        updateProfile(player, { displayName: titled, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+      ).rejects.toMatchObject({ code: "VALIDATION", field: "displayName" });
+    }
+    await updateProfile(marshal, { displayName: "Marshal Wigsworth Mumford, Court Clerk", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 
   it("a ban racing a trial's close never splits the verdict from its tally (audit 10 #2)", async () => {
@@ -676,10 +690,24 @@ describe("moderation", () => {
     await voteAll(c.id, await makeUsers(3, "feat"), 2);
     await closeNow(c.id);
     await pinFeaturedCase(mod, c.id, utcDay());
-    expect((await getFeaturedCase(null))?.id).toBe(c.id);
+    expect(await getFeaturedCase(null)).toMatchObject({ id: c.id, pinned: true });
+    await toggleReaction(await makeUser(), c.id, "LEGENDARY");
+    expect((await getHighlights()).legendary?.id).toBe(c.id);
+    expect((await getLeaderboards()).entertaining.map((x) => x.id)).toContain(c.id);
     await db.user.update({ where: { id: accused }, data: { allowFeaturing: false } });
     expect((await getFeaturedCase(null))?.id).not.toBe(c.id);
     await expect(pinFeaturedCase(mod, c.id, utcDay())).rejects.toMatchObject({ code: "INELIGIBLE" });
+    // The opt-out covers the highlights and the "Most entertaining" board too (audit 44 #4).
+    expect((await getHighlights()).legendary?.id).not.toBe(c.id);
+    expect((await getHighlights()).closest?.id).not.toBe(c.id);
+    expect((await getLeaderboards()).entertaining.map((x) => x.id)).not.toContain(c.id);
+    // …and so does a ban of a public confessor; an automatic pick isn't called hand-picked.
+    await db.user.update({ where: { id: accused }, data: { allowFeaturing: true } });
+    const admin = await makeUser("feature_admin", "ADMIN");
+    await setBan(admin, accused, true, "Contempt");
+    expect((await getHighlights()).legendary?.id).not.toBe(c.id);
+    const auto = await getFeaturedCase(null);
+    if (auto) expect(auto.pinned).toBe(false);
   });
 
   it("two officers pinning different cases at once: one pins, the other is told (audit 37 D5)", async () => {

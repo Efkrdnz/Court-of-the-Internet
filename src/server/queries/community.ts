@@ -5,6 +5,7 @@ import { clock } from "../clock";
 import { gameConfig } from "../config";
 import { caseCardSelect, toCaseCard, toCaseCards } from "./cases";
 import { parseAvatar } from "@/lib/avatar";
+import { SPOTLIGHT_OK } from "./spotlight";
 
 export function utcDay(d: Date = clock.now()): string {
   return d.toISOString().slice(0, 10);
@@ -16,19 +17,18 @@ export function utcDay(d: Date = clock.now()): string {
  */
 export async function getFeaturedCase(viewer: { id: string; mutedCategories?: string[] } | null) {
   const day = utcDay();
-  let featured = await db.featuredCase.findUnique({ where: { day }, select: { case: { select: { ...caseCardSelect, moderationState: true } } } });
-  // A confessor who has since opted out of featuring is respected even for today's pin.
-  const optedOut =
-    featured &&
-    (await db.case.findUnique({ where: { id: featured.case.id }, select: { accused: { select: { allowFeaturing: true } } } }))?.accused.allowFeaturing === false;
-  if (!featured || featured.case.moderationState !== "VISIBLE" || optedOut) {
+  let featured = await db.featuredCase.findUnique({ where: { day }, select: { pinnedBy: true, case: { select: { ...caseCardSelect, moderationState: true } } } });
+  // A confessor who has since opted out of featuring (or been held in contempt) is respected even
+  // for today's pin.
+  const noLonger = featured && (await db.case.count({ where: { id: featured.case.id, ...SPOTLIGHT_OK } })) === 0;
+  if (!featured || featured.case.moderationState !== "VISIBLE" || noLonger) {
     const weekAgo = new Date(clock.now().getTime() - 7 * 86_400_000);
     const candidates = await db.case.findMany({
       where: {
         status: "CLOSED",
         moderationState: "VISIBLE",
         verdict: { in: ["GUILTY", "NOT_GUILTY", "MISTRIAL"] },
-        accused: { allowFeaturing: true },
+        ...SPOTLIGHT_OK,
         featured: { none: {} },
       },
       orderBy: [{ closedAt: "desc" }],
@@ -40,13 +40,14 @@ export async function getFeaturedCase(viewer: { id: string; mutedCategories?: st
       c.reactionScore * 2 + (c.guiltyVotes + c.notGuiltyVotes) + c.controversy * 10 + (c.closedAt && c.closedAt >= weekAgo ? 25 : 0);
     const best = candidates.sort((a, b) => score(b) - score(a))[0];
     await db.featuredCase.upsert({ where: { day }, create: { day, caseId: best.id }, update: { caseId: best.id, pinnedBy: null } }); // an automatic pick, not the moderator's
-    featured = await db.featuredCase.findUnique({ where: { day }, select: { case: { select: { ...caseCardSelect, moderationState: true } } } });
+    featured = await db.featuredCase.findUnique({ where: { day }, select: { pinnedBy: true, case: { select: { ...caseCardSelect, moderationState: true } } } });
     if (!featured) return null;
   }
   const [card] = await toCaseCards([featured.case], viewer);
   // Muted categories are hidden from the archives and home page, the featured slot included.
   if (viewer?.mutedCategories?.includes(card.category)) return null;
-  return card;
+  // Whether an officer chose it (the home page only says "hand-picked by the bench" then).
+  return { ...card, pinned: !!featured.pinnedBy };
 }
 
 /** A banned player's public open cases are on hold (anonymous ones stay, so bans don't reveal them). */
@@ -102,8 +103,10 @@ export async function getRecentVerdicts(viewer: { id: string; mutedCategories?: 
 export async function getHighlights(viewer: { mutedCategories?: string[] } | null = null) {
   const since = new Date(clock.now().getTime() - 30 * 86_400_000);
   const base = { status: "CLOSED" as const, moderationState: "VISIBLE" as const, closedAt: { gte: since } };
-  // Case highlights respect the viewer's muted categories (the attorney stat counts all cases).
-  const shown = viewer?.mutedCategories?.length ? { ...base, category: { notIn: viewer.mutedCategories } } : base;
+  // Case highlights respect the viewer's muted categories and the confessor's featuring opt-out
+  // (the attorney stat counts all cases).
+  const spotlit = { ...base, ...SPOTLIGHT_OK };
+  const shown = viewer?.mutedCategories?.length ? { ...spotlit, category: { notIn: viewer.mutedCategories } } : spotlit;
   const [closest, blowout, legendary, topAttorney] = await Promise.all([
     db.case.findFirst({
       where: { ...shown, verdict: { in: ["GUILTY", "NOT_GUILTY"] } },

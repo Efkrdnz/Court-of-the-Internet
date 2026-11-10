@@ -925,6 +925,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 4 | Long words broke mid-word outside the case page: the jury's "Now judging" heading, case cards, the courtroom greeting (orphaned "."), and the share image at 48px | all fitted to their longest word (container units), the greeting measured with its full stop; the share-image title size also fits its longest word; README states the floors and the remaining pathological case (a one-word 32-letter name at 320px) | checked at 320px: jury heading, cards and the 46-case share image no longer break |
 | N | Banned players could earn achievements at verdict (XP was already withheld) | `grantAchievements` skips banned and deleted players, like `awardXp` | integration: a banned prosecutor's verdict adds no achievement (fails before the fix) |
 
+## Forty-fourth independent audit (fresh agent, build of commit 6cd517d)
+
+**Result: 16 PASS, 1 CONCERN (17), 0 FAIL.** 12 simultaneous claimers gave 1 winner; seal-voided claims didn't count against the limit; 14 counters recomputed for every user with 0 mismatches (tallies 377 = 377 votes); 15 concurrent votes gave 1 row; cron concurrency closed each case once.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **Staff titles were only caught at the start of a name** ("Head Moderator", "Bob (Moderator)", "Clerk of the Court", "Chief Justice Bob", "Staff" were accepted) | `hasCourtTitle` matches court titles anywhere (whole words, full-width folded, `_`/`.`/`-` as spaces); signups and players' profile changes use it (before the signup rate limit), officers keep their titled names; puns like "Judge Mental" still pass | unit: 15 refused, 9 allowed; integration: a player is refused, an officer keeps theirs |
+| 2 | Filter miss: "my roommate is getting a knife in the ribs" | threats of a weapon "in the ribs/head/neck…" (not the idiom "a knife in the back") and "stick/put a knife in" a person | corpus: 206 everyday sentences, 229 evasions |
+| 3 | The 35-character word limit counted only letters, so `the_cat_ate_my_homework_and_then…` (82 characters, unbreakable) was accepted | the limit counts any run a browser can't wrap (checked in Chromium: `_`, `.`, `,`, `!`, `:`, `;` and "…" joiners don't break), trimming punctuation at the ends; emoji, CJK/Thai, hyphens and slashes still break | unit |
+| 4 | Featuring opt-out only covered the featured slot; "Hand-picked by the bench" shown for automatic picks; a banned confessor's case stayed featured | one `SPOTLIGHT_OK` filter (opt-out and public-confessor bans) for the featured case, the highlights and "Most entertaining"; the home page says "hand-picked" only for an officer's pin; settings copy explains the scope | integration |
+| 5 | A stale "Adjourn" after your own extension said another officer closed the trial | neutral wording: it had already been adjourned (from this console, another's or the clock), was below quorum and was extended | — |
+| 6 | Ban → unban let a juror vote again, the other way | a ban logs each struck vote (`STRIKE_VOTE`, per trial); `castVote` refuses a struck juror on that trial, and the vote booth says why | integration: refused on that trial, allowed on a later one |
+| 8 | Moderation search placeholder truncated at 320px | shorter placeholders | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

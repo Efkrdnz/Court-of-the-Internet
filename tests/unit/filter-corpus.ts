@@ -94,7 +94,7 @@ export const BENIGN = [
   "I used Spic and Span on the boss's mug",
   "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦 my whole family ate the cake",
   "🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕🍕 I ate all of it",
-  "honestly...i...ate...the...cake...and...the...pie",
+  "honestly... i... ate... the... cake... and... the... pie", // (without the spaces it can't wrap: refused since audit 44 #3)
   "Pneumonoultramicroscopicsilicovolca! is what I yelled", // 35 letters, then "!"
   // Near-misses of the audit 31 patterns
   "I'm going to punch the clock early and leave",
@@ -222,6 +222,11 @@ export const BENIGN = [
   "I took $5,000 out of the bank for the deposit and spent it on the flat.",
   "I scratched my neighbour's Tesla sticker off my laptop before the meeting.",
   "I stole the last 2,000 calories from the cake at work.",
+  // Audit 44 near-misses.
+  "It felt like getting a knife in the back when she ate my fries.",
+  "I keep a knife in the kitchen drawer for cheese and nobody else may use it.",
+  "My brother got a knife in his Christmas stocking for whittling spoons.",
+  "I put a knife in the dishwasher upside down just to annoy my flatmate.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -464,4 +469,9 @@ export const EVASIONS: [string, string][] = [
   ["I slashed all four of my neighbour's tyres", "serious-crime"],
   ["I keyed my neighbour's Tesla", "serious-crime"],
   ["I scratched my boss's BMW with a key", "serious-crime"],
+  // Audit 44.
+  ["Tomorrow my roommate is getting a knife in the ribs for eating my yogurt again", "violence"],
+  ["he'll get a bullet in the head if he does it again", "violence"],
+  ["I'll put a knife in his ribs", "violence"],
+  ["I'm gonna stick a knife in my neighbour", "violence"],
 ];

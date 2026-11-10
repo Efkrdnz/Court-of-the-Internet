@@ -219,7 +219,9 @@ export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean
         <input type="checkbox" name="allowFeaturing" defaultChecked={initial.allowFeaturing} className="mt-1 h-5 w-5 accent-burgundy" />
         <span>
           <span className="block font-bold">Allow my confessions to be featured</span>
-          <span className="block text-sm text-sepia">Eligible for &ldquo;Featured case of the day&rdquo; on the front page.</span>
+          <span className="block text-sm text-sepia">
+            Eligible for &ldquo;Featured case of the day&rdquo;, the front page&apos;s community highlights and the &ldquo;Most entertaining&rdquo; board. Archives and search list every closed case either way.
+          </span>
         </span>
       </label>
       <fieldset>

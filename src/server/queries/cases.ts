@@ -277,6 +277,14 @@ export async function pickRandomQueueCase(role: "DEFENSE" | "PROSECUTION", viewe
   return db.case.findFirst({ where, orderBy: { createdAt: "asc" }, skip, select: { id: true } });
 }
 
+/** The viewer's vote on this trial was struck by a ban: they can't vote on it again (audit 44 #6). */
+export async function voteStruck(viewerId: string | null | undefined, caseId: string): Promise<boolean> {
+  if (!viewerId) return false;
+  return (await db.moderationAction.count({ where: { action: "STRIKE_VOTE", caseId, targetUserId: viewerId } })) > 0;
+}
+
+export const VOTE_STRUCK_REASON = "Your vote on this trial was struck when you were held in contempt, so you can't vote on it again.";
+
 export async function currentClaim(viewerId: string) {
   const now = clock.now();
   const rows = await db.case.findMany({

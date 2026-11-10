@@ -5,7 +5,7 @@ import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/p
 import { ogDrawable, ogText, ogTextOr } from "@/lib/og-text";
 import { casePath, charCount, cleanQuery, normalizeText, parseCaseParam, slugify, truncate } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
-import { confessionSchema, signupSchema, usernameSchema } from "@/lib/validation";
+import { confessionSchema, hasCourtTitle, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
 import { safeNext } from "@/lib/safe-next";
 import { decideVerdict, controversyScore } from "@/server/services/verdict";
@@ -429,6 +429,27 @@ describe("emoji joiner chains (audit 19 #1)", () => {
   });
 });
 
+describe("joined words count as one long word (audit 44 #3)", () => {
+  it.each(["the_cat_ate_my_homework_and_then_my_lunch_and_then_my_dinner", "honestly...i...ate...the...cake...and...the...pie", "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u"])("refuses %j", (text) => {
+    expect(screenText(`I confess: ${text} and I'm sorry.`)).toMatchObject({ ok: false, issue: "spam" });
+    expect(screenFields({ title: text })).toMatchObject({ ok: false });
+  });
+  it.each(["Pneumonoultramicroscopicsilicovolca! is what I yelled", "the cat-ate-my-homework-and-then-my-lunch-and-then-my-dinner", "我吃了室友的最后一块披萨然后怪罪给了猫咪我吃了室友的最后一块披萨然后怪罪给了猫咪", "\u{1F355}".repeat(40) + " for dinner, again, which is a crime"])("allows %j", (text) => {
+    expect(screenFields({ title: text.slice(0, 90) }).ok).toBe(true);
+  });
+});
+
+describe("court titles in names (audit 44 #1)", () => {
+  it.each(["Head Moderator", "Site Admin", "Clerk of the Court", "Court Officer Bob", "Bob (Moderator)", "Official Court Clerk", "Chief Justice Bob", "Staff", "Bailiff", "Moderator Bob", "The Bailiff", "Mod Team", "Bob_the_Mod", "Your Honour", "\uFF2D\uFF4F\uFF44"])(
+    "refuses %s",
+    (name) => expect(hasCourtTitle(name)).toBe(true),
+  );
+  it.each(["Judge Mental", "Marshal Law", "Wordsworth Fan", "Modest Mouse", "Administer Snacks", "Clerkenwell Kid", "Staffie Lover", "Courtney", "Justice League Fan"])(
+    "allows %s",
+    (name) => expect(hasCourtTitle(name)).toBe(false),
+  );
+});
+
 describe("share-image text (audit 42 D1)", () => {
   it("keeps what the bundled fonts draw, folds accents and drops emoji", () => {
     expect(ogText("Crème brûlée at the café")).toEqual({ text: "Crème brûlée at the café", lostLetters: false });
@@ -533,24 +554,28 @@ describe("audit 22 filter gaps", () => {
   });
 });
 
+/** Signup refuses a name: the schema, or the court-title check the signup action runs next. */
+const signupRefuses = (displayName: string) => {
+  const parsed = signupSchema.safeParse({ username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on", displayName });
+  return !parsed.success || hasCourtTitle(parsed.data.displayName);
+};
+
 describe("alias and title impersonation (audit 23 #1)", () => {
   it.each(["Sweaty Walrus ＃D89B", "Sweaty Walrus #D89B.", "Presiding Judge", "court clerk"])("rejects %j", (displayName) => {
-    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
-    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(false);
+    expect(signupRefuses(displayName)).toBe(true);
   });
-  it.each(["Judge Mental", "Clerk Kent", "#1 Fan"])("accepts %j", (displayName) => {
-    const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
-    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
+  // "Clerk Kent" used to pass; a standalone "Clerk" now reads as staff (audit 44 #1).
+  it.each(["Judge Mental", "Clark Kent", "#1 Fan"])("accepts %j", (displayName) => {
+    expect(signupRefuses(displayName)).toBe(false);
   });
 });
 
 describe("alias look-alikes and titles (audit 24 #2)", () => {
-  const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
   it.each(["Shifty Pigeon ♯06EF", "Shifty Pigeon ⋕06EF", "Mod", "Presiding Judge Owl", "The Judge", "Your Honour", "Officer of the Court"])("rejects %j", (displayName) => {
-    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(false);
+    expect(signupRefuses(displayName)).toBe(true);
   });
   it.each(["Agent 47", "Modest Mouse", "Room 101", "Judge Mental"])("accepts %j", (displayName) => {
-    expect(signupSchema.safeParse({ ...base, displayName }).success).toBe(true);
+    expect(signupRefuses(displayName)).toBe(false);
   });
 });
 
@@ -580,7 +605,7 @@ describe("full-width display names (audit 25 D5)", () => {
     const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
     const parsed = signupSchema.safeParse({ ...base, displayName: "Ｗｉｄｅ　Ｆｕｌｌｗｉｄｔｈ　Ｐｒｏｓｅｃｕｔｏｒ" });
     expect(parsed.success && parsed.data.displayName).toBe("Wide Fullwidth Prosecutor");
-    expect(signupSchema.safeParse({ ...base, displayName: "Ｐｒｅｓｉｄｉｎｇ Ｊｕｄｇｅ" }).success).toBe(false);
+    expect(signupRefuses("Ｐｒｅｓｉｄｉｎｇ Ｊｕｄｇｅ")).toBe(true);
   });
 });
 

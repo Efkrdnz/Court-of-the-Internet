@@ -86,7 +86,7 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
               ? `That trial had already closed: ${VERDICT_LABEL[outcome.verdict] ?? outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
               : outcome.kind === "extended"
                 ? "byOther" in outcome && outcome.byOther
-                  ? "Another officer (or the court clock) closed this trial a moment ago; it was below quorum, so deliberation was extended (low-participation rule)."
+                  ? "This trial had already been adjourned (from this console, another officer's or the court clock) and was below quorum, so deliberation was extended (low-participation rule). Nothing more was done."
                   : "Below quorum, so deliberation was extended (low-participation rule)."
                 : outcome.kind === "changed"
                   ? "The trial changed since you opened it (it was sealed, restored or reviewed). Nothing was done; check it and adjourn again if you still mean to."

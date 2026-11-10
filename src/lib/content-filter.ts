@@ -163,6 +163,11 @@ const HATE_STATEMENTS = [
 ];
 
 const VIOLENCE = [
+  // "My roommate is getting a knife in the ribs", "he'll get a bullet in the head" (audit 44 #2).
+  // Not the idiom "a knife in the back".
+  /\b(?:getting|get|gets|gonna\s+get|going\s+to\s+get|will\s+get|deserves?|has\s+earned|earned\s+(?:himself|herself|themselves))\s+(?:a\s+|one\s+)?(?:knife|blade|shank|bullet|bullets|machete|hammer|bat|screwdriver)\s+(?:in|to|through|between|across)\s+(?:the|his|her|their|your|ur)\s+(?:ribs|gut|guts|stomach|belly|head|skull|face|neck|throat|chest|heart|kneecaps?|eyes?|spine)\b/i,
+  // "I'll put a knife in his ribs", "stick a knife in my neighbour".
+  new RegExp(`\\b(?:put|puts|putting|stick|sticks|sticking|stuck|shove|shoved|plunge|plunged|sink|sank|jam|jammed|drive|drove)\\s+(?:a|my|the|this|that)\\s+(?:knife|blade|shank|screwdriver|machete)\\s+(?:in|into|through|between)\\s+(?:(?:his|her|their|your|ur)\\s+(?:ribs|gut|guts|stomach|belly|back|neck|throat|chest|heart|face|eyes?|head|skull|spine)\\b|${TARGET}\\b${NOT_THEIR_THING})`, "i"),
   /\b(?:kill|hang|shoot|off|unalive)\s+(?:your\s*self|urself|yourselves)\b/i,
   // "My roommate should just kill himself" (not the everyday "I should just kill myself after that exam").
   /\b(?:should|ought\s+to|needs?\s+to|deserves?\s+to)\s+(?:just\s+|go\s+)?(?:kill|hang|shoot|off)\s+(?:him|her|them|your)sel(?:f|ves)\b/i,
@@ -397,9 +402,20 @@ const SERIOUS = [
   new RegExp(`\\bmurder(?:ed)?\\s+${VICTIM}\\b${NOT_THEIR_THING}`, "i"),
 ];
 
-// 36+ letters or digits in a row. Punctuation and emoji don't count ("honestly...i...ate", a row
-// of 🍕), and nor do scripts written without spaces (Chinese, Japanese, Thai, Lao, Khmer, Burmese).
-const LONG_WORD = /(?:(?![\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}])[\p{L}\p{N}\p{M}]){36,}/u;
+// 36+ characters a line can't break inside ("keyboard-mash"). Emoji don't count (a row of 🍕
+// wraps), and nor do scripts written without spaces (Chinese, Japanese, Thai, Lao, Khmer, Burmese).
+// Underscores, dots and commas between letters don't break a line either, so they count
+// ("the_cat_ate_my_homework_and_then…" slipped through when only letters counted, audit 44 #3);
+// punctuation at either end of a word doesn't ("…volca!" is a 35-letter word and a "!").
+const UNBREAKABLE_RUN = /(?:(?![\s\-‐-―\/­​\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Extended_Pictographic}\p{Emoji_Modifier}‍️\u{1F1E6}-\u{1F1FF}]).){36,}/gu;
+const LONG_WORD = {
+  test(text: string): boolean {
+    for (const run of text.match(UNBREAKABLE_RUN) ?? []) {
+      if (Array.from(run.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, "")).length >= 36) return true;
+    }
+    return false;
+  },
+};
 
 function looksLikeSpam(text: string): boolean {
   if (/(.)\1{9,}/.test(text)) return true; // aaaaaaaaaa

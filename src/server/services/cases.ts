@@ -475,6 +475,10 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
     }
     const existing = await tx.vote.findUnique({ where: { caseId_userId: { caseId, userId } }, select: { id: true } });
     if (existing) throw new CourtError("ALREADY_DONE", "You've already voted on this case. The court remembers.");
+    // A vote struck by a ban isn't a second chance: after an unban the juror can't come back and
+    // vote the other way (audit 44 #6). The ban logs each struck vote per trial.
+    const struck = await tx.moderationAction.findFirst({ where: { action: "STRIKE_VOTE", caseId, targetUserId: userId }, select: { id: true } });
+    if (struck) throw new CourtError("ALREADY_DONE", "Your vote on this trial was struck when you were held in contempt, so you can't vote on it again.");
 
     // Row-locking conditional update: serialises against the closing transaction.
     const counted = await tx.case.updateMany({
@@ -491,9 +495,7 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
       throw e;
     }
     await tx.userStats.update({ where: { userId }, data: { juryVotes: { increment: 1 } } });
-    // Once per case: a vote removed by a ban and cast again after an unban earns nothing new.
-    const paid = await tx.xpEvent.findFirst({ where: { userId, caseId, reason: "jury-vote" }, select: { id: true } });
-    if (!paid) await awardXp(tx, userId, XP.juryVote, "jury-vote", caseId);
+    await awardXp(tx, userId, XP.juryVote, "jury-vote", caseId);
     await checkStatAchievements(tx, userId, caseId);
 
     const tallies = await tx.case.findUniqueOrThrow({

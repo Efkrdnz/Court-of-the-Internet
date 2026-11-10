@@ -137,14 +137,14 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           <label className="sr-only" htmlFor="mod-case">
             Case number
           </label>
-          <input id="mod-case" name="case" inputMode="numeric" defaultValue={sp.case ?? ""} placeholder="Look up case number…" className="input" />
+          <input id="mod-case" name="case" inputMode="numeric" defaultValue={sp.case ?? ""} placeholder="Case no., e.g. 42" className="input" />
           <button className="btn btn-sm">Open</button>
         </form>
         <form action="/moderation" className="velvet on-dark flex gap-2 p-4">
           <label className="sr-only" htmlFor="mod-user">
             Username
           </label>
-          <input id="mod-user" name="user" defaultValue={sp.user ?? ""} placeholder="Look up username…" className="input" />
+          <input id="mod-user" name="user" defaultValue={sp.user ?? ""} placeholder="Username" className="input" />
           <button className="btn btn-sm">Open</button>
         </form>
       </div>

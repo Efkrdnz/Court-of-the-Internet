@@ -6,6 +6,7 @@ import { clock } from "../clock";
 import { parseAvatar } from "@/lib/avatar";
 import { LEADERBOARD_MIN_DECIDED, LEADERBOARD_MIN_JURY_VOTES, levelProgress, wilsonLowerBound, winRate } from "@/lib/progression";
 import { caseCardSelect, toCaseCards } from "./cases";
+import { SPOTLIGHT_OK } from "./spotlight";
 
 /** Votes cast on cases that ended GUILTY / NOT_GUILTY: the denominator for "sided with the majority". */
 export async function decidedJuryVotes(userIds: string[]): Promise<Map<string, number>> {
@@ -172,7 +173,7 @@ export async function getLeaderboards() {
       take: 10,
     }),
     db.case.findMany({
-      where: { status: "CLOSED", moderationState: "VISIBLE", reactionScore: { gt: 0 } },
+      where: { status: "CLOSED", moderationState: "VISIBLE", reactionScore: { gt: 0 }, ...SPOTLIGHT_OK },
       orderBy: [{ reactionScore: "desc" }, { closedAt: "desc" }],
       take: 10,
       select: caseCardSelect,

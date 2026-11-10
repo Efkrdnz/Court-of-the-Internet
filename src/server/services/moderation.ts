@@ -408,6 +408,8 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
               where: { id: caseId },
               data: v.choice === "GUILTY" ? { guiltyVotes: { decrement: 1 } } : { notGuiltyVotes: { decrement: 1 } },
             });
+            // On the record per trial, so an unbanned juror can't come back and vote the other way.
+            await log(tx, moderatorId, "STRIKE_VOTE", { caseId, targetUserId });
             removed++;
           }
         }
