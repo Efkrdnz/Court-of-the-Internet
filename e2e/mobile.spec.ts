@@ -55,7 +55,23 @@ async function phoneLogin(browser: import("@playwright/test").Browser, username:
   await page.goto("/login");
   await page.locator(`form:has(input[name="username"][value="${username}"]) button`).tap();
   await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  // Let the courtroom mark its pop-up toasts as shown, then close them, as a player would:
+  // otherwise they pop again on the next page and can sit over the button a test taps.
+  await page.waitForLoadState("networkidle");
+  await dismissToasts(page);
   return page;
+}
+
+/** Closes any verdict/achievement toasts on screen (on phones they sit at the top of the page). */
+async function dismissToasts(page: import("@playwright/test").Page) {
+  for (let i = 0; i < 4; i++) {
+    const close = page.getByRole("button", { name: /^(Dismiss all|Dismiss notification)/ }).first();
+    if (!(await close.isVisible().catch(() => false))) {
+      await page.waitForTimeout(400);
+      if (!(await close.isVisible().catch(() => false))) return;
+    }
+    await close.tap().catch(() => undefined);
+  }
 }
 
 async function expectTapTargets(page: import("@playwright/test").Page) {
@@ -98,6 +114,7 @@ test("mobile: serve on a jury and react on a phone", async ({ browser }) => {
   const page = await phoneLogin(browser, "da_rascal");
   await page.goto("/jury");
   await page.waitForURL(/\/jury\?case=\d+/);
+  await dismissToasts(page);
   await expectNoHorizontalScroll(page);
   const notGuilty = page.getByRole("button", { name: /^NOT GUILTY/ });
   await notGuilty.scrollIntoViewIfNeeded();
