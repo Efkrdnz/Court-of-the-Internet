@@ -278,8 +278,21 @@ const SERIOUS = [
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:some\s+)?coke\b(?!\s+(?:zero|cans?|bottles?))/,
   // Burglary (your own car or piggy bank is fine), shoplifting something big, fraud, hit-and-run.
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
-  /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
+  /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|the|two|three|some|several|pairs?\s+of)\s+)?(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
+  // Injuries done to someone: broken bones, a black eye, knocked out, a concussion.
+  /\b(?:broke|fractured|cracked|dislocated|shattered)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:nose|arms?|legs?|jaw|ribs?|wrist|ankle|fingers?|skull|collarbone|cheekbone|teeth|tooth|eye\s+socket)\b/i,
+  new RegExp(`\\bgave\\s+(?:${VICTIM}|him|her|them)\\s+a\\s+(?:black\\s+eye|concussion|broken\\s+(?:nose|arm|leg|jaw|rib)|bloody\\s+nose|fat\\s+lip)\\b(?!\\s+(?:shadow|palette|mask|costume|make-?up))`, "i"),
+  new RegExp(`\\bknocked\\s+(?:${VICTIM}|him|her|them)\\s+(?:unconscious|out\\s+cold|senseless)\\b`, "i"),
+  new RegExp(`\\bleft\\s+(?:${VICTIM}|him|her|them)\\s+with\\s+a\\s+(?:concussion|broken\\s+\\w+|black\\s+eye|fractured\\s+\\w+)\\b`, "i"),
+  // Identity theft: someone's identity, or credit opened in their name.
+  /\bstole\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+identity\b/i,
+  /\b(?:opened|took\s+out|applied\s+for|got)\s+(?:a|an)\s+(?:loan|credit\s+card|bank\s+account|mortgage|overdraft|phone\s+contract|store\s+card|payday\s+loan)\s+in\s+(?:[\w'’-]+\s+){0,2}name\b/i,
+  // Taking someone's card and spending on it (a parent's is left to moderators).
+  /\b(?:took|grabbed|stole|nicked|swiped|borrowed)\s+(?:(?:my|his|her|their|a|the)\s+(?!(?:mom|mum|mother|dad|father|parents)['’]s)[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:credit|debit|bank)\s+card\b(?!\s+(?:statement|bill|letter|reader))(?=.{0,40}\b(?:bought|paid|spent|ordered|used\s+it|purchased|booked))/i,
+  // Shoplifting something valuable ("worth three hundred pounds", "walked out with a TV without paying").
+  /\b(?:stole|shoplifted|nicked|pinched|lifted)\b.{0,50}\bworth\s+(?:over\s+|about\s+|nearly\s+|almost\s+)?(?:[$£€]?\s?\d{3,}|(?:\w+\s+)?(?:hundred|thousand|grand))\b/i,
+  /\bwalked\s+out\s+(?:of\s+(?:the|a)\s+(?:\w+\s+)?(?:store|shop|supermarket|mall)\s+)?with\s+(?:a|an|the|two|some)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|consoles?|ps5|xbox|airpods|headphones|cameras?|drones?|bikes?|jewel\w*|watch(?:es)?)\b.{0,30}\bwithout\s+paying\b/i,
   // Drink-driving, however it's phrased ("drove home from the pub completely drunk", "was hammered and drove").
   /\bdrove\b.{0,40}\b(?:drunk|wasted|hammered|plastered|smashed|blackout\s+drunk)\b(?!\s+(?:friend|friends|mate|mates|brother|sister|roommate|flatmate|people|guests|colleague|coworker|dad|mum|mom|uncle|aunt|neighbou?r)s?\b)/i,
   /\b(?:i\s+was|i\s+got|while)\s+(?:\w+\s+)?(?:drunk|hammered|wasted|plastered|smashed|high)\s+(?:and|when|but)\s+(?:i\s+|still\s+)?(?:drove|drive|got\s+behind\s+the\s+wheel)\b/i,

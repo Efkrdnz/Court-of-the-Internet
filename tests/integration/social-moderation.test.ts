@@ -409,6 +409,21 @@ describe("moderation", () => {
     expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).extensionsUsed).toBe(0);
   });
 
+  it("an officer arguing a trial can't ban its jurors to swing it (audit 39 #1)", async () => {
+    const accused = await makeUser();
+    const clerk = await makeUser("arguing_clerk", "MODERATOR");
+    const otherAdmin = await makeUser("neutral_admin", "ADMIN");
+    const [prosecutor, juror] = [await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, clerk, prosecutor); // the clerk is the defense attorney
+    await castVote(juror, c.id, "GUILTY");
+    await expect(setBan(clerk, juror, true, "Swinging my own trial")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await db.vote.count({ where: { caseId: c.id, userId: juror } })).toBe(1);
+    // Another officer, not party to it, can.
+    await setBan(otherAdmin, juror, true, "Brigading");
+    expect(await db.vote.count({ where: { caseId: c.id, userId: juror } })).toBe(0);
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });

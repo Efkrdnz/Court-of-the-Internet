@@ -184,6 +184,15 @@ export const BENIGN = [
   "I threw a stress ball at the wall during a long meeting",
   "I drove my drunk friend home after the party and charged him for petrol",
   "I took my coworker's phone charger and never gave it back",
+  // Near-misses of the audit 39 patterns
+  "I broke my brother's PlayStation controller in a rage",
+  "I broke my roommate's record for the longest nap",
+  "I gave my coworker a black eye shadow palette for her birthday as a joke",
+  "I knocked my roommate's coffee over and blamed the cat",
+  "I opened a Netflix account in my brother's name so he'd get the emails",
+  "I took my roommate's credit card statement out of the post by mistake",
+  "I walked out of the store with a free sample without asking",
+  "I shoplifted a single grape at the supermarket",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -381,4 +390,17 @@ export const EVASIONS: [string, string][] = [
   ["I threw a brick at a stranger's head", "serious-crime"],
   ["I slapped my little sister so hard her lip bled", "serious-crime"],
   ["I took my coworker's phone and sold it at a pawn shop", "serious-crime"],
+  // Audit 39
+  ["I broke my brother's nose in a fight", "serious-crime"],
+  ["I broke my roommate's arm", "serious-crime"],
+  ["I fractured my friend's jaw", "serious-crime"],
+  ["I gave my coworker a black eye", "serious-crime"],
+  ["I knocked my roommate unconscious", "serious-crime"],
+  ["I left my ex with a concussion", "serious-crime"],
+  ["I stole my coworker's identity and opened a credit card in her name", "serious-crime"],
+  ["I opened a loan in my brother's name", "serious-crime"],
+  ["I took my roommate's credit card and bought concert tickets with it", "serious-crime"],
+  ["I shoplifted AirPods from the Apple store", "serious-crime"],
+  ["I stole a pair of headphones worth three hundred pounds from a shop", "serious-crime"],
+  ["I walked out of the store with a TV without paying", "serious-crime"],
 ];

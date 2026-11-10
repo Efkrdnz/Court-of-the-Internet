@@ -3,6 +3,7 @@
 import { useState } from "react";
 import clsx from "clsx";
 import { changePasswordAction, deleteAccountAction, updatePreferencesAction, updateProfileAction } from "@/app/actions/settings";
+import { clearDrafts } from "@/components/ui/clearDrafts";
 import type { ActionResult } from "@/app/actions/_util";
 import { useFormAction } from "@/components/ui/useFormAction";
 import { ACCESSORIES, BACKDROPS, HEADWEAR, SPECIES, type AvatarConfig } from "@/lib/avatar";
@@ -286,7 +287,15 @@ export function DeleteAccountForm() {
   const [state, formProps, pending] = useFormAction(deleteAccountAction);
   const fe = state && !state.ok ? state.fieldErrors : undefined;
   return (
-    <form {...formProps} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <form
+      {...formProps}
+      onSubmit={(e) => {
+        // Unsent drafts go with the account (on this device), as they do when logging out.
+        clearDrafts();
+        formProps.onSubmit(e);
+      }}
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+    >
       <p className="text-sm sm:col-span-2">
         Your profile, bio and display name are scrubbed and you are signed out everywhere. Your username is retired (no one else can take it). Cases and
         votes you took part in stay in the record, credited to &ldquo;Former Citizen&rdquo;. This cannot be undone.

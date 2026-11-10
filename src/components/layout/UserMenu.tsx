@@ -2,16 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { announceMenuOpened, onOtherMenuOpened } from "./menu-events";
+import { clearDrafts } from "@/components/ui/clearDrafts";
 
-/** Removes every saved confession/argument draft from this browser (shared devices). */
-function clearDrafts() {
-  try {
-    for (const key of Object.keys(localStorage)) if (key.startsWith("coti-draft-")) localStorage.removeItem(key);
-    for (const key of Object.keys(sessionStorage)) if (key.startsWith("coti-")) sessionStorage.removeItem(key);
-  } catch {
-    /* storage unavailable */
-  }
-}
 import Link from "next/link";
 import { Avatar } from "@/components/art/avatar";
 import type { AvatarConfig } from "@/lib/avatar";

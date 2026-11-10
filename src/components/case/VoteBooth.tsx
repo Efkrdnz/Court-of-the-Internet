@@ -17,6 +17,7 @@ type Choice = "GUILTY" | "NOT_GUILTY";
 export function VoteBooth({
   caseId,
   endsAt,
+  paused = false,
   votesCast,
   quorum,
   initialTallies,
@@ -30,6 +31,8 @@ export function VoteBooth({
 }: {
   caseId: string;
   endsAt: string;
+  /** The trial's clock is stopped (under review or sealed): no countdown, it would be wrong. */
+  paused?: boolean;
   votesCast: number;
   quorum: number;
   initialTallies: { guilty: number; notGuilty: number } | null;
@@ -82,8 +85,14 @@ export function VoteBooth({
             {vote ? "Your vote is sealed." : "How does the jury find the defendant?"}
           </h2>
           <p className="mt-1 text-sm text-parchment/70">
-            {total >= quorum ? `${total} votes · quorum reached` : `${total} vote${total === 1 ? "" : "s"} so far · ${quorum} needed for a verdict`} · closes in{" "}
-            <Countdown to={endsAt} className="font-bold text-gold-light" expiredLabel="moments" />
+            {total >= quorum ? `${total} votes · quorum reached` : `${total} vote${total === 1 ? "" : "s"} so far · ${quorum} needed for a verdict`} ·{" "}
+            {paused ? (
+              <strong className="text-gold-light">clock paused while the clerks review this case</strong>
+            ) : (
+              <>
+                closes in <Countdown to={endsAt} className="font-bold text-gold-light" expiredLabel="moments" />
+              </>
+            )}
           </p>
         </div>
         {!compact ? <CatJury mood={juryMood} count={6} className="chr-hover chr-sticker -mb-2 hidden w-48 shrink-0 sm:block sm:w-56" /> : null}

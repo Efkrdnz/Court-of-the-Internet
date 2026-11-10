@@ -255,6 +255,7 @@ export default async function CasePage({ params, searchParams }: Props) {
             <VoteBooth
               caseId={c.id}
               endsAt={c.deliberationEndsAt!}
+              paused={detail.moderationState !== "VISIBLE"}
               votesCast={c.votesCast}
               quorum={detail.quorum}
               initialTallies={c.tallies}

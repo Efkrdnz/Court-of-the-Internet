@@ -859,6 +859,19 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 5 | Two simultaneous role changes both acted and logged | the player's row is locked first | integration |
 | note | Two simultaneous account deletions both said "deleted" | the second is told it's already gone | integration |
 
+## Thirty-ninth independent audit (fresh agent, build of commit 9a27d74)
+
+**Result: 16 PASS, 1 CONCERN (17), 0 FAIL.** No 500s, deadlocks or console errors; vitest 641/641 on 3 of 3 runs; stats recomputed for all 51 users with 0 mismatches; every message an officer saw matched what happened; all 50 new everyday confessions accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **A moderator arguing a trial could ban the jurors who voted against them**, deleting their votes and swinging the verdict (recusal covered case actions, not bans) | an officer can't ban or unban anyone who is a party, claim holder or juror on an open trial the officer is a party to | integration: the arguing clerk is refused and the vote stays; a neutral admin can ban |
+| 2 | Filter misses: broken noses/arms/jaws, a black eye, knocked unconscious, a concussion; stolen identity, a loan or card opened in someone's name, taking a flatmate's card to buy things; shoplifted AirPods, "headphones worth three hundred pounds", "walked out with a TV without paying" | patterns for each, near-misses kept ("broke my brother's PlayStation controller", "broke my roommate's record", "black eye shadow palette", "knocked my roommate's coffee over", a Netflix account in a brother's name, a card statement, a free sample, a single grape) | corpus: 176 everyday sentences, 196 evasions; 341 seed texts pass |
+| 3 | Deleting the account left drafts in the browser (README said logout clears them, which it does) | deletion clears them too (shared helper with logout); README updated | — |
+| 4 | A paused trial (under review) showed "closes in moments" against its old deadline | the jury booth says the clock is paused | — |
+| 5 | Officer success messages appeared twice (inline and in the flash banner), overlapping | successes show once, in the banner; errors stay by the button | e2e (lifecycle) still finds the banner |
+| 6 | Win-rate board order vs visible percentages | by design (confidence-adjusted ranking, explained on the page) | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

@@ -288,6 +288,19 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     // actions (FOR SHARE), but lets key-share through.
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${targetUserId} FOR NO KEY UPDATE`;
     const target = await liveTarget(tx, targetUserId);
+    // Recusal reaches bans too: an officer can't ban (or unban) someone who is a party or juror on a
+    // trial they're arguing or accused in. Banning the jurors who voted against you would delete
+    // their votes and swing your own verdict.
+    const conflicted = await tx.case.count({
+      where: {
+        status: { not: "CLOSED" },
+        OR: [{ accusedId: moderatorId }, { attorneyId: moderatorId }, { prosecutorId: moderatorId }],
+        AND: [{ OR: [{ accusedId: targetUserId }, { attorneyId: targetUserId }, { prosecutorId: targetUserId }, { claimedById: targetUserId }, { votes: { some: { userId: targetUserId } } }] }],
+      },
+    });
+    if (conflicted) {
+      throw new CourtError("FORBIDDEN", "You're a party to an open trial this player is part of (or voted on), so another officer has to decide this.");
+    }
     if (banned === !!target.bannedAt) {
       throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
     }

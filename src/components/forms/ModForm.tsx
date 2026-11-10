@@ -76,7 +76,8 @@ export function ModForm({
       >
         {label}
       </SubmitButton>
-      {state ? (
+      {/* Successes appear once, in the console's flash banner (when there is one); errors stay by the button. */}
+      {state && (!state.ok || !flash) ? (
         <span role="status" className={clsx("text-xs font-semibold", state.ok ? "text-[#8fe3cc]" : "text-[#ff9d9d]")}>
           {state.ok ? state.message : state.error}
         </span>
