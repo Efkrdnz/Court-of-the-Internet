@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -55,6 +55,14 @@ export function VoteBooth({
   const tallies = localTallies ?? initialTallies;
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // On a short phone the confirmation opens below the fold: bring it into view once it has
+  // expanded (audit 46 D5: "Seal my vote" sat off-screen at 320×640).
+  const confirmRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selected) return;
+    const t = setTimeout(() => confirmRef.current?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" }), reduce ? 0 : 260);
+    return () => clearTimeout(t);
+  }, [selected, reduce]);
   const total = tallies ? tallies.guilty + tallies.notGuilty : votesCast;
 
   function submit(choice: Choice) {
@@ -157,7 +165,7 @@ export function VoteBooth({
                   exit={reduce ? undefined : { opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-night/50 px-4 py-3">
+                  <div ref={confirmRef} className="mt-4 flex scroll-mb-4 flex-wrap items-center justify-between gap-3 rounded-xl bg-night/50 px-4 py-3">
                     <p className="text-sm text-parchment">
                       Votes are final. Seal your <strong>{selected === "GUILTY" ? "guilty" : "not guilty"}</strong> vote?
                     </p>

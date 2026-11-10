@@ -22,7 +22,7 @@ export function longestWordEm(text: string): number {
       em = 0;
       continue;
     }
-    em += /[WM@%]/.test(ch) ? 1 : /[wm]/.test(ch) ? 0.8 : /[A-Z0-9]/.test(ch) ? 0.72 : /[iljtf.,'’!:;|]/.test(ch) ? 0.32 : 0.58;
+    em += /[WM@%]/.test(ch) ? 1.02 : /m/.test(ch) ? 0.95 : /w/.test(ch) ? 0.82 : /[A-Z0-9]/.test(ch) ? 0.72 : /[iljtf.,'’!:;|]/.test(ch) ? 0.32 : 0.58;
     if (em > longest) longest = em;
   }
   return longest;

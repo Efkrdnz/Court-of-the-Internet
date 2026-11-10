@@ -241,6 +241,15 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 46: a slap across the face, a head held under water.
+  new RegExp(`\\b(?:slapped|smacked|backhanded|punched|struck|hit)\\s+${VICTIM}\\s+(?:so\\s+)?(?:hard\\s+)?(?:across|in|on)\\s+(?:the|his|her|their)\\s+(?:face|head|cheek|mouth|jaw)\\b`, "i"),
+  new RegExp(`\\b(?:held|pushed|dunked|forced|kept)\\s+${VICTIM}(?:['’]s\\s+head)?\\s+under(?:\\s*water|\\s+the\\s+water|\\s+the\\s+surface)\\b`, "i"),
+  // Audit 46: laxatives or pills hidden in someone's food or drink.
+  /\b(?:put|puts|putting|slipped|slip|added|mixed|stirred|sprinkled|hid|baked|crushed)\s+(?:some\s+|a\s+few\s+|a\s+load\s+of\s+|(?:\w+\s+)?)?(?:laxatives?|ex-?lax|sleeping\s+(?:pills|tablets)|diuretics?|eye\s+drops|visine|ipecac|xanax|sedatives?|edibles?|weed|ketamine)\s+(?:in|into)\s+(?:(?:my|his|her|their|our|the|a)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:food|drinks?|coffee|tea|brownies?|cakes?|lunch|dinner|breakfast|sandwich|cookies?|smoothie|water|beer|wine|meal|soup|juice|cupcakes?|curry|pasta|snacks?)\b/i,
+  // Selling someone's things behind their back.
+  /\bsold\s+(?:(?:my|his|her|their|our|the|a)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:playstation|ps[45]|xbox|switch|console|laptop|phone|iphone|ipad|bike|car|guitar|tv|television|camera|jewel\w*|watch|rings?|necklace|stuff|things|belongings|clothes|furniture|sofa|games)\b(?=.{0,60}\b(?:without|behind\s+(?:his|her|their)\s+back|kept\s+the\s+(?:money|cash)|while\s+(?:he|she|they)\s+(?:was|were)\s+(?:away|out|asleep|at\s+work)|on\s+(?:ebay|facebook|vinted|gumtree|craigslist|depop)))/i,
+  // A child or pet shut in a hot car.
+  /\b(?:locked|left|shut)\s+(?:my|his|her|their|our|the|a)\s+(?:\w+\s+)?(?:toddler|baby|kid|kids|child|children|son|daughter|dog|puppy|cat|kitten|pet)\s+(?:alone\s+)?in\s+(?:the|a|my|his|her|their)\s+(?:hot\s+)?car\b(?=.{0,40}\b(?:hot|heat|heatwave|summer|sun|sweltering|boiling|windows?\s+(?:up|shut|closed)|for\s+hours)\b)/i,
   // Audit 45: arson of someone's property ("set fire to my neighbours shed": apostrophes optional).
   /\bset\s+fire\s+to\s+(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:shed|house|home|car|garage|flat|apartment|fence|bins?|office|shop|barn|van|truck|caravan|bike|hair|dog|cat|garden|door|hedge|letterbox)\b/i,
   // A line keyed or scratched into someone's car ("down the side of my bosses Tesla").

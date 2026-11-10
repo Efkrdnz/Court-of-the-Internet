@@ -237,6 +237,14 @@ export const BENIGN = [
   "I hope you all get the joke eventually, because I won't explain it.",
   "I stole my neighbour's wifi password from the sticker on his router.",
   "I read my roommate's mail by accident because it had my name on it.",
+  // Audit 46 near-misses.
+  "I took laxatives before the marathon and deeply regretted it.",
+  "I put raisins in my coworker's brownies and he still hasn't forgiven me.",
+  "I slapped my forehead when I realised I'd replied all to the whole company.",
+  "I sold my own PlayStation to buy a bike and my roommate still misses it.",
+  "I held my breath underwater for a whole minute at the pool to win a bet.",
+  "I locked my keys in the car on a hot day and had to call my dad.",
+  "I left my coffee in the car on a hot day and drank it anyway.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -495,4 +503,11 @@ export const EVASIONS: [string, string][] = [
   ["I hope you all get cancer", "violence"],
   ["I stole my neighbour's mail", "serious-crime"],
   ["I stole packages from my neighbour's porch", "serious-crime"],
+  // Audit 46.
+  ["I put laxatives in my coworker's brownies and he was sick for days","serious-crime"],
+  ["I slapped my little sister across the face so hard she cried","serious-crime"],
+  ["I sold my roommate's PlayStation without telling him and kept the money","serious-crime"],
+  ["I held my brother underwater until he panicked","serious-crime"],
+  ["I locked my toddler in the car on a hot day","serious-crime"],
+  ["I left my dog in the car on a hot day while I shopped","serious-crime"],
 ];

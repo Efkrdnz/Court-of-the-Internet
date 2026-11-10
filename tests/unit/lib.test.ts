@@ -442,11 +442,13 @@ describe("joined words count as one long word (audit 44 #3)", () => {
 describe("court titles in names (audit 44 #1)", () => {
   it.each(["Head Moderator", "Site Admin", "Clerk of the Court", "Court Officer Bob", "Bob (Moderator)", "Official Court Clerk", "Chief Justice Bob", "Staff", "Bailiff", "Moderator Bob", "The Bailiff", "Mod Team", "Bob_the_Mod", "Your Honour", "\uFF2D\uFF4F\uFF44",
     // Folded like officer names (audit 45 D2), and usernames.
-    "Clërk Bob", "M0derator Bob", "Adm1n", "Admln", "Moderatorr", "Officer Bob", "court_moderator", "site_admin_team"])(
+    "Clërk Bob", "M0derator Bob", "Adm1n", "Admln", "Moderatorr", "Officer Bob", "court_moderator", "site_admin_team",
+    // Joined, numbered or split up (audit 46 D1).
+    "moderator9", "ModeratorBob", "Site Moderation Team", "Ad-min", "administrator1", "theadmin", "Sysadmin", "Head of Moderation", "C l e r k", "Mod Erator"])(
     "refuses %s",
     (name) => expect(hasCourtTitle(name)).toBe(true),
   );
-  it.each(["Judge Mental", "Marshal Law", "Wordsworth Fan", "Modest Mouse", "Administer Snacks", "Clerkenwell Kid", "Staffie Lover", "Courtney", "Justice League Fan", "Clark Kent", "Office Goblin", "Model Citizen", "Bailey", "duchess_of_dishes", "Sheriff Bob"])(
+  it.each(["Judge Mental", "Marshal Law", "Wordsworth Fan", "Modest Mouse", "Administer Snacks", "Clerkenwell Kid", "Staffie Lover", "Courtney", "Justice League Fan", "Clark Kent", "Office Goblin", "Model Citizen", "Bailey", "duchess_of_dishes", "Sheriff Bob", "Badminton Queen", "Administer Snacks", "Officially Snacking"])(
     "allows %s",
     (name) => expect(hasCourtTitle(name)).toBe(false),
   );

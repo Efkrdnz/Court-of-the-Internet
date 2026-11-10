@@ -220,7 +220,7 @@ export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean
         <span>
           <span className="block font-bold">Allow my confessions to be featured</span>
           <span className="block text-sm text-sepia">
-            Eligible for &ldquo;Featured case of the day&rdquo;, the front page&apos;s community highlights and the &ldquo;Most entertaining&rdquo; board. Archives and search list every closed case either way.
+            Eligible for &ldquo;Featured case of the day&rdquo;, the front page&apos;s community highlights and the &ldquo;Most entertaining&rdquo; board. Archives and search list every closed case either way. Anonymous confessions keep the choice you had when you filed them, so they can&apos;t be linked to you.
           </span>
         </span>
       </label>

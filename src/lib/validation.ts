@@ -114,9 +114,19 @@ const COURT_TITLES = [
   "administrator", "administrators", "sysop", "sysops", "staff", "support team", "site team", "officer", "officers",
 ].map(foldTitle);
 
+// Distinctive stems also caught inside joined, numbered or split-up names ("ModeratorBob",
+// "moderator9", "siteadmin", "Ad-min", "C l e r k", "Head of Moderation"), audit 46 D1. Everyday
+// words that happen to contain one are removed first.
+const TITLE_STEMS = ["moderator", "moderation", "admin", "clerk", "bailiff", "sysop", "officer", "yourhonour", "yourhonor", "courtstaff"].map((t) => foldTitle(t).trim());
+const NOT_A_TITLE = /\b(?:badminton\w*|administ(?:er|ers|ered|ering|rative)|clerkenwell|staff(?:ie|ies|y|ordshire|ord)|officers?\s+mess)\b/giu;
+
 export function hasCourtTitle(name: string): boolean {
   const folded = foldTitle(name);
-  return COURT_TITLES.some((title) => folded.includes(title));
+  if (COURT_TITLES.some((title) => folded.includes(title))) return true;
+  // Split camel case before folding ("ModeratorBob"), drop harmless words, then squash to letters.
+  const spaced = foldFullWidth(name).replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2").replace(NOT_A_TITLE, " ");
+  const squashed = foldTitle(spaced).replace(/[^\p{L}]+/gu, "");
+  return TITLE_STEMS.some((stem) => squashed.includes(stem));
 }
 export const COURT_TITLE_MESSAGE = "That's an official title of the court. Pick your own name.";
 

@@ -8,7 +8,7 @@ import { casePath, formatCaseNumber, truncate } from "@/lib/text";
 import { hasCourtTitle } from "@/lib/validation";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
-import { releaseClaims, sealedCaseNotice } from "./claims";
+import { accusedBannedNotice, releaseClaims, sealedCaseNotice } from "./claims";
 import { pauseDeliberation, resumeDeliberation } from "./pause";
 import { dismissReporterOnLockedCase } from "./reports";
 import { getAchievement } from "@/lib/achievements";
@@ -384,8 +384,11 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
       data: banned ? { bannedAt: clock.now(), banReason: reason ? truncate(reason, 300) : "Contempt of court" } : { bannedAt: null, banReason: null },
     });
     if (banned) {
-      // Release anything they were holding so other players aren't blocked.
+      // Release anything they were holding so other players aren't blocked…
       await releaseClaims(tx, { userId: targetUserId });
+      // …and claims others hold on their public cases, which go on hold (audit 46 D7: counsel
+      // already holding one could still file and move it along). Anonymous ones stay in play.
+      await releaseClaims(tx, { publicCasesOf: targetUserId }, accusedBannedNotice);
       // Their votes on trials still in deliberation stop counting; reached verdicts stand. Their
       // reactions come off the counters and their open reports are dismissed, so a banned account
       // no longer sways rankings or counts toward hiding a case.
@@ -558,14 +561,19 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
     // ("Chief Justice Moderator", audit 45 D2): they go by their username until they pick another.
     let note: string | undefined;
     if (role === "PLAYER") {
-      const u = await tx.user.findUniqueOrThrow({ where: { id: targetUserId }, select: { displayName: true, username: true } });
-      if (hasCourtTitle(u.displayName)) {
-        await tx.user.update({ where: { id: targetUserId }, data: { displayName: u.username } });
-        note = `Display name "${u.displayName}" reset to @${u.username} (court title)`;
+      const u = await tx.user.findUniqueOrThrow({ where: { id: targetUserId }, select: { displayName: true, username: true, bio: true } });
+      const titledBio = hasCourtTitle(u.bio);
+      if (hasCourtTitle(u.displayName) || titledBio) {
+        // Their username may carry the title too ("clerk_pemberton", audit 46 D2): then a neutral
+        // stand-in. (Usernames themselves are permanent; the @handle stays.)
+        const fallback = hasCourtTitle(u.username) ? `Citizen ${parseInt(targetUserId.slice(-6), 36) % 9000 + 1000}` : u.username;
+        const displayName = hasCourtTitle(u.displayName) ? fallback : u.displayName;
+        await tx.user.update({ where: { id: targetUserId }, data: { displayName, ...(titledBio ? { bio: "" } : {}) } });
+        note = `Court title removed: display name "${u.displayName}" → "${displayName}"${titledBio ? ", bio cleared" : ""}`;
         await notify(tx, targetUserId, {
           type: "MODERATION",
           title: "You're no longer a court clerk",
-          body: "Your display name carried a court title, so it has been set to your username. You can pick a new one in Settings.",
+          body: "Your display name or bio carried a court title, so it has been reset. You can pick a new one in Settings.",
           href: "/settings",
         });
       }
@@ -592,12 +600,12 @@ export async function pinFeaturedCase(moderatorId: string, caseId: string, day: 
     await lockCase(tx, caseId, moderatorId);
     const c = await tx.case.findUnique({
       where: { id: caseId },
-      select: { status: true, moderationState: true, number: true, slug: true, accused: { select: { allowFeaturing: true } } },
+      select: { status: true, moderationState: true, number: true, slug: true, anonymous: true, featurable: true, accused: { select: { allowFeaturing: true } } },
     });
     if (!c || c.status !== "CLOSED" || c.moderationState !== "VISIBLE") {
       throw new CourtError("INVALID_STATE", "Only visible, closed cases can be featured.");
     }
-    if (!c.accused.allowFeaturing) throw new CourtError("INELIGIBLE", "The confessor has opted out of being featured.");
+    if (!(c.anonymous ? c.featurable : c.accused.allowFeaturing)) throw new CourtError("INELIGIBLE", "The confessor has opted out of being featured.");
     await tx.featuredCase.upsert({
       where: { day },
       create: { day, caseId, pinnedBy: moderatorId },

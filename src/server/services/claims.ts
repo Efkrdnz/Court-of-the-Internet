@@ -13,13 +13,13 @@ import { notify } from "./progress";
  */
 export async function releaseClaims(
   tx: Tx,
-  where: { caseId: string } | { userId: string },
+  where: { caseId: string } | { userId: string } | { publicCasesOf: string },
   holderNotice?: (caseNumber: number) => { title: string; body: string; href?: string },
 ) {
   const held = await tx.case.findMany({
     where: {
       status: { in: ["DEFENSE_CLAIMED", "PROSECUTION_CLAIMED"] },
-      ...("caseId" in where ? { id: where.caseId } : { claimedById: where.userId }),
+      ...("caseId" in where ? { id: where.caseId } : "userId" in where ? { claimedById: where.userId } : { accusedId: where.publicCasesOf, anonymous: false }),
     },
     select: { id: true, number: true, status: true, claimedById: true },
   });
@@ -40,6 +40,12 @@ export async function releaseClaims(
   }
   return released;
 }
+
+/** For counsel whose case went on hold because its (public) confessor was held in contempt. */
+export const accusedBannedNotice = (n: number) => ({
+  title: `Your claim on Case No. ${formatCaseNumber(n)} was released`,
+  body: "The accused was held in contempt of court, so the case is on hold. Your claim slot is free again.",
+});
 
 export const sealedCaseNotice = (n: number) => ({
   title: `Your claim on Case No. ${formatCaseNumber(n)} was released`,

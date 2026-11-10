@@ -102,6 +102,7 @@ export async function confess(userId: string, input: ConfessionData) {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"confess-text:" + input.confession.toLowerCase()}))`;
 
     await checkConfessionAllowed(tx, userId, input);
+    const { allowFeaturing } = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { allowFeaturing: true } });
 
     const created = await tx.case.create({
       data: {
@@ -111,6 +112,7 @@ export async function confess(userId: string, input: ConfessionData) {
         confession: input.confession,
         context: input.context ?? null,
         anonymous: input.anonymous,
+        featurable: allowFeaturing,
         aliasSeed: randomBytes(8).toString("hex"),
         accusedId: userId,
         createdAt: now,

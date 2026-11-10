@@ -953,6 +953,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D5b | A claimer racing an on-time filing got the grace-period message | accurate at that moment (the holder was within grace); no change | — |
 | D6 | Zalgo marks below a name touched the @handle line at 320px | the profile heading gets extra line height; (title links are stretched over the whole card, so their tap target is the card; a bidi-override title is stored with the override removed, which is intended) | — |
 
+## Forty-sixth independent audit (fresh agent, build of commit fb8f9d0)
+
+**Result: 14 PASS, 3 CONCERN (10, 13, 17), 0 FAIL.** 131 internal links with no errors; 12 concurrent votes from two tabs gave 1 vote and 1 XP event; ban/unban re-vote refused; stats matched SQL for 6 players; a deadline passing during review resumed with exactly the remaining 4 h.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **Court titles slipped through when joined, numbered or split** ("moderator9", "ModeratorBob", "Site Moderation Team", "Ad-min", "theadmin", "Sysadmin", "C l e r k") | besides whole words, distinctive title stems are looked for in the camel-split, folded, letters-only name, after removing a few everyday words that contain them (badminton, administer, Clerkenwell, Staffie) | unit: 33 refused, 18 allowed |
+| D2 | A demoted officer's name was reset to a username that itself contains "clerk"; the titled bio stayed | a neutral "Citizen NNNN" when the username carries a title; a titled bio is cleared | integration |
+| D3 | **Toggling the featuring opt-out moved an anonymous case and the player's public cases together**, linking them | anonymous cases keep the choice from when they were filed (`Case.featurable`, migration `20261110180000_case_featurable`, backfilled) and ignore bans; settings copy explains it | integration: the public case leaves the board, the anonymous one stays; one filed while opted out stays out |
+| D4 | Filter misses: laxatives in a coworker's brownies, a slap across the face, selling a roommate's PlayStation behind their back, a brother held underwater, a toddler or dog in a hot car | patterns for each, near-misses kept (laxatives before a marathon, a forehead slap, selling your own console, holding your breath, keys or coffee left in the car); spelled-out phone numbers were already caught | corpus: 222 everyday sentences, 245 evasions |
+| D5 | "Seal my vote" opened below the fold on a 320×640 phone | the confirmation scrolls itself into view once it has expanded | — |
+| D6 | The share image broke a 35-letter "Mmm…m" word (lower-case m estimated at 0.8em; measured 0.92em); case cards break such words at desktop widths too | the width estimates use the measured widths; README now says narrow places (phones and card grids) | — |
+| D7 | Counsel already holding a claim on a banned player's public case could still file it | the ban releases those claims too (VOIDED, so they don't count against the holder) and tells counsel | integration |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

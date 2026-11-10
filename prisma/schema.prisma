@@ -194,6 +194,9 @@ model Case {
   confession      String
   context         String?
   anonymous       Boolean         @default(false)
+  /// The confessor's featuring choice when an anonymous case was filed. Later changes to the
+  /// setting don't move anonymous cases, so they can't be linked to the player's public ones.
+  featurable      Boolean         @default(true)
   aliasSeed       String // stable seed for the anonymous alias
   status          CaseStatus      @default(AWAITING_DEFENSE)
   verdict         Verdict?

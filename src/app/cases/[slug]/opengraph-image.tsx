@@ -23,7 +23,7 @@ const QUOTE_CHARS_PER_LINE = Math.floor(COLUMN / (22 * 0.56));
 function emWidth(text: string): number {
   let em = 0;
   // (Fitted to Satori's Playfair 900: "I licked every cookie so" at 48px is about 520px wide.)
-  for (const ch of text) em += /[WM@%]/.test(ch) ? 1 : /[wm]/.test(ch) ? 0.78 : /[A-Z0-9]/.test(ch) ? 0.7 : ch === " " ? 0.25 : /[iljtf.,'’!:;|]/.test(ch) ? 0.3 : 0.5;
+  for (const ch of text) em += /[WM@%]/.test(ch) ? 1.02 : /m/.test(ch) ? 0.95 : /w/.test(ch) ? 0.82 : /[A-Z0-9]/.test(ch) ? 0.7 : ch === " " ? 0.25 : /[iljtf.,'’!:;|]/.test(ch) ? 0.3 : 0.5;
   return em;
 }
 

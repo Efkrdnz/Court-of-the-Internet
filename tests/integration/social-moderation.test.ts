@@ -716,6 +716,32 @@ describe("moderation", () => {
     if (auto) expect(auto.pinned).toBe(false);
   });
 
+  it("an anonymous case keeps the featuring choice it was filed with, so toggling can't link it (audit 46 D3)", async () => {
+    process.env.COURT_QUORUM = "3";
+    const [accused, attorney, prosecutor, fan] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const closeOne = async (anonymous: boolean) => {
+      const c = await makeCase(accused, { anonymous });
+      await toDeliberation(c.id, attorney, prosecutor);
+      await voteAll(c.id, await makeUsers(3, anonymous ? "anv" : "pub"), 2);
+      await closeNow(c.id);
+      await toggleReaction(fan, c.id, "HILARIOUS");
+      return c.id;
+    };
+    const anon = await closeOne(true);
+    const pub = await closeOne(false);
+    const board = async () => (await getLeaderboards()).entertaining.map((x) => x.id);
+    expect(await board()).toEqual(expect.arrayContaining([anon, pub]));
+    await db.user.update({ where: { id: accused }, data: { allowFeaturing: false } });
+    // The public case leaves; the anonymous one stays put (it moved together with it before).
+    expect(await board()).toContain(anon);
+    expect(await board()).not.toContain(pub);
+    // A case filed anonymously while opted out stays out, whatever the setting later says.
+    const later = await closeOne(true);
+    await db.user.update({ where: { id: accused }, data: { allowFeaturing: true } });
+    expect(await board()).not.toContain(later);
+    expect(await board()).toContain(pub);
+  });
+
   it("two officers pinning different cases at once: one pins, the other is told (audit 37 D5)", async () => {
     process.env.COURT_QUORUM = "3";
     const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
@@ -753,10 +779,18 @@ describe("moderation", () => {
 
     const open = await makeCase(accused);
     const anon = await makeCase(accused, { anonymous: true });
+    const held = await makeCase(accused);
+    const counsel = await makeUser();
+    await claimCase(counsel, held.id, "DEFENSE");
     const awaitingBefore = (await getCommunityStats()).awaiting;
     await setBan(admin, accused, true, "Contempt");
     // The held case no longer counts as awaiting counsel on the home page (audit 27 #8).
     expect((await getCommunityStats()).awaiting).toBe(awaitingBefore - 1);
+    // A claim already held on a public case of theirs is released, so it can't be filed and moved along (audit 46 D7).
+    expect(await db.case.findUniqueOrThrow({ where: { id: held.id } })).toMatchObject({ status: "AWAITING_DEFENSE", claimedById: null });
+    expect(await db.caseClaim.findFirstOrThrow({ where: { caseId: held.id, userId: counsel } })).toMatchObject({ outcome: "VOIDED" });
+    await expect(submitArgument(counsel, held.id, "DEFENSE", DEFENSE_TEXT)).rejects.toBeTruthy();
+    expect(await db.notification.count({ where: { userId: counsel, title: { contains: "was released" } } })).toBe(1);
     await expect(claimCase(lawyer, open.id, "DEFENSE")).rejects.toMatchObject({ code: "INVALID_STATE" });
     // …except anonymous ones: holding them would reveal who confessed (audit 15 #2).
     expect((await listQueue({ role: "DEFENSE", viewer: null })).cards.map((x) => x.id)).toContain(anon.id);
@@ -887,6 +921,13 @@ describe("moderation", () => {
     await setUserRole(admin, player, "PLAYER");
     const demoted = await db.user.findUniqueOrThrow({ where: { id: player } });
     expect(demoted.displayName).toBe(demoted.username);
+    // …and when the username carries a title too, a neutral stand-in, with a titled bio cleared (audit 46 D2).
+    const clerkish = await makeUser("clerk_tester", "MODERATOR");
+    await db.user.update({ where: { id: clerkish }, data: { displayName: "Clerk Tester", bio: "Head clerk of the docket" } });
+    await setUserRole(admin, clerkish, "PLAYER");
+    const plain = await db.user.findUniqueOrThrow({ where: { id: clerkish } });
+    expect(plain.displayName).toMatch(/^Citizen \d{4}$/);
+    expect(plain.bio).toBe("");
     expect(await db.notification.count({ where: { userId: player, title: { contains: "no longer a court clerk" } } })).toBe(1);
     // A huge reason is capped in the audit log too (audit 38 D4).
     const target = await makeUser();
