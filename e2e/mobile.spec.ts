@@ -57,7 +57,7 @@ async function phoneLogin(browser: import("@playwright/test").Browser, username:
   await page.waitForURL((u) => !u.pathname.startsWith("/login"));
   // Let the courtroom mark its pop-up toasts as shown, then close them, as a player would:
   // otherwise they pop again on the next page and can sit over the button a test taps.
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => undefined);
   await dismissToasts(page);
   return page;
 }
@@ -70,7 +70,8 @@ async function dismissToasts(page: import("@playwright/test").Page) {
       await page.waitForTimeout(400);
       if (!(await close.isVisible().catch(() => false))) return;
     }
-    await close.tap().catch(() => undefined);
+    // Bounded: a toast leaving (or the next one springing in) must not hang the test.
+    await close.tap({ timeout: 3_000 }).catch(() => undefined);
   }
 }
 
