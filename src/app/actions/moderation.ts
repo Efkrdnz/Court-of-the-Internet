@@ -40,13 +40,22 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
         break;
       }
       case "restore":
-        await restoreCase(mod.id, caseId);
+        await restoreCase(mod.id, caseId, formData.has("sealSeen") ? str(formData, "sealSeen") : undefined);
         message = "Case restored.";
         break;
       case "dismiss":
         {
-          const r = await dismissReports(mod.id, caseId);
-          message = r.madeVisible ? "Reports dismissed; case visible again." : r.sealed ? "Reports dismissed. (The case stays sealed.)" : "Reports dismissed.";
+          // The reports the console showed (so newer ones aren't dismissed unseen).
+          const seen = formData.has("reportsSeen") ? str(formData, "reportsSeen").split(",").filter(Boolean) : undefined;
+          const r = await dismissReports(mod.id, caseId, seen);
+          message =
+            r.newer > 0
+              ? `Dismissed the reports you saw; ${r.newer === 1 ? "1 newer reporter still needs" : `${r.newer} newer reporters still need`} review, so the case stays under review.`
+              : r.madeVisible
+                ? "Reports dismissed; case visible again."
+                : r.sealed
+                  ? "Reports dismissed. (The case stays sealed.)"
+                  : "Reports dismissed.";
         }
         break;
       case "strike-defense":

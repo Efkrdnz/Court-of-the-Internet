@@ -151,7 +151,9 @@ export default async function CasePage({ params, searchParams }: Props) {
           ? "You're the defense attorney, so you can't vote. Bite your nails like a professional."
           : viewerRole === "PROSECUTION"
             ? "You're the prosecutor, so you can't vote. Glare at the jury meaningfully instead."
-            : null;
+            : detail.moderationState !== "VISIBLE"
+              ? "Voting is paused while the clerks review this case."
+              : null;
   const reactionReason = !user
     ? "signin"
     : viewerRole

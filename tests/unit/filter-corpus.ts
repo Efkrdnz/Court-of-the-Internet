@@ -193,6 +193,13 @@ export const BENIGN = [
   "I took my roommate's credit card statement out of the post by mistake",
   "I walked out of the store with a free sample without asking",
   "I shoplifted a single grape at the supermarket",
+  // Near-misses of the audit 40 patterns
+  "I put a camera in the bathroom cabinet box and forgot to return it",
+  "I recorded my neighbour's terrible singing through her bedroom window wall, it came through anyway",
+  "I shoplifted a handful of free sweets from the hotel lobby bowl",
+  "I threw a snowball at my neighbour",
+  "I'm going to slash my coworker's budget proposal to pieces",
+  "I kept guessing her favourite colour wrong on purpose",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -403,4 +410,13 @@ export const EVASIONS: [string, string][] = [
   ["I shoplifted AirPods from the Apple store", "serious-crime"],
   ["I stole a pair of headphones worth three hundred pounds from a shop", "serious-crime"],
   ["I walked out of the store with a TV without paying", "serious-crime"],
+  // Audit 40
+  ["I put a camera in the bathroom to watch my roommate.", "serious-crime"],
+  ["I recorded my neighbour through her bedroom window", "serious-crime"],
+  ["I took photos of my neighbour through her bathroom window", "serious-crime"],
+  ["I shoplifted an expensive handbag.", "serious-crime"],
+  ["I shoplifted designer sunglasses", "serious-crime"],
+  ["I threw a brick at my neighbour.", "serious-crime"],
+  ["I'm going to slash my coworker's face.", "violence"],
+  ["I got into her phone by guessing her phone passcode", "serious-crime"],
 ];

@@ -872,6 +872,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 5 | Officer success messages appeared twice (inline and in the flash banner), overlapping | successes show once, in the banner; errors stay by the button | e2e (lifecycle) still finds the banner |
 | 6 | Win-rate board order vs visible percentages | by design (confidence-adjusted ranking, explained on the page) | — |
 
+## Fortieth independent audit (fresh agent, build of commit f2a14e2)
+
+**Result: 14 PASS, 3 CONCERN (3, 7 minor, 17), 0 FAIL.** No errors, 500s or deadlocks; vitest 662/662 on 3 of 3 runs; stats recomputed for every user with 0 mismatches; all 47 new everyday confessions accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **An officer who sat on the jury could adjourn the trial the moment the split favoured their vote, or ban the jurors who voted the other way** (recusal looked at parties, not jurors) | jurors count as parties for every case action and for bans on open trials | integration: a juror-officer can't adjourn or ban the other juror; a neutral officer can adjourn |
+| D2 | "Dismiss reports" from a stale console dismissed a report filed after it loaded (and told that reporter "already reviewed") | the console sends the reports it showed; only those are dismissed, newer ones stay open and keep the case under review, and the officer is told | integration |
+| D3 | "Restore" from a stale console lifted a newer seal | the console sends the seal it showed (its audit-log entry); a re-sealed case refuses the stale restore | integration |
+| D4 | Filter misses: a camera put in a bathroom "to watch" someone, recording or photographing through a bedroom/bathroom window, shoplifting an "expensive handbag" / "designer sunglasses", a brick thrown at a neighbour, "slash my coworker's face" | patterns for each, near-misses kept (a camera in a cabinet box, a neighbour's singing through the wall, free sweets, a snowball, "slash the budget proposal") | corpus: 182 everyday sentences, 204 evasions; 341 seed texts pass |
+| D5 | Under review: an officer saw active vote buttons; parties weren't told their clock paused; a simultaneous second dismiss said "no open reports"; a claim during someone's grace period said "already claimed" | vote booth says voting is paused; parties get a pause notice; accurate "already handled" and grace-period messages | — |
+| D6 | "Most entertaining" gave equal scores different ranks; win-rate and streak boards took 500 unordered rows before ranking | equal scores share a rank; those boards fetch the strongest players first (2,000-row window) | — |
+| D7 | Spoofable per-IP limits without a proxy | already documented | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

@@ -424,6 +424,42 @@ describe("moderation", () => {
     expect(await db.vote.count({ where: { caseId: c.id, userId: juror } })).toBe(0);
   });
 
+  it("an officer who sat on the jury can't adjourn the trial or ban its other jurors (audit 40 D1)", async () => {
+    const [accused, attorney, prosecutor, otherJuror] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const clerk = await makeUser("juror_clerk", "MODERATOR");
+    const neutral = await makeUser("neutral_judge", "ADMIN");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await castVote(clerk, c.id, "GUILTY");
+    await castVote(otherJuror, c.id, "NOT_GUILTY");
+    await expect(adjournNow(clerk, c.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(setBan(clerk, otherJuror, true, "Voted the wrong way")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await db.vote.count({ where: { caseId: c.id } })).toBe(2);
+    await adjournNow(neutral, c.id); // a neutral officer can
+  });
+
+  it("a stale console neither dismisses unseen reports nor lifts a newer seal (audit 40 D2, D3)", async () => {
+    const accused = await makeUser();
+    const [a, b] = [await makeUser("stale_dismiss_a", "MODERATOR"), await makeUser("stale_dismiss_b", "ADMIN")];
+    const [r1, r2] = [await makeUser(), await makeUser()];
+    const c = await makeCase(accused);
+    await fileReport(r1, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    const seen = (await db.report.findMany({ where: { caseId: c.id, status: "OPEN" }, select: { id: true } })).map((r) => r.id);
+    await fileReport(r2, { caseId: c.id, target: "CASE", reason: "PERSONAL_INFO", details: "my real home address" });
+    const res = await dismissReports(a, c.id, seen);
+    expect(res.newer).toBe(1);
+    expect(await db.report.findFirstOrThrow({ where: { reporterId: r2 } })).toMatchObject({ status: "OPEN" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).openReports).toBe(1);
+
+    // Restore from a console that showed an older seal.
+    await removeCase(b, c.id, "First look");
+    const firstSeal = (await db.moderationAction.findFirstOrThrow({ where: { caseId: c.id, action: "REMOVE_CASE" } })).id;
+    await restoreCase(b, c.id, firstSeal);
+    await removeCase(b, c.id, "Second, more serious problem");
+    await expect(restoreCase(a, c.id, firstSeal)).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("REMOVED");
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });

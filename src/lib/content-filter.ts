@@ -219,6 +219,7 @@ const VIOLENCE = [
   /\b(?:going\s+to|gonna|i\s*(?:will|'ll))\s+(?:smash|bash|crack|split|cave\s+in)\s+(?:your|his|her|their|ur|(?:my|the|a)\s+[\w-]+(?:'s|’s|s'))\s+(?:skull|head|face|teeth|jaw|nose)\b/i,
   // "I will push him down the stairs", "I'll throw her off the balcony".
   new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll)|want\\s+to)\\s+(?:push|shove|throw|kick)\\s+${TARGET}\\s+(?:down|off|out\\s+of|into|under)\\s+(?:the|a)\\s+(?:stairs|staircase|balcony|roof|cliff|bridge|window|canal|river|lake|sea|traffic|road|train|bus)\\b`, "i"),
+  /\b(?:going\s+to|gonna|i\s*(?:will|'ll))\s+(?:slash|cut|carve|stab)\s+(?:your|his|her|their|ur|(?:my|the|a)\s+[\w-]+(?:'s|’s|s'))\s+(?:face|throat|neck|eyes?)\b/i,
   /\bshoot\s+up\b/i,
   /\b(?:make|build|plant)\s+a\s+bomb\b/i,
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,
@@ -280,6 +281,13 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|the|two|three|some|several|pairs?\s+of)\s+)?(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
+  // A camera put in a bathroom or bedroom to watch someone; filming or photographing through a window.
+  /\b(?:put|hid|placed|installed|set\s+up)\s+(?:a|my|the)\s+(?:hidden\s+|secret\s+|spy\s+)?cam(?:era)?s?\s+in\s+(?:the|my|her|his|their)\s+(?:bathroom|shower|bedroom|changing\s+room)\b.{0,30}\bto\s+(?:watch|film|spy|see|record)\b/i,
+  /\b(?:recorded|filmed|videoed|photographed|took\s+(?:photos|pictures|pics|videos?)\s+of|watched|spied\s+on)\s+(?:my|his|her|their|a|the)\s+\w+\s+through\s+(?:her|his|their|the)\s+(?:bedroom|bathroom)\s+window\b/i,
+  // Expensive shoplifting ("an expensive handbag", "designer sunglasses").
+  /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|some|two|three|pairs?\s+of)\s+)?(?:expensive|designer|luxury|branded)\b/i,
+  // Throwing something hard at a person.
+  new RegExp(`\\b(?:threw|chucked|hurled|lobbed)\\s+(?:a|an|the|some)\\s+(?:brick|rock|stone|bottle|glass|pint\\s+glass|chair|knife)s?\\s+at\\s+${VICTIM}\\b`, "i"),
   // Injuries done to someone: broken bones, a black eye, knocked out, a concussion.
   /\b(?:broke|fractured|cracked|dislocated|shattered)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:nose|arms?|legs?|jaw|ribs?|wrist|ankle|fingers?|skull|collarbone|cheekbone|teeth|tooth|eye\s+socket)\b/i,
   new RegExp(`\\bgave\\s+(?:${VICTIM}|him|her|them)\\s+a\\s+(?:black\\s+eye|concussion|broken\\s+(?:nose|arm|leg|jaw|rib)|bloody\\s+nose|fat\\s+lip)\\b(?!\\s+(?:shadow|palette|mask|costume|make-?up))`, "i"),

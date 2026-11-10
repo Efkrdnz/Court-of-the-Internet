@@ -62,7 +62,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         status: true,
         anonymous: true,
         accused: { select: { username: true } },
-        reports: { where: { status: "OPEN" }, select: { reason: true, target: true, details: true, createdAt: true, reporter: { select: { username: true } } } },
+        reports: { where: { status: "OPEN" }, select: { id: true, reason: true, target: true, details: true, createdAt: true, reporter: { select: { username: true } } } },
       },
     }),
     db.moderationAction.findMany({
@@ -91,6 +91,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             deliberationPausedAt: true,
             deliberationEndsAt: true,
             extensionsUsed: true,
+            reports: { where: { status: "OPEN" }, select: { id: true } },
             accused: { select: { username: true } },
             arguments: { select: { role: true, body: true, stricken: true } },
           },
@@ -106,6 +107,11 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
     db.case.count({ where: { OR: [{ openReports: { gt: 0 } }, { moderationState: "UNDER_REVIEW" }] } }),
     db.featuredCase.findUnique({ where: { day: utcDay() }, select: { caseId: true } }),
   ]);
+  // The seal this console shows, so a stale "Restore" can't lift a newer seal.
+  const sealSeen =
+    focusCase?.moderationState === "REMOVED"
+      ? ((await db.moderationAction.findFirst({ where: { caseId: focusCase.id, action: "REMOVE_CASE" }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true } }))?.id ?? "")
+      : "";
   // Name the player behind ban/unban entries (stored as an id).
   const targetIds = [...new Set(log.map((l) => l.targetUserId).filter((id): id is string => !!id))];
   const targetNames = new Map(
@@ -191,11 +197,11 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           ))}
           <div className="flex flex-col gap-3 border-t border-gold/20 pt-4">
             {focusCase.moderationState === "REMOVED" ? (
-              <ModForm op="restore" label="Restore case" caseId={focusCase.id} tone="teal" />
+              <ModForm op="restore" label="Restore case" caseId={focusCase.id} tone="teal" hidden={{ sealSeen }} />
             ) : (
               <ModForm op="remove" label="Remove (seal) case" caseId={focusCase.id} tone="crimson" withReason reasonPlaceholder="Reason shown to the author" confirmText="Seal this case? It disappears from all public pages." />
             )}
-            {focusCase.moderationState === "UNDER_REVIEW" ? <ModForm op="dismiss" label="Dismiss reports & make visible" caseId={focusCase.id} tone="teal" /> : null}
+            {focusCase.moderationState === "UNDER_REVIEW" ? <ModForm op="dismiss" label="Dismiss reports & make visible" caseId={focusCase.id} tone="teal" hidden={{ reportsSeen: focusCase.reports.map((r) => r.id).join(",") }} /> : null}
             {focusCase.status === "DELIBERATION" && focusCase.moderationState === "VISIBLE" ? (
               <ModForm op="adjourn" label={`Adjourn now (${pluralize(focusCase.guiltyVotes + focusCase.notGuiltyVotes, "vote")}; quorum rules apply)`} caseId={focusCase.id} hidden={{ endsAt: focusCase.deliberationEndsAt?.toISOString() ?? "", extensionsUsed: String(focusCase.extensionsUsed) }} confirmText="End deliberation now?" />
             ) : null}
@@ -275,7 +281,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                   ))}
                 </ul>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <ModForm op="dismiss" label="Dismiss reports" caseId={c.id} tone="teal" />
+                  <ModForm op="dismiss" label="Dismiss reports" caseId={c.id} tone="teal" hidden={{ reportsSeen: c.reports.map((r) => r.id).join(",") }} />
                   <ModForm op="remove" label="Remove" caseId={c.id} tone="crimson" withReason reasonPlaceholder="Reason" confirmText="Seal this case? It disappears from all public pages." />
                 </div>
               </li>

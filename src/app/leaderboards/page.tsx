@@ -185,8 +185,9 @@ export default async function LeaderboardsPage() {
           <p className="velvet p-6 text-center text-parchment/70">No reactions yet. Tough crowd.</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {entertaining.map((c, i) => (
-              <CaseFileCard key={c.id} c={c} footer={<p className="text-xs font-bold uppercase tracking-widest text-sepia">#{i + 1} · {c.reactionScore} reaction points</p>} />
+            {/* Equal scores share a rank, as on the other boards. */}
+            {entertaining.map((c) => (
+              <CaseFileCard key={c.id} c={c} footer={<p className="text-xs font-bold uppercase tracking-widest text-sepia">#{entertaining.findIndex((x) => x.reactionScore === c.reactionScore) + 1} · {c.reactionScore} reaction points</p>} />
             ))}
           </div>
         )}

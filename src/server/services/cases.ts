@@ -234,6 +234,10 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
       data: { status: claimedStatus, claimedById: userId, claimExpiresAt: expiresAt },
     });
     if (result.count === 0) {
+      const held = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, claimExpiresAt: true } });
+      if (held?.status === claimedStatus && held.claimExpiresAt && held.claimExpiresAt.getTime() <= now.getTime()) {
+        throw new CourtError("CONFLICT", "Another player's claim just ran out, but they get a short grace period to file. Try again in a couple of minutes.");
+      }
       throw new CourtError("CONFLICT", "Too slow, counselor! Another player already claimed this case.");
     }
 

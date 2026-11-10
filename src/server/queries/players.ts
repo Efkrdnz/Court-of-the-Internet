@@ -129,11 +129,15 @@ export async function getLeaderboards() {
   const [defenders, prosecutors, convicts, streakers, jurors, xpLeaders, entertaining] = await Promise.all([
     db.userStats.findMany({
       where: { user: activeUser, OR: [{ defenseWins: { gt: 0 } }, { defenseLosses: { gt: 0 } }] },
+      // Ranked in code by confidence-adjusted win rate: fetch the players with the most wins first,
+      // so at scale the window always holds the leaders.
+      orderBy: [{ defenseWins: "desc" }, { defenseLosses: "asc" }],
       select: { defenseWins: true, defenseLosses: true, longestDefenseStreak: true, currentDefenseStreak: true, user: { select: lbUser } },
-      take: 500,
+      take: 2000,
     }),
     db.userStats.findMany({
       where: { user: activeUser, OR: [{ prosecutionWins: { gt: 0 } }, { prosecutionLosses: { gt: 0 } }] },
+      orderBy: [{ prosecutionWins: "desc" }, { prosecutionLosses: "asc" }],
       select: {
         prosecutionWins: true,
         prosecutionLosses: true,
@@ -141,7 +145,7 @@ export async function getLeaderboards() {
         currentProsecutionStreak: true,
         user: { select: lbUser },
       },
-      take: 500,
+      take: 2000,
     }),
     db.userStats.findMany({
       where: { user: activeUser, timesConvicted: { gt: 0 } },
@@ -151,8 +155,9 @@ export async function getLeaderboards() {
     }),
     db.userStats.findMany({
       where: { user: activeUser, OR: [{ longestDefenseStreak: { gt: 0 } }, { longestProsecutionStreak: { gt: 0 } }] },
+      orderBy: [{ longestDefenseStreak: "desc" }, { longestProsecutionStreak: "desc" }],
       select: { longestDefenseStreak: true, longestProsecutionStreak: true, user: { select: lbUser } },
-      take: 500,
+      take: 2000,
     }),
     db.userStats.findMany({
       where: { user: activeUser, juryVotes: { gte: LEADERBOARD_MIN_JURY_VOTES } },

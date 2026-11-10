@@ -20,11 +20,15 @@ import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from
  */
 async function lockCase(tx: Tx, caseId: string, moderatorId: string) {
   await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
-  // Officers recuse themselves from cases they're a party to (accused, attorney or prosecutor):
-  // another officer has to seal, restore, dismiss, strike, adjourn or pin it.
-  const parties = await tx.case.findUnique({ where: { id: caseId }, select: { accusedId: true, attorneyId: true, prosecutorId: true } });
-  if (parties && [parties.accusedId, parties.attorneyId, parties.prosecutorId].includes(moderatorId)) {
-    throw new CourtError("FORBIDDEN", "You're a party to this case, so another officer of the court has to handle it.");
+  // Officers recuse themselves from cases they're part of (accused, attorney, prosecutor, or a
+  // juror who voted): another officer has to seal, restore, dismiss, strike, adjourn or pin it.
+  // A juror-officer could otherwise adjourn the moment the live split favoured their vote.
+  const parties = await tx.case.findUnique({
+    where: { id: caseId },
+    select: { accusedId: true, attorneyId: true, prosecutorId: true, votes: { where: { userId: moderatorId }, select: { id: true }, take: 1 } },
+  });
+  if (parties && ([parties.accusedId, parties.attorneyId, parties.prosecutorId].includes(moderatorId) || parties.votes.length > 0)) {
+    throw new CourtError("FORBIDDEN", "You're part of this case (as a party or a juror), so another officer of the court has to handle it.");
   }
 }
 
@@ -68,7 +72,7 @@ export async function fileReport(
       await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${input.caseId} FOR UPDATE`;
       const c = await tx.case.findUnique({
         where: { id: input.caseId },
-        select: { id: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true },
+        select: { id: true, number: true, slug: true, status: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true },
       });
       if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
       if (input.target !== "CASE") {
@@ -110,6 +114,17 @@ export async function fileReport(
         await tx.case.update({ where: { id: c.id }, data: { moderationState: "UNDER_REVIEW" } });
         await pauseDeliberation(tx, c.id); // voting is paused, so the deadline is too
         autoReview = true;
+        // Tell a live trial's parties their clock has stopped (they're told again when it resumes).
+        if (c.status === "DELIBERATION") {
+          for (const id of [c.accusedId, c.attorneyId, c.prosecutorId].filter(Boolean) as string[]) {
+            await notify(tx, id, {
+              type: "MODERATION",
+              title: `Case No. ${formatCaseNumber(c.number)} is under review`,
+              body: "Several players reported it, so the clerks are taking a look. The jury clock is paused until they're done.",
+              href: casePath(c),
+            });
+          }
+        }
       }
       return { autoReview };
     });
@@ -161,10 +176,20 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
   });
 }
 
-export async function restoreCase(moderatorId: string, caseId: string) {
+/**
+ * `sealSeen` is the seal the officer's console showed (its audit-log entry): if the case has been
+ * restored and sealed again since, this stale restore would lift a newer seal, so it's refused.
+ */
+export async function restoreCase(moderatorId: string, caseId: string, sealSeen?: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await lockCase(tx, caseId, moderatorId);
+    if (sealSeen !== undefined) {
+      const latestSeal = await tx.moderationAction.findFirst({ where: { caseId, action: "REMOVE_CASE" }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true } });
+      if (latestSeal && latestSeal.id !== sealSeen) {
+        throw new CourtError("CONFLICT", "This case was sealed again since you opened it. Reload the console and review the new seal before restoring.");
+      }
+    }
     const exists = await tx.case.findUnique({
       where: { id: caseId },
       select: {
@@ -215,20 +240,30 @@ export async function restoreCase(moderatorId: string, caseId: string) {
   });
 }
 
-export async function dismissReports(moderatorId: string, caseId: string) {
+/**
+ * Dismisses a case's open reports. `seenReportIds` are the reports the officer's console showed:
+ * only those are dismissed, so a report filed after the console loaded is never thrown out
+ * unread (it stays open and keeps the case under review).
+ */
+export async function dismissReports(moderatorId: string, caseId: string, seenReportIds?: string[]) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
     await lockCase(tx, caseId, moderatorId);
-    const dismissed = await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
+    const dismissed = await tx.report.updateMany({
+      where: { caseId, status: "OPEN", ...(seenReportIds ? { id: { in: seenReportIds } } : {}) },
+      data: { status: "DISMISSED", resolvedAt: clock.now() },
+    });
     const c = await tx.case.findUnique({ where: { id: caseId }, select: { moderationState: true } });
     if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
-    // Nothing to do (e.g. a second moderator's click): say so instead of filling the log.
-    if (dismissed.count === 0 && c.moderationState !== "UNDER_REVIEW") {
-      throw new CourtError("INVALID_STATE", "There are no open reports on that case.");
+    const stillOpen = await tx.report.findMany({ where: { caseId, status: "OPEN" }, select: { reporterId: true }, distinct: ["reporterId"] });
+    if (dismissed.count === 0) {
+      // Nothing this console knew about is left: say so instead of filling the log.
+      if (stillOpen.length > 0) throw new CourtError("CONFLICT", "New reports arrived since you opened this case. Reload the console and review them first.");
+      if (c.moderationState !== "UNDER_REVIEW") throw new CourtError("INVALID_STATE", "Those reports were already handled (another officer may have just dismissed them).");
     }
-    // Only an *under review* case is made visible again; a sealed one stays sealed.
-    const madeVisible = c.moderationState === "UNDER_REVIEW";
-    await tx.case.update({ where: { id: caseId }, data: { openReports: 0, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
+    // Only an *under review* case with nothing left open is made visible again; a sealed one stays sealed.
+    const madeVisible = c.moderationState === "UNDER_REVIEW" && stillOpen.length === 0;
+    await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
     if (madeVisible) {
       await resumeDeliberation(tx, caseId);
       // Participants of a live trial were told the clock waits for the review; tell them it's running.
@@ -251,7 +286,7 @@ export async function dismissReports(moderatorId: string, caseId: string) {
       }
     }
     await log(tx, moderatorId, "DISMISS_REPORTS", { caseId });
-    return { madeVisible, sealed: c.moderationState === "REMOVED" };
+    return { madeVisible, sealed: c.moderationState === "REMOVED", newer: stillOpen.length };
   });
 }
 
@@ -294,12 +329,12 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     const conflicted = await tx.case.count({
       where: {
         status: { not: "CLOSED" },
-        OR: [{ accusedId: moderatorId }, { attorneyId: moderatorId }, { prosecutorId: moderatorId }],
+        OR: [{ accusedId: moderatorId }, { attorneyId: moderatorId }, { prosecutorId: moderatorId }, { votes: { some: { userId: moderatorId } } }],
         AND: [{ OR: [{ accusedId: targetUserId }, { attorneyId: targetUserId }, { prosecutorId: targetUserId }, { claimedById: targetUserId }, { votes: { some: { userId: targetUserId } } }] }],
       },
     });
     if (conflicted) {
-      throw new CourtError("FORBIDDEN", "You're a party to an open trial this player is part of (or voted on), so another officer has to decide this.");
+      throw new CourtError("FORBIDDEN", "You're part of an open trial (as a party or juror) that this player is also part of, so another officer has to decide this.");
     }
     if (banned === !!target.bannedAt) {
       throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
