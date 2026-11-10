@@ -33,6 +33,10 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
     }
     if (hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
     await assertNotStaffName(input.displayName);
+    // Usernames show on profiles, case chips and leaderboards too: no "judge_wigsworth_" or
+    // "court_moderator" (audit 45 D1).
+    if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username uses an official title of the court. Pick your own.", "username");
+    await assertNotStaffName(input.username.replace(/_/g, " "), undefined, "username");
     if (await db.user.findUnique({ where: { username: input.username }, select: { id: true } })) {
       throw new CourtError("CONFLICT", "That username is already taken.", "username");
     }

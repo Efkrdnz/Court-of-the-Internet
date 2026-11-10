@@ -66,16 +66,16 @@ function containsNearly(hay: string, needle: string): boolean {
 const TITLE_WORDS = new Set(["judge", "clerk", "the", "court", "your", "honour", "honor", "justice", "officer", "bailiff", "chief", "presiding", "moderator", "admin", "marshal", "sheriff", "sir", "lord", "lady", "madam", "mister", "dame"]);
 
 /** Nobody (player or another officer) can take an officer of the court's display name ("Judge Wigsworth" is the real one). */
-export async function assertNotStaffName(displayName: string, selfId?: string) {
+export async function assertNotStaffName(displayName: string, selfId?: string, field: "displayName" | "username" = "displayName") {
   const staff = await db.user.findMany({
     where: { role: { in: ["ADMIN", "MODERATOR"] }, deletedAt: null, ...(selfId ? { id: { not: selfId } } : {}) },
-    select: { displayName: true },
+    select: { displayName: true, username: true },
     take: 200,
   });
   const key = nameKey(displayName);
   // "Former Citizen" is what deleted accounts show as, so a live player can't wear it either.
   if (key && key === nameKey("Former Citizen")) {
-    throw new CourtError("VALIDATION", "That name is reserved for retired accounts. Pick your own.", "displayName");
+    throw new CourtError("VALIDATION", "That name is reserved for retired accounts. Pick your own.", field);
   }
   // Exact matches, and names that contain a (reasonably long) officer's name: "Judge Wigsworth Jr".
   // …and near-misses one typo away ("Judge Wiggsworth").
@@ -90,8 +90,8 @@ export async function assertNotStaffName(displayName: string, selfId?: string) {
       .map(nameKey)
       .some((word) => word.length >= 5 && containsNearly(key, word));
   };
-  if (key && staff.some((u) => clashes(u.displayName))) {
-    throw new CourtError("VALIDATION", "That name belongs to an officer of the court. Pick your own.", "displayName");
+  if (key && staff.some((u) => clashes(u.displayName) || clashes(u.username.replace(/_/g, " ")))) {
+    throw new CourtError("VALIDATION", "That name belongs to an officer of the court. Pick your own.", field);
   }
 }
 
@@ -103,7 +103,10 @@ export async function registerUser(input: {
   role?: "PLAYER" | "MODERATOR" | "ADMIN";
 }) {
   // Staff titles anywhere in a player's name (officers are created with theirs).
-  if ((input.role ?? "PLAYER") === "PLAYER" && hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
+  if ((input.role ?? "PLAYER") === "PLAYER") {
+    if (hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
+    if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username uses an official title of the court. Pick your own.", "username");
+  }
   const passwordHash = await hashPassword(input.password);
   try {
     return await db.user.create({

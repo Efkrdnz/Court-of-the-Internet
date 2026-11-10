@@ -67,8 +67,14 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
             </p>
             {user && stats ? (
               <p className="mt-4 text-sm text-parchment/70">
-                You&apos;ve served on <strong className="text-gold-light">{stats.juryVotes}</strong> {stats.juryVotes === 1 ? "jury" : "juries"} · sided with the majority{" "}
-                <strong className="text-gold-light">{percent(decidedVotes ? stats.juryMajorityVotes / decidedVotes : null)}</strong> of decided cases ·{" "}
+                You&apos;ve served on <strong className="text-gold-light">{stats.juryVotes}</strong> {stats.juryVotes === 1 ? "jury" : "juries"} ·{" "}
+                {decidedVotes ? (
+                  <>
+                    sided with the majority in <strong className="text-gold-light">{percent(stats.juryMajorityVotes / decidedVotes)}</strong> of decided cases ·{" "}
+                  </>
+                ) : (
+                  <>no verdicts yet on your juries · </>
+                )}
                 <strong className="text-gold-light">{queue.total.toLocaleString("en-US")}</strong> {queue.total === 1 ? "case awaits" : "cases await"} your judgement
               </p>
             ) : null}

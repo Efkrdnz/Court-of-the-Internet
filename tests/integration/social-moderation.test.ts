@@ -24,7 +24,7 @@ import { loginWithLimits } from "@/server/services/login";
 import { auditStats } from "@/server/services/stats";
 import { getCommunityStats, getFeaturedCase, getHighlights, utcDay } from "@/server/queries/community";
 import { getLeaderboards } from "@/server/queries/players";
-import { authenticate, changePassword, deleteAccount, updateProfile } from "@/server/services/accounts";
+import { assertNotStaffName, authenticate, changePassword, deleteAccount, registerUser, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
 import { DEFENSE_TEXT, PROSECUTION_TEXT, advance, closeNow, achievementKeys, hours, stats, makeCase, makeUser, makeUsers, minutes, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
@@ -628,6 +628,12 @@ describe("moderation", () => {
       ).rejects.toMatchObject({ code: "VALIDATION", field: "displayName" });
     }
     await updateProfile(marshal, { displayName: "Marshal Wigsworth Mumford, Court Clerk", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
+    // Usernames can't pose as an officer either (audit 45 D1).
+    await expect(registerUser({ username: "court_moderator", displayName: "Bob", password: "objection-sustained" })).rejects.toMatchObject({ field: "username" });
+    for (const u of ["real_judge_", "realjudge", "real_marshal2", "judge realname"]) {
+      await expect(assertNotStaffName(u.replace(/_/g, " "), undefined, "username")).rejects.toMatchObject({ code: "VALIDATION", field: "username" });
+    }
+    await assertNotStaffName("pizza fan", undefined, "username");
   });
 
   it("a ban racing a trial's close never splits the verdict from its tally (audit 10 #2)", async () => {
@@ -876,7 +882,12 @@ describe("moderation", () => {
     const promos = await Promise.allSettled([setUserRole(admin, player, "MODERATOR"), setUserRole(admin, player, "MODERATOR")]);
     expect(promos.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     expect(await db.moderationAction.count({ where: { action: "SET_ROLE_MODERATOR", targetUserId: player } })).toBe(1);
+    // As an officer they may take a titled name; demoted, they don't keep it (audit 45 D2).
+    await updateProfile(player, { displayName: "Chief Justice Moderator", bio: "", avatar: DEFAULT_AVATAR, profileTheme: "velvet-rope", featuredBadge: null });
     await setUserRole(admin, player, "PLAYER");
+    const demoted = await db.user.findUniqueOrThrow({ where: { id: player } });
+    expect(demoted.displayName).toBe(demoted.username);
+    expect(await db.notification.count({ where: { userId: player, title: { contains: "no longer a court clerk" } } })).toBe(1);
     // A huge reason is capped in the audit log too (audit 38 D4).
     const target = await makeUser();
     await setBan(admin, target, true, "x".repeat(100_000));

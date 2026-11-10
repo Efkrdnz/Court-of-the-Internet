@@ -227,6 +227,16 @@ export const BENIGN = [
   "I keep a knife in the kitchen drawer for cheese and nobody else may use it.",
   "My brother got a knife in his Christmas stocking for whittling spoons.",
   "I put a knife in the dishwasher upside down just to annoy my flatmate.",
+  // Audit 45 near-misses.
+  "I set fire to the toast again and the smoke alarm went off at 7am.",
+  "I set fire to the birthday candles too early and the cake melted.",
+  "I scratched a line in the sand and dared my brother to cross it.",
+  "I sold my old textbooks to the kids in the year below for double.",
+  "I took fifty pounds of potatoes from the allotment by mistake.",
+  "I fed my roommate's dog half my sandwich when she wasn't looking.",
+  "I hope you all get the joke eventually, because I won't explain it.",
+  "I stole my neighbour's wifi password from the sticker on his router.",
+  "I read my roommate's mail by accident because it had my name on it.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -474,4 +484,15 @@ export const EVASIONS: [string, string][] = [
   ["he'll get a bullet in the head if he does it again", "violence"],
   ["I'll put a knife in his ribs", "violence"],
   ["I'm gonna stick a knife in my neighbour", "violence"],
+  // Audit 45.
+  ["I set fire to my neighbours shed because his dog barked all night", "serious-crime"],
+  ["I scratched a big line down the side of my bosses Tesla with my keys", "serious-crime"],
+  ["I sold my grandma's oxycodone pills to kids at the skate park", "serious-crime"],
+  ["I took fifty pounds from my mum's purse every week", "serious-crime"],
+  ["I took £20 out of my dad's wallet", "serious-crime"],
+  ["I fed my roommate's dog chocolate on purpose to make it sick", "serious-crime"],
+  ["I gave my neighbour's cat antifreeze", "serious-crime"],
+  ["I hope you all get cancer", "violence"],
+  ["I stole my neighbour's mail", "serious-crime"],
+  ["I stole packages from my neighbour's porch", "serious-crime"],
 ];

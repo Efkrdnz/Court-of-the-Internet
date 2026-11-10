@@ -5,6 +5,7 @@ import { clock } from "../clock";
 import { gameConfig } from "../config";
 import { CourtError, isUniqueViolation } from "../errors";
 import { casePath, formatCaseNumber, truncate } from "@/lib/text";
+import { hasCourtTitle } from "@/lib/validation";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
 import { releaseClaims, sealedCaseNotice } from "./claims";
@@ -162,10 +163,12 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
     await lockCase(tx, caseId, moderatorId);
     const c = await tx.case.findUnique({
       where: { id: caseId },
-      select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, title: true, moderationState: true, status: true },
+      select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, title: true, moderationState: true, status: true, deliberationEndsAt: true, deliberationPausedAt: true },
     });
     if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
     if (c.moderationState === "REMOVED") throw new CourtError("ALREADY_DONE", "That case is already sealed.");
+    // Time the trial still had (none if it was adjourned or already due), for the notice below.
+    const timeLeft = c.status === "DELIBERATION" ? timeLeftWhenPaused(c) : 0;
     // A sealed case can't be argued: hand any claim back so a later restore finds it on the docket.
     await releaseClaims(tx, { caseId }, sealedCaseNotice);
     await tx.case.update({ where: { id: caseId }, data: { moderationState: "REMOVED", removalReason: truncate(reason, 300) } });
@@ -183,7 +186,11 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
         await notify(tx, id, {
           type: "MODERATION",
           title: `Case No. ${formatCaseNumber(c.number)} was sealed`,
-          body: "A moderator paused this trial. It resumes with its remaining time if the case is restored.",
+          // An adjourned (or due) trial has no time left to resume with (audit 45 D5).
+          body:
+            timeLeft > 0
+              ? "A moderator paused this trial. It resumes with its remaining time if the case is restored."
+              : "A moderator sealed this trial after deliberation had ended. If the case is restored, the verdict is read straight away.",
         });
       }
     }
@@ -547,7 +554,23 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
     }
     if (role === "MODERATOR" && target.bannedAt) throw new CourtError("INVALID_STATE", "A player held in contempt can't be appointed. Lift the contempt first.");
     await tx.user.update({ where: { id: targetUserId }, data: { role } });
-    await log(tx, adminId, `SET_ROLE_${role}`, { targetUserId });
+    // A former officer doesn't keep a court title in their name once the badge is gone
+    // ("Chief Justice Moderator", audit 45 D2): they go by their username until they pick another.
+    let note: string | undefined;
+    if (role === "PLAYER") {
+      const u = await tx.user.findUniqueOrThrow({ where: { id: targetUserId }, select: { displayName: true, username: true } });
+      if (hasCourtTitle(u.displayName)) {
+        await tx.user.update({ where: { id: targetUserId }, data: { displayName: u.username } });
+        note = `Display name "${u.displayName}" reset to @${u.username} (court title)`;
+        await notify(tx, targetUserId, {
+          type: "MODERATION",
+          title: "You're no longer a court clerk",
+          body: "Your display name carried a court title, so it has been set to your username. You can pick a new one in Settings.",
+          href: "/settings",
+        });
+      }
+    }
+    await log(tx, adminId, `SET_ROLE_${role}`, { targetUserId, note });
   });
 }
 

@@ -939,6 +939,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 6 | Ban → unban let a juror vote again, the other way | a ban logs each struck vote (`STRIKE_VOTE`, per trial); `castVote` refuses a struck juror on that trial, and the vote booth says why | integration: refused on that trial, allowed on a later one |
 | 8 | Moderation search placeholder truncated at 320px | shorter placeholders | — |
 
+## Forty-fifth independent audit (fresh agent, build of commit 21a6135)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** SQL recomputation for all users matched; vote → ban → unban → re-vote refused with an explanation; claim races (3- and 6-way, expiry boundaries at −1.5, −2.01 and −3 min) always had one winner; 80 concurrent reaction toggles kept counters equal to rows; no 500s.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **Usernames could pose as officers** (`judge_wigsworth_`, `clerk_pemberton2`, `court_moderator`) | signups check usernames for court titles and against officers' names and usernames (before the signup rate limit) | integration |
+| D2 | **Court titles could be disguised** ("Clërk", "M0derator", "Adm1n", "Admln", "Moderatorr", "Officer Bob"); a demoted officer kept "Chief Justice Moderator" | titles are matched after the officer-name folding (look-alikes, accents, digits for letters, doubled letters); "Officer" added; "Judge …"/"Sheriff …" documented as allowed puns; demotion resets a titled display name to the username and tells the player | unit: 23 refused, 15 allowed; integration: demotion |
+| D3 | Filter misses: "set fire to my neighbours shed", "scratched a line down … my bosses Tesla", selling oxycodone, "fifty pounds from my mum's purse", feeding a dog chocolate, "I hope you all get cancer", stealing mail/parcels | patterns for each (possessives without apostrophes, named amounts, prescription opioids, pet poisons, disease wishes, post and doorstep parcels); near-misses kept (burnt toast, a line in the sand, textbooks, potatoes, half a sandwich, wifi passwords, reading mail by accident); README lists them | corpus: 215 everyday sentences, 239 evasions |
+| D4 | Spoofable per-IP limits without a proxy | already documented as a deployment requirement | — |
+| D5 | Sealing an adjourned trial said it "resumes with its remaining time"; the jury page said "sided with the majority — of decided cases" with none decided | the seal notice says the verdict is read on restore when no time was left; the jury line says "no verdicts yet on your juries" | — |
+| D5b | A claimer racing an on-time filing got the grace-period message | accurate at that moment (the holder was within grace); no change | — |
+| D6 | Zalgo marks below a name touched the @handle line at 320px | the profile heading gets extra line height; (title links are stretched over the whole card, so their tap target is the card; a bidi-override title is stored with the override removed, which is intended) | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

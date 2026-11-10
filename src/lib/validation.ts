@@ -4,6 +4,7 @@ import { LIMITS } from "./limits";
 import { charCount, normalizeText } from "./text";
 import { avatarSchema } from "./avatar";
 import { ADJECTIVES, CRITTERS } from "./alias";
+import { skeleton } from "./confusables";
 
 const text = (opts: { min?: number; max: number; label: string; multiline?: boolean }) =>
   z
@@ -93,22 +94,29 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
 
 /**
  * Staff titles anywhere in a name ("Head Moderator", "Bob (Moderator)", "Clerk of the Court",
- * "Chief Justice Bob"): players may not wear them (audit 44 #1: only a title at the start was
- * caught). Officers' own names carry titles ("Clerk Pemberton"), so the services apply this to
- * signups and to players' profile changes. Puns stay fine: "Judge Mental", "Marshal Law".
+ * "Chief Justice Bob", "court_moderator"): players may not wear them (audit 44 #1). Both sides are
+ * folded the way the officer-name check folds: look-alike letters, accents, digits for letters
+ * and doubled letters ("Clërk", "M0derator", "Adm1n", "Admln", "Moderatorr"), audit 45 D2.
+ * Officers' own names carry titles ("Clerk Pemberton"), so the services apply this to signups,
+ * usernames and players' profile changes. "Judge …" and "Sheriff …" stay allowed as everyday puns
+ * ("Judge Mental"); real officers wear a badge on their profile.
  */
-const COURT_TITLE = new RegExp(
-  [
-    "presiding\\s+judge", "chief\\s+(?:judge|justice|clerk)", "lord\\s+justice", "justice\\s+of\\s+the", "the\\s+judge", "head\\s+judge",
-    "court\\s+(?:clerk|officer|official|staff|admin\\w*|moderator)", "clerks?", "the\\s+court", "of\\s+the\\s+court",
-    "bailiffs?", "(?:your|his|her|their)\\s+hono(?:u)?r", "moderators?", "mods?", "modteam", "admins?", "administrators?",
-    "sysops?", "staff", "support\\s+team", "site\\s+team", "officers?\\s+of", "officials?\\s+(?:court|staff|moderator|admin\\w*)",
-  ].map((t) => `(?<![\\p{L}\\p{N}])${t}(?![\\p{L}\\p{N}])`).join("|"),
-  "iu",
-);
+const TITLE_FOLD: Record<string, string> = { "0": "o", "1": "i", l: "i", "|": "i", "!": "i", "3": "e", "4": "a", "@": "a", "5": "s", $: "s", "7": "t", "8": "b" };
+function foldTitle(s: string): string {
+  const folded = [...skeleton(foldFullWidth(s)).normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()].map((ch) => TITLE_FOLD[ch] ?? ch).join("");
+  return ` ${folded.replace(/[^\p{L}\p{N}]+/gu, " ").replace(/(\p{L})\1+/gu, "$1").trim()} `;
+}
+const COURT_TITLES = [
+  "presiding judge", "chief judge", "chief justice", "chief clerk", "lord justice", "justice of the", "the judge", "head judge",
+  "court clerk", "court officer", "court official", "court staff", "court admin", "court administrator", "court moderator",
+  "clerk", "clerks", "the court", "of the court", "bailiff", "bailiffs", "your honour", "your honor", "his honour", "his honor",
+  "her honour", "her honor", "their honour", "their honor", "moderator", "moderators", "mod", "mods", "modteam", "admin", "admins",
+  "administrator", "administrators", "sysop", "sysops", "staff", "support team", "site team", "officer", "officers",
+].map(foldTitle);
 
 export function hasCourtTitle(name: string): boolean {
-  return COURT_TITLE.test(foldFullWidth(name).normalize("NFKC").replace(/[_.\-]+/g, " "));
+  const folded = foldTitle(name);
+  return COURT_TITLES.some((title) => folded.includes(title));
 }
 export const COURT_TITLE_MESSAGE = "That's an official title of the court. Pick your own name.";
 

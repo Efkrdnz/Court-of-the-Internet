@@ -68,7 +68,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               {user.isPatron ? <span className="pill" style={{ background: v.accent2, color: v.ink }}>Patron of the court</span> : null}
               {user.banned ? <span className="pill bg-crimson text-ivory">Held in contempt</span> : null}
             </div>
-            <h1 className={`mt-2 font-display font-black leading-tight [--fit-max:2.25rem] [--fit-min:0.75rem] sm:[--fit-max:3rem] ${FIT_FONT}`} style={fitStyle(user.displayName)}>
+            <h1 className={`mt-2 pb-[0.2em] font-display font-black leading-snug [--fit-max:2.25rem] [--fit-min:0.75rem] sm:[--fit-max:3rem] ${FIT_FONT}`} style={fitStyle(user.displayName)}>
               {user.displayName}
             </h1>
             <p className="opacity-70">@{user.username} · sworn in on {formatDate(user.createdAt)}</p>

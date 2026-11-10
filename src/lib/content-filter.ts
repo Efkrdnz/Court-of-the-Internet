@@ -163,6 +163,8 @@ const HATE_STATEMENTS = [
 ];
 
 const VIOLENCE = [
+  // Wishing a disease on someone ("I hope you all get cancer", audit 45).
+  new RegExp(`\\b(?:hope|wish|pray|praying)\\s+(?:that\\s+)?(?:${TARGET}|you\\s+all|they|he|she)\\s+(?:all\\s+)?(?:gets?|catch(?:es)?|develops?)\\s+(?:cancer|aids|ebola|a\\s+tumou?r|leprosy|the\\s+plague)\\b`, "i"),
   // "My roommate is getting a knife in the ribs", "he'll get a bullet in the head" (audit 44 #2).
   // Not the idiom "a knife in the back".
   /\b(?:getting|get|gets|gonna\s+get|going\s+to\s+get|will\s+get|deserves?|has\s+earned|earned\s+(?:himself|herself|themselves))\s+(?:a\s+|one\s+)?(?:knife|blade|shank|bullet|bullets|machete|hammer|bat|screwdriver)\s+(?:in|to|through|between|across)\s+(?:the|his|her|their|your|ur)\s+(?:ribs|gut|guts|stomach|belly|head|skull|face|neck|throat|chest|heart|kneecaps?|eyes?|spine)\b/i,
@@ -239,6 +241,15 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 45: arson of someone's property ("set fire to my neighbours shed": apostrophes optional).
+  /\bset\s+fire\s+to\s+(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:shed|house|home|car|garage|flat|apartment|fence|bins?|office|shop|barn|van|truck|caravan|bike|hair|dog|cat|garden|door|hedge|letterbox)\b/i,
+  // A line keyed or scratched into someone's car ("down the side of my bosses Tesla").
+  /\b(?:scratched|keyed|carved|gouged)\s+(?:a\s+|some\s+)?(?:\w+\s+)?(?:line|lines|scratch|scratches|words?|swear\s+words?|message)\s+(?:down|along|across|into|on|in)\s+(?:the\s+(?:\w+\s+)?(?:side|door|doors|bonnet|hood|roof|paint|paintwork|boot)\s+of\s+)?(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:car|truck|van|motorbike|motorcycle|tesla|bmw|mercedes|porsche|ferrari|audi|toyota|honda|ford|jeep|lamborghini|range\s+rover|land\s+rover|volvo|lexus|mustang|corvette|vw|volkswagen|nissan|kia|hyundai|mini|fiat|vauxhall|peugeot|renault)\b/i,
+  // Poisoning a pet ("fed my roommate's dog chocolate", "gave the cat antifreeze").
+  /\b(?:fed|gave|feeding|giving)\s+(?:(?:my|his|her|their|the|a|our)\s+(?:[\w-]+(?:'s|’s|s')\s+)?|someone'?s\s+)(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|guinea\s+pig|ferret|budgie)\s+(?:some\s+|a\s+bit\s+of\s+|lots\s+of\s+)?(?:chocolate|grapes|raisins|antifreeze|xylitol|rat\s+poison|poison|bleach|slug\s+pellets|weed\s+killer|onions?)\b/i,
+  // Stealing someone's post or parcels, or parcels off a doorstep.
+  /\b(?:stole|steal|stealing|nicked|pinched|swiped|took|taking)\s+(?:all\s+(?:of\s+)?)?(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:mail|post|parcels?|packages?|deliveries|letters)\b(?!\s+(?:keys?|box|code|password|room))/i,
+  /\b(?:stole|steal|stealing|nicked|pinched|swiped|took|taking)\s+(?:\w+\s+){0,2}(?:parcels?|packages?|deliveries|mail|post)\s+(?:from|off|out\s+of)\s+(?:(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)|the\s+neighbou?rs'?)\s+(?:\w+\s+)?(?:porch|doorstep|door|mailbox|letterbox|front\s+step)\b/i,
   HARM_DONE,
   // Dosing someone's food or drink, or spiking it.
   // Needs the act ("put", "slipped"…) or "in/into" the drink, so "Molly spilled her coffee" and
@@ -283,7 +294,7 @@ const SERIOUS = [
   // Anything sold to minors.
   /\b(?:sold|sell|selling|gave|supplied)\s+(?:\w+\s+){0,3}(?:weed|cannabis|marijuana|pot|vapes?|alcohol|booze|pills|drugs)\s+to\s+(?:\w+\s+)?(?:kids|children|minors|teens|teenagers|students|underage|high[\s-]?schoolers|middle[\s-]?schoolers|freshmen)\b/i,
   // Dealing hard drugs.
-  /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:\w+\s+){0,2}(?:cocaine|heroin|meth|fentanyl|crack|mdma|ecstasy|hard\s+drugs|drugs)\b/i,
+  /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:\S+\s+){0,2}(?:cocaine|heroin|meth|fentanyl|crack|mdma|ecstasy|hard\s+drugs|drugs|oxycodone|oxycontin|oxys?|opioids|opiates|xanax|ketamine|percocet|codeine|tramadol|adderall)\b/i,
   // "coke" is also the drink ("sold the last Coke"): only bare "sold coke" / "dealing some coke".
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:some\s+)?coke\b(?!\s+(?:zero|cans?|bottles?))/,
   // Burglary (your own car or piggy bank is fine), shoplifting something big, fraud, hit-and-run.
@@ -345,7 +356,7 @@ const SERIOUS = [
   /\b(?:threw|chucked|hurled|lobbed)\s+(?:a|an|the|some)\s+(?:brick|rock|stone|bottle|chair)s?\s+(?:through|at|into)\s+(?:(?:my|his|her|their|the|a)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|the\s+(?:neighbou?rs?'?|shop'?s?|school'?s?))\s*(?:\w+\s+)?(?:window|windscreen|windshield|car|house|door)s?\b/i,
   // Stealing kit from work, or money from someone's purse.
   /\b(?:stole|nicked|pinched|swiped)\s+(?:a|an|the|some|two|three)\s+(?:\w+\s+)?(?:laptops?|macbooks?|ipads?|tablets?|phones?|iphones?|cameras?|tvs?|monitors?|projectors?)\s+(?:from|out\s+of)\s+(?:my|the|our|work|his|her|their)\b/i,
-  /\b(?:stole|took|nicked|pinched|swiped|pocketed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|cards?)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:purse|wallet|handbag|bag|account|piggy\s+bank)\b/i,
+  /\b(?:stole|took|nicked|pinched|swiped|pocketed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|cards?|pounds|quid|dollars|bucks|euros|fivers?|tenners?|twenties|[$£€]\s?\d[\d,.]*)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:purse|wallet|handbag|bag|account|piggy\s+bank)\b/i,
   // Getting into someone's accounts ("logged into my ex's Snapchat", "guessed my sister's password").
   /\b(?:logged|broke|got|hacked)\s+into\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:(?!xbox|playstation|psn|steam|nintendo|switch|game|gaming|netflix|spotify|disney|minecraft|fortnite|roblox|hulu)\w+\s+)?(?:snapchat|instagram|insta|facebook|tiktok|twitter|email|e-mail|gmail|account|accounts|phone|icloud|bank|whatsapp|messages|dms|laptop)\b/i,
   /\b(?:guess(?:ed|ing)|crack(?:ed|ing))\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s)\s+(?:\w+\s+)?(?:password|passcode|pin)\b/i,
