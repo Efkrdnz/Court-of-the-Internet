@@ -866,7 +866,7 @@ test("§12 forms: signup reports every server-side problem at once (audit 54 D5)
   await page.locator("#su-password").fill("objection-sustained");
   await page.locator("#su-confirm").fill("objection-sustained");
   await page.getByRole("checkbox").first().check();
-  await page.getByRole("button", { name: /sign up|join|sworn|create/i }).first().click();
+  await page.getByRole("button", { name: /Swear me in/ }).click();
   await expect(page.getByText("That username is already taken.").first()).toBeVisible();
   await expect(page.getByText(/official title of the court/).first()).toBeVisible();
 });
