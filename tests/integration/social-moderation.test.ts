@@ -488,6 +488,23 @@ describe("moderation", () => {
     await expect(pinFeaturedCase(mod, c.id, utcDay())).rejects.toMatchObject({ code: "INELIGIBLE" });
   });
 
+  it("two officers pinning different cases at once: one pins, the other is told (audit 37 D5)", async () => {
+    process.env.COURT_QUORUM = "3";
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const [modA, modB] = [await makeUser("pin_a", "MODERATOR"), await makeUser("pin_b", "ADMIN")];
+    const cases = [await makeCase(accused), await makeCase(accused)];
+    for (const c of cases) {
+      await toDeliberation(c.id, attorney, prosecutor);
+      await voteAll(c.id, await makeUsers(3, `pin${c.id.slice(-4)}`), 2);
+      await closeNow(c.id);
+    }
+    // Both consoles showed no featured case yet.
+    const results = await Promise.allSettled([pinFeaturedCase(modA, cases[0].id, utcDay(), ""), pinFeaturedCase(modB, cases[1].id, utcDay(), "")]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.find((r) => r.status === "rejected")).toMatchObject({ reason: { code: "CONFLICT" } });
+    expect(await db.moderationAction.count({ where: { action: "PIN_FEATURED" } })).toBe(1);
+  });
+
   it("banned players earn nothing new and their open cases are on hold (audit 14 #6)", async () => {
     process.env.COURT_QUORUM = "3";
     const [accused, attorney, prosecutor, lawyer] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];

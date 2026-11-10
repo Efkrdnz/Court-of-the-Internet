@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireUserOrRedirect } from "@/server/auth/current-user";
 import { db } from "@/server/db";
 import { grantableItems } from "@/server/services/moderation";
+import { utcDay } from "@/server/queries/community";
 import { cosmeticLabel } from "@/lib/cosmetics";
 
 const ROLE_LABEL: Record<string, string> = { PLAYER: "Player", MODERATOR: "Moderator", ADMIN: "Admin" };
@@ -44,7 +45,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   };
   const logHref = (page: number) => pageHref({ log: page }, "log-heading");
 
-  const [queue, log, focusCase, focusUser, totals, queueCount] = await Promise.all([
+  const [queue, log, focusCase, focusUser, totals, queueCount, featuredToday] = await Promise.all([
     db.case.findMany({
       where: { OR: [{ openReports: { gt: 0 } }, { moderationState: "UNDER_REVIEW" }] },
       orderBy: [{ moderationState: "desc" }, { openReports: "desc" }, { updatedAt: "desc" }],
@@ -103,6 +104,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
       : null,
     db.report.count({ where: { status: "OPEN" } }),
     db.case.count({ where: { OR: [{ openReports: { gt: 0 } }, { moderationState: "UNDER_REVIEW" }] } }),
+    db.featuredCase.findUnique({ where: { day: utcDay() }, select: { caseId: true } }),
   ]);
   // Name the player behind ban/unban entries (stored as an id).
   const targetIds = [...new Set(log.map((l) => l.targetUserId).filter((id): id is string => !!id))];
@@ -197,7 +199,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
             {focusCase.status === "DELIBERATION" && focusCase.moderationState === "VISIBLE" ? (
               <ModForm op="adjourn" label={`Adjourn now (${pluralize(focusCase.guiltyVotes + focusCase.notGuiltyVotes, "vote")}; quorum rules apply)`} caseId={focusCase.id} hidden={{ endsAt: focusCase.deliberationEndsAt?.toISOString() ?? "", extensionsUsed: String(focusCase.extensionsUsed) }} confirmText="End deliberation now?" />
             ) : null}
-            {focusCase.status === "CLOSED" && focusCase.moderationState === "VISIBLE" ? <ModForm op="feature" label="Pin as featured case of the day" caseId={focusCase.id} /> : null}
+            {focusCase.status === "CLOSED" && focusCase.moderationState === "VISIBLE" ? <ModForm op="feature" label="Pin as featured case of the day" caseId={focusCase.id} hidden={{ featuredSeen: featuredToday?.caseId ?? "" }} /> : null}
           </div>
         </section>
       ) : null}

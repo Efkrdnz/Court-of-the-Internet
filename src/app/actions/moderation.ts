@@ -72,7 +72,8 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
         break;
       }
       case "feature":
-        await pinFeaturedCase(mod.id, caseId, utcDay());
+        // The featured case the console showed, so two officers pinning at once don't silently overwrite each other.
+        await pinFeaturedCase(mod.id, caseId, utcDay(), formData.has("featuredSeen") ? str(formData, "featuredSeen") : undefined);
         message = "Pinned as today's featured case.";
         break;
       case "ban":

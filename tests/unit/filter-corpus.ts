@@ -162,6 +162,17 @@ export const BENIGN = [
   "I threw my cat's toy across the room",
   "I scratched my own car on the gatepost and blamed the wind",
   "I spray painted my own bike gold",
+  // Audit 37 (a false positive) and near-misses of its patterns
+  "I logged into my brother's Xbox account to finish his game",
+  "I'm going to bomb my driving test tomorrow, I just know it",
+  "The new album is going to blow up the charts",
+  "I made a bath bomb in my garage and it fizzed everywhere",
+  "I'm bringing a gun-shaped water pistol to the office party",
+  "I pulled a knife out of the drawer to cut the cake",
+  "Someone should tell the defendant to apologise",
+  "The accused deserves to be beaten at chess",
+  "I stole from the biscuit tin at work",
+  "I stole my mom's diamond ring idea for my Halloween costume",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -329,4 +340,21 @@ export const EVASIONS: [string, string][] = [
   ["I threw a brick through my ex's window.", "serious-crime"],
   ["I nicked a laptop from my office.", "serious-crime"],
   ["I took money out of my grandma's purse.", "serious-crime"],
+  // Audit 37
+  ["I'm going to bomb my school tomorrow morning, nobody will see it coming at all.", "violence"],
+  ["I'm going to blow up my office", "violence"],
+  ["I made a pipe bomb in my garage", "violence"],
+  ["I'm bringing a gun to work tomorrow", "violence"],
+  ["I pulled a knife on my coworker", "serious-crime"],
+  ["I held a knife to my brother's throat", "serious-crime"],
+  ["I threatened my roommate with a knife", "serious-crime"],
+  ["Someone should shoot the defendant", "violence"],
+  ["The accused deserves to be beaten", "violence"],
+  ["Go hang yourself", "violence"],
+  ["My roommate should just kill himself", "violence"],
+  ["I stole from the till at work", "serious-crime"],
+  ["I took twenty dollars out of the cash register", "serious-crime"],
+  ["I stole my mom's diamond ring and pawned it", "serious-crime"],
+  ["I stole my roommate's laptop and sold it", "serious-crime"],
+  ["I pepper sprayed my neighbour", "serious-crime"],
 ];

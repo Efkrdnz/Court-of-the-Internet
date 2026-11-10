@@ -448,9 +448,21 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
   });
 }
 
-export async function pinFeaturedCase(moderatorId: string, caseId: string, day: string) {
+export async function pinFeaturedCase(moderatorId: string, caseId: string, day: string, featuredSeen?: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
+    // One pin for a day at a time; if another officer pinned a different case since this console
+    // loaded, say so instead of silently replacing it.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"pin:" + day}))`;
+    if (featuredSeen !== undefined) {
+      const current = await tx.featuredCase.findUnique({ where: { day }, select: { caseId: true, pinnedBy: true, case: { select: { number: true } } } });
+      if (current && current.pinnedBy && current.caseId !== caseId && current.caseId !== featuredSeen) {
+        throw new CourtError(
+          "CONFLICT",
+          `Another officer just pinned Case No. ${formatCaseNumber(current.case.number)} for today. Reload the console, then pin again if you still want to replace it.`,
+        );
+      }
+    }
     await lockCase(tx, caseId, moderatorId);
     const c = await tx.case.findUnique({
       where: { id: caseId },

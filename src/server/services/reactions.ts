@@ -19,7 +19,8 @@ export async function toggleReaction(userId: string, caseId: string, type: React
         where: { id: caseId },
         select: { status: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true, anonymous: true },
       });
-      if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+      if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
+      if (c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case has been sealed by the clerks.");
       if (c.moderationState === "UNDER_REVIEW") throw new CourtError("INVALID_STATE", "Reactions are paused while the clerks review this case.");
       if (c.status !== "DELIBERATION" && c.status !== "CLOSED") {
         throw new CourtError("INVALID_STATE", "Reactions open once both sides have argued.");

@@ -20,7 +20,10 @@ export async function decidedJuryVotes(userIds: string[]): Promise<Map<string, n
 /** Usernames are lowercase letters, digits and underscores; anything else can't exist (and NUL bytes upset Postgres). */
 export const isPlausibleUsername = (u: string) => /^[a-z0-9_]{1,40}$/.test(u.toLowerCase());
 
-export async function getProfile(username: string, viewer: { id: string } | null) {
+/** Cases per page of a profile's history. */
+export const HISTORY_PAGE = 12;
+
+export async function getProfile(username: string, viewer: { id: string } | null, historyPage = 1) {
   if (!isPlausibleUsername(username)) return null;
   const user = await db.user.findUnique({
     where: { username: username.toLowerCase() },
@@ -55,7 +58,13 @@ export async function getProfile(username: string, viewer: { id: string } | null
     ],
   };
   const [historyRows, historyTotal, recentVotes] = await Promise.all([
-    db.case.findMany({ where: historyWhere, orderBy: { createdAt: "desc" }, take: 12, select: caseCardSelect }),
+    db.case.findMany({
+      where: historyWhere,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (historyPage - 1) * HISTORY_PAGE,
+      take: HISTORY_PAGE,
+      select: caseCardSelect,
+    }),
     db.case.count({ where: historyWhere }),
     db.vote.count({ where: { userId: user.id, createdAt: { gte: new Date(clock.now().getTime() - 7 * 86_400_000) } } }),
   ]);

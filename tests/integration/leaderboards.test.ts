@@ -4,7 +4,7 @@ import { resetClock } from "@/server/clock";
 import { getLeaderboards } from "@/server/queries/players";
 import { toggleReaction } from "@/server/services/reactions";
 import { wilsonLowerBound, LEADERBOARD_MIN_DECIDED, LEADERBOARD_MIN_JURY_VOTES } from "@/lib/progression";
-import { closeNow, makeCase, makeUser, makeUsers, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
+import { advance, closeNow, hours, makeCase, makeUser, makeUsers, resetDb, toDeliberation, useFakeClock, voteAll } from "../support/helpers";
 
 beforeEach(async () => {
   await resetDb();
@@ -119,5 +119,20 @@ describe("leaderboards", () => {
     const lb = await getLeaderboards();
     expect(lb.convicts).toHaveLength(10);
     expect(lb.convictsMoreTied).toBe(3);
+  });
+
+  it("pages a profile's case history instead of stopping at 12 (audit 37 D2)", async () => {
+    const { getProfile } = await import("@/server/queries/players");
+    const accused = await makeUser("prolific_confessor");
+    for (let i = 0; i < 13; i++) {
+      if (i > 0 && i % 5 === 0) advance(hours(25)); // the 5-a-day cap
+      await makeCase(accused);
+    }
+    const first = await getProfile("prolific_confessor", null, 1);
+    const second = await getProfile("prolific_confessor", null, 2);
+    expect(first?.historyTotal).toBe(13);
+    expect(first?.history).toHaveLength(12);
+    expect(second?.history).toHaveLength(1);
+    expect(new Set([...first!.history, ...second!.history].map((c) => c.id)).size).toBe(13);
   });
 });

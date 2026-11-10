@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { pluralize } from "@/lib/text";
 import Link from "next/link";
+import { getCurrentUser } from "@/server/auth/current-user";
 import clsx from "clsx";
 import { getLeaderboards } from "@/server/queries/players";
 import { percent } from "@/lib/format";
@@ -91,7 +92,9 @@ function Board<T extends Person>({
 }
 
 export default async function LeaderboardsPage() {
-  const lb = await getLeaderboards();
+  const [lb, viewer] = await Promise.all([getLeaderboards(), getCurrentUser()]);
+  // The case board respects the viewer's muted categories, like every other case list.
+  const entertaining = viewer?.mutedCategories.length ? lb.entertaining.filter((c) => !viewer.mutedCategories.includes(c.category)) : lb.entertaining;
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <header className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_auto]">
@@ -176,11 +179,11 @@ export default async function LeaderboardsPage() {
           <span className="text-parchment">Most entertaining cases</span>
         </h2>
         <p className="mb-6 text-center text-sm text-parchment/60">Ranked by weighted gallery reactions: Legendary ×3, Hilarious and Outrageous ×2, Relatable ×1.</p>
-        {lb.entertaining.length === 0 ? (
+        {entertaining.length === 0 ? (
           <p className="velvet p-6 text-center text-parchment/70">No reactions yet. Tough crowd.</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {lb.entertaining.map((c, i) => (
+            {entertaining.map((c, i) => (
               <CaseFileCard key={c.id} c={c} footer={<p className="text-xs font-bold uppercase tracking-widest text-sepia">#{i + 1} · {c.reactionScore} reaction points</p>} />
             ))}
           </div>

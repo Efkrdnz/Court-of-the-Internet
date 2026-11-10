@@ -832,6 +832,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 2 | Filter misses in covered categories: knife threats ("slit your throat", "knife him", "gut my roommate"), "smash his skull", "push him down the stairs", "throw her off the balcony", attacking or hitting strangers / bouncers / an old lady, throwing or hurting someone's pet, scratching, spray-painting or keying a neighbour's car, a brick through a window, stealing a laptop from work, money from a grandma's purse | patterns for each, near-misses kept ("slit the envelope", "knife the cake", "gut the fish", "push him to finish the report", "throw her a surprise party", "attacked the buffet", "my cat's toy", "scratched my own car", "pushed my sister off the couch"); README coverage updated | corpus: 148 everyday sentences, 156 evasions; 341 seed texts pass |
 | 4 | Refused votes counted toward the vote limit; verdict notices were written for jurors who'd deleted their account | votes reserve an attempt and give it back when refused (looser ceiling on attempts); deleted jurors are skipped | — |
 
+## Thirty-seventh independent audit (fresh agent, build of commit b9d12f4)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** Vitest 590/590 on 3 of 3 runs; no deadlocks or 500s; a stats recomputation of every player matched; 74 new everyday confessions with one false positive.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | Filter misses: bombing or blowing up a school/office, pipe bombs, a gun brought to work; a knife pulled on / held to / used to threaten someone; harm wished on the defendant or accused; "go hang yourself"; "should just kill himself"; plain till theft ("stole from the till", "$20 out of the cash register"); stealing someone's ring or laptop to pawn or sell; pepper spray. False positive: "logged into my brother's Xbox account" | patterns for each (courtroom roles count as people); near-misses kept ("bomb my driving test", "blow up the charts", "a bath bomb", a gun-shaped water pistol, "pulled a knife out of the drawer", "beaten at chess", "the biscuit tin", "the ring idea"); game and streaming accounts aren't "hacking" | corpus: 158 everyday sentences, 172 evasions; 341 seed texts pass |
+| D2 | A profile's case history stopped at 12 with no way to the rest | the history pages, 12 per page, with Older/Newer and "Page n of m" | integration: 13 cases → 12 + 1, all distinct |
+| D3 | A stale tab showed the wrong reaction state after a toggle | the bar takes the server's answer for whether the reaction is on | — |
+| D4 | Confessions differing by one word passed the duplicate check | the same player's near-duplicates are caught at a lower similarity | — |
+| D5 | Two officers pinning different cases at once: both told "pinned", last write won | pins for a day are serialised; a pin made since the console loaded is reported instead of overwritten | integration: one pins, the other gets a conflict, one log entry |
+| D6 | "That case could not be found" for a vote or reaction on a just-sealed case; refused filings used the argument limit | says it was sealed; refused filings give their attempt back | — |
+| note | "Most entertaining" ignored muted categories | filtered for the viewer | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

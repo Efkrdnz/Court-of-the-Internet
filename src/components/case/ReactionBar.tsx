@@ -96,6 +96,14 @@ export function ReactionBar({
       } else if (result.data) {
         const d = result.data.counts as Record<string, number>;
         setCounts({ HILARIOUS: d.hilariousCount, OUTRAGEOUS: d.outrageousCount, LEGENDARY: d.legendaryCount, RELATABLE: d.relatableCount });
+        // The server says where the toggle actually landed (a stale tab may have been out of date).
+        const nowActive = result.data.active;
+        setActive((s) => {
+          const n = new Set(s);
+          if (nowActive) n.add(type);
+          else n.delete(type);
+          return n;
+        });
       }
     });
   }

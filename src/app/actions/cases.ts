@@ -97,8 +97,15 @@ export async function submitArgumentAction(
     if (role !== "DEFENSE" && role !== "PROSECUTION") throw new CourtError("VALIDATION", "Unknown role.");
     const input = argumentSchema.parse(formObject(formData));
     screenArgument(input.body);
-    await enforceRateLimit(`argue:${user.id}`, 10, 600);
-    const result = await submitArgument(user.id, input.caseId, role, input.body);
+    // Only filings that go through count (an expired claim or a conflict gives the attempt back).
+    const refund = await reserveAttempt([{ key: `argue:${user.id}`, limit: 10, windowSeconds: 600, message: "Order in the court! You're doing that too fast. Try again in a moment." }]);
+    let result;
+    try {
+      result = await submitArgument(user.id, input.caseId, role, input.body);
+    } catch (e) {
+      await refund();
+      throw e;
+    }
     target = `${casePath(result)}?filed=${role === "DEFENSE" ? "defense" : "prosecution"}`;
   } catch (e) {
     return toFailure(e);

@@ -67,7 +67,7 @@ async function checkConfessionAllowed(client: Tx | typeof db, userId: string, in
     orderBy: { createdAt: "desc" },
   });
   for (const r of recent) {
-    if (r.title.toLowerCase() === input.title.toLowerCase() || similarity(r.confession, input.confession) > 0.75) {
+    if (r.title.toLowerCase() === input.title.toLowerCase() || similarity(r.confession, input.confession) > 0.6) { // one changed word still counts as the same crime
       throw new CourtError("CONFLICT", "You've already confessed to this crime recently. Double jeopardy!", "confession");
     }
   }
@@ -438,7 +438,9 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
         moderationState: true,
       },
     });
-    if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    // Someone on the jury page already knows the case: say it was sealed rather than "not found".
+    if (c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case has just been sealed by the clerks, so its jury is dismissed.");
     if (c.status !== "DELIBERATION") throw new CourtError("INVALID_STATE", "This case isn't accepting votes.");
     // Review first: a paused trial's clock is stopped, so its wall-clock deadline may have passed.
     if (c.moderationState === "UNDER_REVIEW") {

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import clsx from "clsx";
 import { getCurrentUser } from "@/server/auth/current-user";
-import { getProfile, isPlausibleUsername } from "@/server/queries/players";
+import { getProfile, HISTORY_PAGE, isPlausibleUsername } from "@/server/queries/players";
+import { pageParam } from "@/lib/text";
 import { db } from "@/server/db";
 import { ACHIEVEMENTS, TIER_STYLE, getAchievement } from "@/lib/achievements";
 import { getTheme } from "@/lib/cosmetics";
@@ -13,7 +14,7 @@ import { AchievementBadge } from "@/components/art/badges";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { Laurel } from "@/components/art/props";
 
-type Props = { params: Promise<{ username: string }> };
+type Props = { params: Promise<{ username: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
@@ -32,11 +33,12 @@ const PATTERNS: Record<string, string> = {
   none: "none",
 };
 
-export default async function ProfilePage({ params }: Props) {
+export default async function ProfilePage({ params, searchParams }: Props) {
   const { username } = await params;
+  const historyPage = pageParam((await searchParams).history, 1000);
   const viewer = await getCurrentUser();
   if (username.toLowerCase() === "me") redirect(viewer ? `/u/${viewer.username}` : "/login?next=/u/me");
-  const profile = await getProfile(username, viewer);
+  const profile = await getProfile(username, viewer, historyPage);
   if (!profile) notFound();
   const { user, stats: s, level } = profile;
   const theme = getTheme(user.profileTheme);
@@ -186,7 +188,7 @@ export default async function ProfilePage({ params }: Props) {
           <span className="text-parchment">Case history ({profile.historyTotal})</span>
         </h2>
         {profile.history.length === 0 ? (
-          <p className="velvet p-6 text-center text-parchment/70">A spotless record. Suspicious.</p>
+          <p className="velvet p-6 text-center text-parchment/70">{historyPage > 1 && profile.historyTotal > 0 ? "No older cases." : "A spotless record. Suspicious."}</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {profile.history.map((c) => (
@@ -202,6 +204,24 @@ export default async function ProfilePage({ params }: Props) {
             ))}
           </div>
         )}
+        {/* The full history pages through, so no case is out of reach. */}
+        {profile.historyTotal > HISTORY_PAGE ? (
+          <nav aria-label="Case history pages" className="mt-4 flex items-center gap-4 text-sm">
+            {historyPage > 1 ? (
+              <Link href={`/u/${user.username}${historyPage > 2 ? `?history=${historyPage - 1}` : ""}#history-heading`} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+                ← Newer
+              </Link>
+            ) : null}
+            <span className="text-parchment/60">
+              Page {Math.min(historyPage, Math.ceil(profile.historyTotal / HISTORY_PAGE))} of {Math.ceil(profile.historyTotal / HISTORY_PAGE)}
+            </span>
+            {historyPage * HISTORY_PAGE < profile.historyTotal ? (
+              <Link href={`/u/${user.username}?history=${historyPage + 1}#history-heading`} className="inline-flex min-h-9 items-center font-semibold text-gold-light underline">
+                Older →
+              </Link>
+            ) : null}
+          </nav>
+        ) : null}
       </section>
     </div>
   );

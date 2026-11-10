@@ -138,7 +138,7 @@ function spacedOutWords(text: string): string[] {
 // A person (or pet) on the receiving end, for the past-tense harm patterns below. Objects stay
 // fine: "I killed it at karaoke", "I shot a video", "I stabbed the pizza box".
 const VICTIM =
-  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex|stranger|date|passenger|driver|customer|waiter|waitress|cashier|bartender|bouncer|referee|tourist|neighbour's\\s+kid))";
+  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex|stranger|date|defendant|accused|prosecutor|attorney|lawyer|juror|judge|passenger|driver|customer|waiter|waitress|cashier|bartender|bouncer|referee|tourist|neighbour's\\s+kid))";
 // Who a threat is aimed at: a person (VICTIM) or "you"/"everyone".
 const TARGET = `(?:you|ya|u|y'all|everyone|everybody|people|${VICTIM})`;
 // Games and toys: "I beat my dad at chess", "killed my brother at Fortnite", "shot my sister with a water pistol".
@@ -160,7 +160,13 @@ const HATE_STATEMENTS = [
 ];
 
 const VIOLENCE = [
-  /\bkill\s+(?:your\s*self|urself|yourselves)\b/i,
+  /\b(?:kill|hang|shoot|off|unalive)\s+(?:your\s*self|urself|yourselves)\b/i,
+  // "My roommate should just kill himself" (not the everyday "I should just kill myself after that exam").
+  /\b(?:should|ought\s+to|needs?\s+to|deserves?\s+to)\s+(?:just\s+|go\s+)?(?:kill|hang|shoot|off)\s+(?:him|her|them|your)sel(?:f|ves)\b/i,
+  // Bombs and weapons at school or work.
+  /\b(?:going\s+to|gonna|i\s*(?:will|'ll)|want\s+to|plan(?:ning)?\s+to)\s+(?:bomb|blow\s+up|shoot\s+up|firebomb|torch)\s+(?:my|the|a|his|her|their|our)\s+(?:\w+\s+)?(?:school|office|work|workplace|building|church|mosque|synagogue|temple|house|home|mall|station|airport|plane|train|bus|class|classroom|university|college|uni|hospital|party|wedding|concert|stadium)\b/i,
+  /\b(?:pipe|nail|car|letter)\s+bombs?\b|\bmolotov/i,
+  /\b(?:bring(?:ing)?|brought|tak(?:e|ing)|took|carry(?:ing)?)\s+(?:a|my|his|her|the)\s+(?:loaded\s+)?(?:gun|rifle|pistol|handgun|shotgun|firearm|machete)\s+(?:to|into)\s+(?:work|school|class|church|uni|college|the\s+\w+|my\s+\w+)\b/i,
   /\bkys\b/i,
   // Threats against someone named: "I'm going to kill Kevin", "I'll murder Sarah", "Gonna stab Dave".
   new RegExp(`\\b(?:[Gg]oing\\s+to|[Gg]onna|I\\s*(?:will|'ll|would|'d))\\s+(?:kill|murder|stab|shoot|strangle|shank|poison|choke|drown|end|punch|smack|hurt|beat\\s+up)\\s+${NAMED}`),
@@ -199,7 +205,7 @@ const VIOLENCE = [
   /\bi\s+know\s+where\s+(?:you|u|he|she|they)\s+lives?\b(?!\s+is\s+what)/i,
   /\bcoming\s+for\s+(?:you|u|him|her|them)\b.{0,30}\bwith\s+(?:a|my)\s+(?:bat|baseball\s+bat|knife|gun|crowbar|hammer|machete|axe)\b/i,
   // "My boss deserves to die", "my landlord should die".
-  new RegExp(`\\b${TARGET}\\s+(?:deserves?\\s+to|should(?:\\s+just)?|needs?\\s+to|ought\\s+to)\\s+(?:die|be\\s+killed|be\\s+shot|rot\\s+in\\s+hell)\\b`, "i"),
+  new RegExp(`\\b${TARGET}\\s+(?:deserves?\\s+to|should(?:\\s+just)?|needs?\\s+to|ought\\s+to)\\s+(?:die|be\\s+killed|be\\s+shot|be\\s+stabbed|be\\s+hanged|be\\s+beaten(?:\\s+up)?|be\\s+hurt|be\\s+punched|suffer|rot\\s+in\\s+hell)\\b${NOT_A_GAME}`, "i"),
   new RegExp(`\\bput\\s+${TARGET}\\s+in\\s+(?:the\\s+|a\\s+)?(?:hospital|icu|coma|ground|grave|morgue)\\b`, "i"),
   new RegExp(`\\b(?:make\\s+sure|so\\s+that)\\s+${TARGET}\\s+(?:never|doesn'?t|won'?t)\\s+wakes?\\s+up\\b`, "i"),
   new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll)|want\\s+to)\\s+run\\s+${TARGET}\\s+over\\b`, "i"),
@@ -274,6 +280,13 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
+  // A knife or gun drawn on, held to, or used to threaten someone.
+  /\b(?:pulled|drew|brandished|waved|held|pointed|put)\s+(?:a|my|the)\s+(?:knife|gun|machete|blade|pistol|rifle)\s+(?:on|at|to|against)\s+(?:him|her|them|someone|somebody|(?:my|his|her|their|a|an|the)\s+[\w'’-]+)/i,
+  /\bthreatened\s+(?:\w+\s+){1,3}with\s+(?:a|my|his|her)\s+(?:knife|gun|bat|machete|hammer|crowbar|blade)\b/i,
+  new RegExp(`\\b(?:pepper[\\s-]?sprayed|maced|tasered|tased)\\s+${VICTIM}\\b`, "i"),
+  // Stealing someone's jewellery, or their gadgets to sell.
+  /\bstole\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+){0,2}(?:rings?|necklaces?|jewel\w*|earrings?|bracelets?|watch(?:es)?)\b(?!\s+(?:idea|design|style|look))/i,
+  /\bstole\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:laptops?|phones?|iphones?|ipads?|tablets?|cameras?|consoles?|bikes?|wallets?|purses?)\b.{0,40}\b(?:pawned|sold|flogged|fenced|kept\s+it)\b/i,
   // Hitting a stranger, a bouncer, an old lady…; attacking someone with something.
   /\bi\s+(?:punched|kicked|slapped|headbutted|elbowed|bit|attacked|assaulted|hit)\s+(?:a|an|the|some|this|that)\s+(?:\w+\s+)?(?:stranger|bouncer|old\s+lady|old\s+man|old\s+woman|pensioner|woman|man|guy|girl|lady|passenger|driver|cyclist|customer|waiter|waitress|cashier|bartender|referee|teenager|kid|child|security\s+guard|cop|police\s+officer)\b/i,
   /\b(?:pushed|shoved|knocked)\s+(?:a|an|the|some|this|that|my|his|her)\s+(?:\w+\s+)?(?:stranger|bouncer|old\s+lady|old\s+man|old\s+woman|pensioner|woman|man|guy|girl|lady|passenger|cyclist|kid|child|neighbou?r|roommate|flatmate|coworker|colleague)\s+(?:over|down|into|off|against|onto|out\s+of|in\s+front\s+of)\b/i,
@@ -288,7 +301,7 @@ const SERIOUS = [
   /\b(?:stole|nicked|pinched|swiped)\s+(?:a|an|the|some|two|three)\s+(?:\w+\s+)?(?:laptops?|macbooks?|ipads?|tablets?|phones?|iphones?|cameras?|tvs?|monitors?|projectors?)\s+(?:from|out\s+of)\s+(?:my|the|our|work|his|her|their)\b/i,
   /\b(?:stole|took|nicked|pinched|swiped|pocketed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|cards?)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:purse|wallet|handbag|bag|account|piggy\s+bank)\b/i,
   // Getting into someone's accounts ("logged into my ex's Snapchat", "guessed my sister's password").
-  /\b(?:logged|broke|got|hacked)\s+into\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:snapchat|instagram|insta|facebook|tiktok|twitter|email|e-mail|gmail|account|accounts|phone|icloud|bank|whatsapp|messages|dms|laptop)\b/i,
+  /\b(?:logged|broke|got|hacked)\s+into\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:(?!xbox|playstation|psn|steam|nintendo|switch|game|gaming|netflix|spotify|disney|minecraft|fortnite|roblox|hulu)\w+\s+)?(?:snapchat|instagram|insta|facebook|tiktok|twitter|email|e-mail|gmail|account|accounts|phone|icloud|bank|whatsapp|messages|dms|laptop)\b/i,
   /\bguessed\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s)\s+(?:\w+\s+)?(?:password|passcode|pin)\b/i,
   // Drugging someone ("drugged my date", "roofied a girl"), alcohol slipped into their drink.
   /\broofi(?:ed|es|e|ing)\b/i,
@@ -326,7 +339,8 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:my|our|the)\s+(?:neighbou?rs?|ex|boss|coworkers?|co-workers?|landlords?|teachers?)['’]?s?\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shed|office)\b/i,
   /\b(?:hit|knocked(?:\s+over)?|ran\s+over|struck|clipped)\s+(?:a|an|the|some)\s+(?:\w+\s+)?(?:pedestrian|cyclist|biker|jogger|kid|child|person|man|woman|girl|boy)\b.{0,60}\b(?:(?:drove|sped|took|ran)\s+(?:off|away)|kept\s+(?:on\s+)?driving|didn'?t\s+stop|fled|left\s+the\s+scene)\b/i,
   // Stealing from the till at work, the safe or a charity tin.
-  /\b(?:stole|steal|stealing|took|take|taking|nicked|pocketed|skimmed)\s+(?:\w+\s+){0,2}(?:money|cash|notes)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
+  /\b(?:stole|stolen|stealing)\s+(?:\w+\s+){0,2}from\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
+  /\b(?:stole|steal|stealing|took|take|taking|nicked|pocketed|skimmed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|(?:\w+\s+)?(?:dollars|pounds|quid|euros|bucks)|[$£€]\s?\d+)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:the|my|our|a|work's)\s+(?:\w+\s+)?(?:till|cash\s+register|register|safe|charity\s+(?:tin|box|bucket)|collection\s+(?:plate|box)|donations?\s+(?:box|jar))\b/i,
   /\bhit[\s-]and[\s-]run\b/i,
   /\b(?:stole|steal|stealing|cloned|skimmed|swiped)\s+(?:\w+(?:'s|s')?\s+){0,2}(?:credit|debit|bank)\s+cards?\b|\bcredit[\s-]card\s+(?:fraud|theft)\b|\bidentity\s+theft\b/i,
   /\brap(?:e|ed|ing|ist)\b/i,
