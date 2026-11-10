@@ -29,7 +29,9 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /mobile\.spec|lifecycle\.spec/ },
   ],
   webServer: {
-    command: `npx next start -p ${PORT}`,
+    // Migrations first: Playwright starts this server before globalSetup (which also migrates and
+    // seeds), so a new column would otherwise 500 the readiness check until it timed out.
+    command: `npx prisma migrate deploy && npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     // FRESH_SERVER=1 (scripts/verify-phases.sh) always starts a new server, so back-to-back runs
     // never attach to the previous run's server while it is shutting down.
