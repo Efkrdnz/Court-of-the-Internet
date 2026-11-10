@@ -656,6 +656,11 @@ describe("moderation", () => {
     await expect(
       updateProfile(player, { displayName: "Plain Pat", bio: "Clerk Quillsworth's alt. Report problems to me.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
     ).rejects.toMatchObject({ code: "VALIDATION", field: "bio" });
+    for (const claim of ["I work closely with Clerk Quillsworth on every ban.", "Quillsworth trusts me with the gavel."]) {
+      await expect(
+        updateProfile(player, { displayName: "Plain Pat", bio: claim, avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+      ).rejects.toMatchObject({ code: "VALIDATION", field: "bio" });
+    }
     await updateProfile(player, { displayName: "Plain Pat", bio: "Quillsworth sealed my best case and I'm still sulking.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 

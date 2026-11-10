@@ -5,14 +5,31 @@ import { INVISIBLE, STRAY_ZWJ } from "./confusables";
  * React escapes on output, so this is about hygiene, not HTML sanitisation:
  * it strips invisible/control characters and tames whitespace abuse.
  */
+/** Combining marks any script can borrow: the ones "Zalgo" text piles up. */
+const GENERIC_DIACRITIC = /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/u;
+
 export function normalizeText(input: string, { multiline = true }: { multiline?: boolean } = {}): string {
   let s = input.normalize("NFC");
   // Invisible characters: zero-width, bidi controls, soft hyphens, fillers (spoofing / filter evasion).
   s = s.replace(INVISIBLE, "").replace(STRAY_ZWJ, "");
-  // "Zalgo" text: at most two combining marks per character (real languages rarely need more:
-  // Vietnamese "ệ" has two). Counted on the decomposed form, so a precomposed "á" plus extra
-  // accents counts its own accent too.
-  s = s.normalize("NFD").replace(/(\p{M}{2})\p{M}+/gu, "$1").normalize("NFC");
+  // "Zalgo" text: at most two generic combining diacritics per character (Vietnamese "ệ" has two),
+  // counted on the decomposed form so a precomposed "á" counts its own accent. Scripts with their
+  // own vowel and tone marks (Burmese "ကျွန်", Tibetan "བསྒྲུབས", Hebrew "שִּׁ") stack more, and
+  // those marks are kept, up to six per character in all (audit 56 D1: the old cap of two marks
+  // of any kind deleted real vowels).
+  s = s
+    .normalize("NFD")
+    .replace(/\p{M}+/gu, (marks) => {
+      let generic = 0;
+      let out = "";
+      for (const m of marks) {
+        if (GENERIC_DIACRITIC.test(m) && ++generic > 2) continue;
+        if ([...out].length >= 6) break;
+        out += m;
+      }
+      return out;
+    })
+    .normalize("NFC");
   // Combining marks with nothing to sit on (at the start, or after a space) are stray.
   s = s.replace(/(^|\s)\p{M}+/gu, "$1");
   // ASCII control chars except tab/newline.

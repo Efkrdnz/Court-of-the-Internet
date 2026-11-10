@@ -491,6 +491,22 @@ describe("officers claiming the presiding judge's role (audit 50 D1)", () => {
   });
 });
 
+describe("scripts with stacked marks survive normalisation (audit 56 D1)", () => {
+  it.each(["ကျွန်တော် ထမင်း စားခဲ့တယ်", "ကြော်", "བསྒྲུབས", "שִּׁ", "Tiếng Việt"])("keeps %j", (text) => {
+    expect(normalizeText(text)).toBe(text.normalize("NFC"));
+  });
+  it("still caps zalgo diacritics", () => {
+    const zalgo = "e" + "\u0301\u0300\u0302\u0303\u0304\u0305\u0306\u0307".repeat(5);
+    expect([...normalizeText(zalgo).normalize("NFD")].length).toBeLessThanOrEqual(3);
+  });
+  it.each(["anon_pigeon", "sneaky_otter", "sneakypigeon_a1b2"])("refuses the alias-like username %j (audit 56 D5)", (u) => {
+    expect(usernameSchema.safeParse(u).success).toBe(false);
+  });
+  it.each(["I run the report queue around here.", "Report a case and I will personally make sure it gets sealed."])("flags the bio %j (audit 56 D3)", (bio) => {
+    expect(bioImpersonatesStaff(bio)).toBe(true);
+  });
+});
+
 describe("court titles in names (audit 44 #1)", () => {
   it.each(["Head Moderator", "Site Admin", "Clerk of the Court", "Court Officer Bob", "Bob (Moderator)", "Official Court Clerk", "Chief Justice Bob", "Staff", "Bailiff", "Moderator Bob", "The Bailiff", "Mod Team", "Bob_the_Mod", "Your Honour", "\uFF2D\uFF4F\uFF44",
     // Folded like officer names (audit 45 D2), and usernames.

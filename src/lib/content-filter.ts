@@ -122,6 +122,12 @@ const PLATFORM_HANDLE = new RegExp(
   `\\b${PLATFORMS}\\b.{0,25}?\\b${NOT_A_TIME}(?=[a-z0-9._]*[_\\d.])(?=[a-z0-9._]*[a-z])[a-z0-9._]{4,}\\b|\\b${NOT_A_TIME}(?=[a-z0-9._]*[_\\d])(?=[a-z0-9._]*[a-z])[a-z0-9._]{4,}\\b.{0,15}?\\bon\\s+${PLATFORMS}\\b`,
   "i",
 );
+// "DM me on insta at pettykingofficial", "add me on discord pettyking": an invitation to find
+// someone on a platform followed by a name (not "tonight", "for more"), audit 56 D2.
+const PLATFORM_INVITE = new RegExp(
+  `\\b(?:dm|message|add|follow|find|hit\\s+up|contact|text)\\s+(?:me|us|him|her|them)\\s+(?:up\\s+)?on\\s+${PLATFORMS}\\s+(?:at\\s+|as\\s+|under\\s+|:\\s*|@)?@?(?!(?:at|as|and|or|but|for|if|to|the|today|tomorrow|tonight|now|please|later|sometime|instead|too|again|anytime|whenever)\\b)[a-z0-9._]{4,}`,
+  "i",
+);
 const NUMBER_WORDS: Record<string, string> = { zero: "0", oh: "0", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6", seven: "7", eight: "8", nine: "9" };
 /** A phone number spelled out ("five five five, eight six seven…"): 7+ digit words in a row. */
 function spelledPhone(text: string): boolean {
@@ -176,13 +182,15 @@ const NAMED = "(?!(?:It|This|That|The|Time|Monday|Tuesday|Wednesday|Thursday|Fri
 // "…my brother's high score" is about a thing, unless the possession is alive ("my brother's cat").
 const NOT_THEIR_THING = "(?!['’]s\\s+(?!(?:\\w+\\s+)?(?:cat|dog|puppy|kitten|pet|hamster|parrot|rabbit|bird|horse|baby|kid|son|daughter|wife|husband)\\b))";
 // "shot my brother a dirty look", "shot my boss a text": a gesture or message, not a gun.
-const NOT_A_GESTURE = "(?!\\s+(?:a|an|the|some|another)\\s+(?:\\w+\\s+){0,2}(?:look|looks|glance|text|message|email|e-mail|smile|wink|grin|stare|dm|photo|pic|picture|video|selfie|reply|question|warning|eyebrow|thumbs)\\b)";
+const NOT_A_GESTURE = "(?!\\s+(?:a|an|the|some|another)\\s+(?:[\\w-]+\\s+){0,3}(?:look|looks|glance|text|message|email|e-mail|smile|wink|grin|stare|dm|photo|pic|picture|video|selfie|reply|question|warning|eyebrow|thumbs)\\b)";
 
 const GROUPS =
   "(?:gay|lesbian|bi|trans|transgender|queer|black|white|brown|asian|jewish|muslim|christian|hindu|sikh|mexican|arab|african|chinese|indian|disabled|autistic|immigrant|refugee)\\s+(?:people|folks|men|women|kids|guys|ones)|(?:gays|lesbians|trans\\s+people|blacks|whites|asians|jews|muslims|christians|hindus|sikhs|mexicans|arabs|africans|immigrants|refugees|migrants|foreigners|women|men)";
 const HATE_STATEMENTS = [
   new RegExp(`\\b(?:all\\s+)?(?:${GROUPS})\\s+(?:are|r)\\s+(?:all\\s+|just\\s+|nothing\\s+but\\s+)?(?:disgusting|vermin|animals|subhuman|scum|parasites|rats|cockroaches|filth|trash|garbage|evil|inferior|a\\s+disease|a\\s+plague|a\\s+cancer|savages|degenerates|criminals|terrorists|abominations?)\\b`, "i"),
   /\bjews\s+(?:control|run|own)\s+(?:the|all|every)\b/i,
+  // Saying or using the n-word (audit 56 D2; the "f-bomb" is just swearing).
+  /\b(?:said|say|saying|used|use|using|shouted|yelled|dropped|typed|wrote|called\s+(?:him|her|them|someone|my\s+\w+|a\s+\w+))\s+(?:the\s+)?n[-\s]?(?:word|bomb)\b/i,
   // Audit 54 D1: hating or harming a group, Nazi slogans and Holocaust denial, "women belong in the kitchen".
   // (Not bare "men"/"women" after "I hate": that's everyday breakup hyperbole.)
   new RegExp(`\\b(?:hate|despise|loathe|detest|can'?t\\s+stand)\\s+(?:all\\s+)?(?:the\\s+|those\\s+)?(?!(?:wo)?men\\b)(?:${GROUPS})\\b`, "i"),
@@ -197,6 +205,8 @@ const HATE_STATEMENTS = [
 ];
 
 const VIOLENCE = [
+  // "I will find where you live" (audit 56 D2).
+  /\b(?:i(?:'ll|\s+will|\s*'m\s+going\s+to|\s+am\s+going\s+to)|gonna|going\s+to)\s+find\s+(?:out\s+)?where\s+(?:you|u|he|she|they|you\s+all)\s+(?:all\s+)?lives?\b/i,
   // "Kill all [group]" (audit 50 D2), with or without "lol jk".
   new RegExp(`\\b(?:kill|murder|exterminate|gas|shoot|nuke|wipe\\s+out)\\s+(?:all|every|each)\\s+(?:of\\s+)?(?:the\\s+|those\\s+)?(?:${GROUPS})\\b`, "i"),
   // Wishing a disease on someone ("I hope you all get cancer", audit 45).
@@ -277,6 +287,11 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 56 D2: a camera hidden in a bathroom or bedroom; a laxative brownie given to someone;
+  // someone who can't swim pushed into water.
+  /\b(?:hid|hide|hiding|stashed|concealed)\s+(?:a|my|the|some)\s+(?:\w+\s+)?cam(?:era)?s?\s+in\s+(?:the|a|my|his|her|their|our)\s+(?:\w+\s+)?(?:bathroom|shower|bedroom|changing\s+rooms?|toilets?|locker\s+room|restroom|dressing\s+room)\b/i,
+  /\b(?:gave|fed|served|offered|handed)\s+(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+\s+(?:a\s+|some\s+)?(?:laxative|ex-?lax|spiked|drugged|weed|pot|edible)\s+(?:\w+\s+)?(?:brownies?|cookies?|cake|cupcakes?|coffee|drink|tea|smoothie|gummies|treats?|muffins?)\b/i,
+  new RegExp(`\\b(?:pushed|shoved|threw|held|dragged)\\s+${VICTIM}\\s+(?:into|in|under)\\s+(?:the|a)\\s+(?:\\w+\\s+)?(?:pool|river|lake|sea|canal|water|pond)\\b.{0,60}\\b(?:can'?t\\s+swim|cannot\\s+swim|could\\s*n'?t\\s+swim|almost\\s+drowned|nearly\\s+drowned)`, "i"),
   // Audit 54 D1: a pet tortured or set alight ("the neighbour's cat"), upskirt photos, hidden
   // cameras in changing rooms, groping, touching without consent, unsolicited nudes.
   /\b(?:tortured|torturing|abused|mutilated|skinned|drowned|strangled|kicked|burned|burnt|stabbed|starved|hanged|poisoned)\s+(?:my|his|her|their|the|a|an|our|someone'?s)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bunny|bird|parrot|pet|guinea\s+pig|horse|goat|chicken|duck|tortoise|ferret|budgie)s?\b/i,
@@ -359,7 +374,7 @@ const SERIOUS = [
   // Dealing hard drugs.
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:\S+\s+){0,2}(?:cocaine|heroin|meth|fentanyl|crack|mdma|ecstasy|hard\s+drugs|drugs|oxycodone|oxycontin|oxys?|opioids|opiates|xanax|ketamine|percocet|codeine|tramadol|adderall)\b/i,
   // "coke" is also the drink ("sold the last Coke"): only bare "sold coke" / "dealing some coke".
-  /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:some\s+)?coke\b(?!\s+(?:zero|cans?|bottles?))/,
+  /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:some\s+|a\s+bit\s+of\s+|a\s+little\s+|bags\s+of\s+|grams?\s+of\s+)?coke\b(?!\s+(?:zero|cans?|bottles?|floats?))/,
   // Burglary (your own car or piggy bank is fine), shoplifting something big, fraud, hit-and-run.
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:(?:a|an|the|two|three|some|several)\s+)?(?:pairs?\s+of\s+)?(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|headphones|earbuds|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
@@ -611,7 +626,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const detachedHandle = /@\s+[a-z0-9_.]{3,}\b.{0,25}\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b/i.test(text);
   // "pettyking#1234" (Discord tag), "u/pettyking" (Reddit).
   const taggedHandle = /\b[a-z][\w.]{2,31}#\d{4}\b/i.test(text) || /(?:^|[^\w/])u\/[a-z0-9_-]{3,}\b/i.test(text);
-  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || detachedHandle || taggedHandle) return fail("handle");
+  if (HANDLE.test(text) || PLATFORM_HANDLE.test(text) || PLATFORM_COLON.test(text) || PLATFORM_INVITE.test(text) || detachedHandle || taggedHandle) return fail("handle");
 
   // Idioms and names that contain a listed word ("a chink in my armour", "Dick Van Dyke", "Spic and Span").
   const forWords = text.replace(/\bchinks?\s+in\s+(?:\w+\s+)?armou?r\b|\bvan\s+dyke\b|\bspic\s+and\s+span\b/gi, " ");
@@ -643,7 +658,8 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   }
   // Hate without slurs: a protected group called vermin, disgusting, subhuman… or a stock
   // conspiracy line ("Jews control the banks").
-  if (HATE_STATEMENTS.some((re) => re.test(text))) return fail("hate");
+  // Also the leetspeak-decoded copy ("j3ws control the banks"), audit 56 D2.
+  if (HATE_STATEMENTS.some((re) => re.test(text) || re.test(text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c)))) return fail("hate");
   // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
   const decoded = text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c);
   if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined) || re.test(squeezed))) return fail("violence");

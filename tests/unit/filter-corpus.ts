@@ -266,6 +266,12 @@ export const BENIGN = [
   "I touched the cake inappropriately before the birthday girl blew out the candles.",
   "I kissed my dog goodbye and she was asleep on the sofa, so I took her treat.",
   "I hope your kids get the joke one day, I wrote on the fridge note.",
+  // Audit 56 near-misses (and one former false positive).
+  "I shot my friend a really passive-aggressive text about the rent.",
+  "I hid a cake in the guest bathroom for the surprise party.",
+  "I pushed my brother into the pool and he swam off laughing.",
+  "My mum dropped the f-bomb at the PTA meeting and I filmed it.",
+  "Follow me on tiktok for more cooking disasters, said my nan.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -562,4 +568,13 @@ export const EVASIONS: [string, string][] = [
   ["I touched my coworker inappropriately at the party when she was drunk and could not say no.","serious-crime"],
   ["I took a photo up my classmate's skirt on the bus and shared it with the group chat for laughs.","serious-crime"],
   ["I left a note saying I hope your kids get cancer after the neighbor parked in my spot for the third time.","violence"],
+  // Audit 56.
+  ["I hid a camera in the guest bathroom.","serious-crime"],
+  ["I gave my coworker a laxative brownie and watched the chaos.","serious-crime"],
+  ["I will find where you live, juror, and you'll pay for voting guilty.","violence"],
+  ["I sell a bit of coke to my coworkers on Fridays.","serious-crime"],
+  ["I think the j3ws control all the banks and media.","hate"],
+  ["I pushed my brother into the pool even though he can't swim, he almost drowned.","serious-crime"],
+  ["DM me on insta at pettykingofficial for more","handle"],
+  ["I used the n-word at the barbecue and nobody laughed","hate"],
 ];

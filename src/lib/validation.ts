@@ -202,6 +202,9 @@ const BIO_IMPERSONATION = [
   // Audit 55 D2: announcements accounts, "in charge of bans", notices from the court, "verify your account".
   /\b(?:official\s+)?(?:court\s+of\s+the\s+internet\s+|court\s+|site\s+)?announcements?\s+(?:account|channel|page)\b/iu,
   /\bin\s+charge\s+of\s+(?:bans|banning|reports|moderation|the\s+court|appeals|verdicts|contempt|unbans)\b/iu,
+  // Audit 56 D3: "I run the report queue", "I'll personally make sure it gets sealed".
+  /\bi\s+(?:run|manage|handle|own|control|watch|check)\s+(?:the\s+)?(?:report|moderation|ban|appeals?|review)s?\s+(?:queue|desk|team|system|inbox)\b/iu,
+  /\bi\s*(?:'ll|will|can)\s+(?:personally\s+)?(?:make\s+sure|ensure|see\s+to\s+it|guarantee)\b.{0,40}\b(?:sealed|banned|removed|struck|unsealed|restored|overturned|held\s+in\s+contempt)\b/iu,
   /\bnotice\s+from\s+(?:the\s+)?(?:judge|court|clerks?|admin|moderat|bench|bailiff|staff)/iu,
   /\b(?:must|need\s+to|should|have\s+to)\s+verify\s+(?:your|their|all)\s+accounts?\b|\bverify\s+your\s+accounts?\s+(?:at|on|via|with|here)\b/iu,
   /\b(?:held\s+in\s+contempt|banned|suspended)\b.{0,40}\b(?:dm|pm|message|contact|ping|write\s+to)\s+me\b|\b(?:dm|pm|message|contact|ping)\s+me\b.{0,40}\b(?:held\s+in\s+contempt|banned|unban|appeal)/iu,
@@ -246,7 +249,15 @@ export const usernameSchema = z
   // stops anyone posing as a former citizen.
   .refine((u) => !/^(admin|moderator|mod|judge|court|system|anonymous|deleted|null|undefined)$|^deleted_/.test(u), {
     message: "That username is reserved by the court.",
-  });
+  })
+  // Usernames show as @handles on cards, so they can't pass for an anonymous alias either
+  // ("anon_pigeon", "sneaky_otter"), audit 56 D5.
+  .refine(
+    (u) =>
+      !/^anon(?:ymous)?(?:_|$)/.test(u) &&
+      !new RegExp(`^(?:${ADJECTIVES.join("|")})_?(?:${CRITTERS.join("|")})(?:_?[0-9a-f]{0,6})?$`, "i").test(u),
+    { message: "That's what anonymous confessors are called. Pick something else." },
+  );
 
 export const passwordSchema = z
   .string()

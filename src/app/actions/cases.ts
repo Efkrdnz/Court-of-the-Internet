@@ -9,7 +9,8 @@ import { enforceRateLimit, reserveAttempt } from "@/server/rate-limit";
 import { castVote, claimCase, confess, precheckConfession, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
 import { assertNotYetReported, fileReport } from "@/server/services/moderation";
-import { CourtError } from "@/server/errors";
+import { CourtError, isCourtError } from "@/server/errors";
+import { db } from "@/server/db";
 import { casePath } from "@/lib/text";
 import { assertForm, formObject, isBot, toFailure, type ActionResult } from "./_util";
 
@@ -22,7 +23,21 @@ export async function confessAction(_prev: ActionResult | null, formData: FormDa
     // Validate first: rejected (invalid) submissions must not use up the rate-limit budget.
     const input = confessionSchema.parse(formObject(formData));
     screenConfession(input); // content-filter rejections don't count against the limit either
-    await precheckConfession(user.id, input); // nor do duplicates or a full daily cap
+    try {
+      await precheckConfession(user.id, input); // nor do duplicates or a full daily cap
+    } catch (e) {
+      // The same title filed by this player minutes ago: their first try went through but its
+      // answer was lost. Take them to it, as a successful filing would (audit 56 D4).
+      if (isCourtError(e) && e.code === "CONFLICT") {
+        const justFiled = await db.case.findFirst({
+          where: { accusedId: user.id, title: { equals: input.title, mode: "insensitive" }, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } },
+          orderBy: { createdAt: "desc" },
+          select: { number: true, slug: true },
+        });
+        if (justFiled) redirect(`${casePath(justFiled)}?filed=1`);
+      }
+      throw e;
+    }
     const ip = await clientIp();
     // Counted up front (so a burst can't slip past), and given back if the confession is then
     // refused inside the transaction (a concurrent duplicate, the daily cap).
@@ -104,6 +119,15 @@ export async function submitArgumentAction(
       result = await submitArgument(user.id, input.caseId, role, input.body);
     } catch (e) {
       await refund();
+      // The player's own filing is already on file (their first try went through but its answer
+      // was lost): take them to the case, as a successful filing would (audit 56 D4).
+      if (isCourtError(e) && e.code === "ALREADY_DONE" && e.message.startsWith("Your ")) {
+        const filed = await db.case.findUnique({ where: { id: input.caseId }, select: { number: true, slug: true } });
+        if (filed) {
+          target = `${casePath(filed)}?filed=${role === "DEFENSE" ? "defense" : "prosecution"}`;
+          redirect(target);
+        }
+      }
       throw e;
     }
     target = `${casePath(result)}?filed=${role === "DEFENSE" ? "defense" : "prosecution"}`;

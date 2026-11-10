@@ -1087,6 +1087,18 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D4 | Spoofable per-IP limits under plain `next start` | documented deployment requirement | — |
 | D5 | A 35-letter all-caps word wraps mid-word at 320px | documented | — |
 
+## Fifty-sixth independent audit (fresh agent, build of commit 6792f83)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** 10 concurrent claimers gave 1 winner and 10 concurrent votes 1 row; home and archive counters equal the DB; 140 concurrent reaction toggles kept counters equal to rows; seal across a deadline and review pauses shifted deadlines exactly; axe (WCAG 2.0/2.1/2.2 AA) clean on 17 pages.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **Burmese and Tibetan text (and pointed Hebrew) lost real vowel marks**: the anti-zalgo cap kept at most two combining marks of any kind | the cap of two applies to the generic diacritics zalgo piles up; script-specific marks are kept, up to six per character | unit: Burmese, Tibetan, Hebrew and Vietnamese unchanged, zalgo still capped |
+| D2 | Filter misses: a camera hidden in the guest bathroom, a laxative brownie given to a coworker, "I will find where you live", "a bit of coke", "j3ws control the banks", pushing a non-swimmer into a pool, "DM me on insta at pettykingofficial", "used the n-word"; false positive on "shot my friend a really passive-aggressive text" | patterns for each (hate checks also run on the leetspeak-decoded copy; platform invitations with a name); the gesture exception allows hyphenated adjectives; near-misses kept (a cake hidden in the bathroom, a chocolate brownie, a can of coke, the f-bomb, "follow me on tiktok for more") | corpus: 244 everyday sentences, 280 evasions |
+| D3 | Bios still claimed staff powers: "I work closely with Judge Wigsworth on every ban", "I run the report queue", "I will personally make sure it gets sealed", "Wigsworth trusts me with the gavel" | more phrases, and more claim words next to a real officer's name | unit, integration |
+| D4 | After a lost "File the defense" answer, retrying left a dead-end editor; a confession retry named the case without a link | a retry whose filing is already on file goes to the case, like a successful filing | — |
+| D5 | Usernames like `anon_pigeon` and `sneaky_otter` passed the anonymous-alias check | usernames get the same check as display names | unit |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

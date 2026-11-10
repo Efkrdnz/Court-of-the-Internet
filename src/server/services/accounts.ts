@@ -69,7 +69,7 @@ const TITLE_WORDS = new Set(["judge", "clerk", "the", "court", "your", "honour",
  * A player's bio naming a real officer with a claim to act for them ("Clerk Pemberton's alt",
  * "Notice from Judge Wigsworth", "Wigsworth told me I'm in charge"), audit 55 D2.
  */
-const OFFICER_CLAIM = /\b(?:alt|alts|account|told\s+me|asked\s+me|sent\s+me|notice|on\s+behalf|behalf\s+of|deputy|assistant|appointed|official|speaks?\s+for|speaking\s+for|says|said|orders?|via)\b/iu;
+const OFFICER_CLAIM = /\b(?:alt|alts|account|told\s+me|asked\s+me|sent\s+me|notice|on\s+behalf|behalf\s+of|deputy|assistant|appointed|official|speaks?\s+for|speaking\s+for|says|said|orders?|via|trusts?\s+me|works?\s+(?:closely\s+)?with|with\s+me|gavel|bans?|banning|seals?|sealing|reports?|appeals?|queue)\b/iu;
 export async function assertBioDoesNotSpeakForOfficers(bio: string, selfId: string, client: Tx | typeof db = db) {
   if (!OFFICER_CLAIM.test(bio)) return;
   const staff = await client.user.findMany({
