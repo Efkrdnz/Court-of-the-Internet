@@ -31,7 +31,9 @@ export default defineConfig({
   webServer: {
     command: `npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    // FRESH_SERVER=1 (scripts/verify-phases.sh) always starts a new server, so back-to-back runs
+    // never attach to the previous run's server while it is shutting down.
+    reuseExistingServer: !process.env.CI && !process.env.FRESH_SERVER,
     timeout: 120_000,
     env: {
       DATABASE_URL,
