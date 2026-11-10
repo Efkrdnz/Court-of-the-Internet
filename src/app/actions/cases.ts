@@ -113,8 +113,17 @@ export async function voteAction(
   try {
     const user = await requireActiveUser();
     const input = voteSchema.parse({ caseId, choice });
-    await enforceRateLimit(`vote:${user.id}`, 60, 600);
-    const result = await castVote(user.id, input.caseId, input.choice);
+    // Only accepted votes count toward the 60 per 10 minutes; refused ones (already voted, closed)
+    // give their attempt back, under a looser ceiling on all attempts.
+    await enforceRateLimit(`vote-attempt:${user.id}`, 240, 600);
+    const refund = await reserveAttempt([{ key: `vote:${user.id}`, limit: 60, windowSeconds: 600, message: "Order in the court! You're doing that too fast. Try again in a moment." }]);
+    let result;
+    try {
+      result = await castVote(user.id, input.caseId, input.choice);
+    } catch (e) {
+      await refund();
+      throw e;
+    }
     refresh();
     return { ok: true, data: result };
   } catch (e) {

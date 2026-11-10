@@ -207,6 +207,12 @@ const VIOLENCE = [
   new RegExp(`\\b(?:want|wish|hope)\\s+${TARGET}\\s+(?:was\\s+|were\\s+|would\\s+be\\s+|to\\s+be\\s+|is\\s+)?dead\\b(?!\\s+(?:tired|serious|beat|on|wrong|right|set|last|quiet|silent|centre|center|even|to\\s+the\\s+world))`, "i"),
   new RegExp(`\\bwant\\s+${TARGET}\\s+to\\s+(?:die|drop\\s+dead|get\\s+killed)\\b`, "i"),
   /\b(?:going\s+to|gonna|i\s*(?:will|'ll))\s+(?:smash|bash|kick|punch|cave)\s+(?:your|his|her|their|(?:my|the|a)\s+[\w-]+(?:'s|’s|s'))\s+(?:face|head|skull|teeth)\s+in\b/i,
+  // Knife threats: "slit your throat", "knife him", "gut my roommate".
+  /\b(?:slit|cut|slash)\s+(?:your|his|her|their|ur|(?:my|the|a)\s+[\w-]+(?:'s|’s|s'))\s+throats?\b/i,
+  new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll)|want\\s+to)\\s+(?:knife|gut|shank|stab|cut)\\s+${TARGET}\\b${NOT_THEIR_THING}`, "i"),
+  /\b(?:going\s+to|gonna|i\s*(?:will|'ll))\s+(?:smash|bash|crack|split|cave\s+in)\s+(?:your|his|her|their|ur|(?:my|the|a)\s+[\w-]+(?:'s|’s|s'))\s+(?:skull|head|face|teeth|jaw|nose)\b/i,
+  // "I will push him down the stairs", "I'll throw her off the balcony".
+  new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll)|want\\s+to)\\s+(?:push|shove|throw|kick)\\s+${TARGET}\\s+(?:down|off|out\\s+of|into|under)\\s+(?:the|a)\\s+(?:stairs|staircase|balcony|roof|cliff|bridge|window|canal|river|lake|sea|traffic|road|train|bus)\\b`, "i"),
   /\bshoot\s+up\b/i,
   /\b(?:make|build|plant)\s+a\s+bomb\b/i,
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,
@@ -268,6 +274,19 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
+  // Hitting a stranger, a bouncer, an old lady…; attacking someone with something.
+  /\bi\s+(?:punched|kicked|slapped|headbutted|elbowed|bit|attacked|assaulted|hit)\s+(?:a|an|the|some|this|that)\s+(?:\w+\s+)?(?:stranger|bouncer|old\s+lady|old\s+man|old\s+woman|pensioner|woman|man|guy|girl|lady|passenger|driver|cyclist|customer|waiter|waitress|cashier|bartender|referee|teenager|kid|child|security\s+guard|cop|police\s+officer)\b/i,
+  /\b(?:pushed|shoved|knocked)\s+(?:a|an|the|some|this|that|my|his|her)\s+(?:\w+\s+)?(?:stranger|bouncer|old\s+lady|old\s+man|old\s+woman|pensioner|woman|man|guy|girl|lady|passenger|cyclist|kid|child|neighbou?r|roommate|flatmate|coworker|colleague)\s+(?:over|down|into|off|against|onto|out\s+of|in\s+front\s+of)\b/i,
+  /\battacked\s+(?:\w+\s+){1,3}with\s+(?:a|an|my)\s+(?:bottle|knife|bat|brick|glass|hammer|crowbar|chair|rock|pint\s+glass)\b/i,
+  // Throwing or hurting a pet ("threw my cat against the wall", "hurt my neighbour's dog").
+  /\b(?:threw|kicked|flung|hurled|slammed|swung)\s+(?:(?:my|his|her|their|the|a|our)\s+(?:[\w-]+(?:'s|’s|s')\s+)?|someone'?s\s+)(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|guinea\s+pig)\s+(?:against|across|into|at|down|out\s+of|off)\b/i,
+  /\b(?:hurt|injured|hit|kicked|beat|poisoned)\s+(?:(?:my|his|her|their|the|a|our)\s+[\w-]+(?:'s|’s|s')|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|horse|guinea\s+pig)\b(?!['’]s)/i,
+  // Vandalising someone's car or house ("scratched my neighbour's car", "a brick through my ex's window").
+  /\b(?:scratched|spray[\s-]?painted|egged|graffitied|keyed|smashed|vandali[sz]ed|dented)\s+(?:(?:my|his|her|their|the|a|our)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+){0,2}(?:car|truck|van|motorbike|motorcycle|house|front\s+door|garage)\b/i,
+  /\b(?:threw|chucked|hurled|lobbed)\s+(?:a|an|the|some)\s+(?:brick|rock|stone|bottle|chair)s?\s+(?:through|at|into)\s+(?:(?:my|his|her|their|the|a)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|the\s+(?:neighbou?rs?'?|shop'?s?|school'?s?))\s*(?:\w+\s+)?(?:window|windscreen|windshield|car|house|door)s?\b/i,
+  // Stealing kit from work, or money from someone's purse.
+  /\b(?:stole|nicked|pinched|swiped)\s+(?:a|an|the|some|two|three)\s+(?:\w+\s+)?(?:laptops?|macbooks?|ipads?|tablets?|phones?|iphones?|cameras?|tvs?|monitors?|projectors?)\s+(?:from|out\s+of)\s+(?:my|the|our|work|his|her|their)\b/i,
+  /\b(?:stole|took|nicked|pinched|swiped|pocketed)\s+(?:\w+\s+){0,2}(?:money|cash|notes|cards?)\s+(?:\w+\s+){0,2}(?:from|out\s+of)\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:purse|wallet|handbag|bag|account|piggy\s+bank)\b/i,
   // Getting into someone's accounts ("logged into my ex's Snapchat", "guessed my sister's password").
   /\b(?:logged|broke|got|hacked)\s+into\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:snapchat|instagram|insta|facebook|tiktok|twitter|email|e-mail|gmail|account|accounts|phone|icloud|bank|whatsapp|messages|dms|laptop)\b/i,
   /\bguessed\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s)\s+(?:\w+\s+)?(?:password|passcode|pin)\b/i,

@@ -23,9 +23,21 @@ const PROMPTS = [
   "I've been pretending for months that…",
 ];
 
-const DRAFT_KEY = "coti-draft-confession";
+/** Drafts are per account: on a shared device, the next player never sees someone else's. */
+const draftKey = (owner: string) => `coti-draft-confession-${owner}`;
 
-export function ConfessionForm({ displayName, quorum, deliberationHours }: { displayName: string; quorum: number; deliberationHours: number }) {
+export function ConfessionForm({
+  displayName,
+  draftOwner,
+  quorum,
+  deliberationHours,
+}: {
+  displayName: string;
+  draftOwner: string;
+  quorum: number;
+  deliberationHours: number;
+}) {
+  const DRAFT_KEY = draftKey(draftOwner);
   const reduce = useReduceMotion();
   const [state, formProps, pending] = useFormAction(confessAction);
   const [title, setTitle] = useState("");
@@ -40,8 +52,13 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
   useEffect(() => {
     const t = setTimeout(() => {
       try {
-        const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null") as Partial<Record<"title" | "category" | "confession" | "context", string>> | null;
+        localStorage.removeItem("coti-draft-confession"); // the old, unkeyed draft (shared by every account)
+        const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null") as
+          | (Partial<Record<"title" | "category" | "confession" | "context", string>> & { anonymous?: boolean })
+          | null;
         if (!saved) return;
+        // The anonymity choice comes back with the text, so a reload never quietly files it publicly.
+        if (saved.anonymous) setAnonymous(true);
         setTitle((v) => v || String(saved.title ?? ""));
         setCategory((v) => v || String(saved.category ?? ""));
         setConfession((v) => v || String(saved.confession ?? ""));
@@ -51,16 +68,16 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
       }
     }, 0);
     return () => clearTimeout(t);
-  }, []);
+  }, [DRAFT_KEY]);
   // Saved on every edit, and again after each rejected filing: `state` is a new object per
   // response, so two rejections in a row both put the draft back (submitting clears it).
   useEffect(() => {
     try {
-      if (title || confession || context || category) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, category, confession, context }));
+      if (title || confession || context || category) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, category, confession, context, anonymous }));
     } catch {
       /* ignore */
     }
-  }, [title, category, confession, context, state]);
+  }, [title, category, confession, context, anonymous, state, DRAFT_KEY]);
   const cat = category ? getCategory(category) : null;
   const previewAlias = anonymousAlias(title || "preview").name;
 

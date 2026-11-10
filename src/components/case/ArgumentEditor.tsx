@@ -32,8 +32,9 @@ const OPENERS = {
   PROSECUTION: ["The defense would have you believe…", "Members of the jury, look at the evidence…", "One word in the confession says it all: …"],
 } as const;
 
-export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; role: "DEFENSE" | "PROSECUTION"; expiresAt: string }) {
-  const storageKey = `coti-draft-${role}-${caseId}`;
+export function ArgumentEditor({ caseId, role, expiresAt, draftOwner }: { caseId: string; role: "DEFENSE" | "PROSECUTION"; expiresAt: string; draftOwner: string }) {
+  // Per account, so another player on the same device never sees this draft.
+  const storageKey = `coti-draft-${role}-${caseId}-${draftOwner}`;
   const filingKey = `coti-filing-${role}-${caseId}`;
   const router = useRouter();
   // Back after filing restores this editor from the client cache, although the claim is gone.

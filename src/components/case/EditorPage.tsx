@@ -48,7 +48,7 @@ export async function EditorPage({ role, caseId }: { role: "DEFENSE" | "PROSECUT
         <h2 id="editor-heading" className="mb-4 font-display text-2xl font-bold text-parchment">
           {role === "DEFENSE" ? "Draft the defense" : "Draft the prosecution"}
         </h2>
-        <ArgumentEditor caseId={c.id} role={role} expiresAt={c.claimExpiresAt} />
+        <ArgumentEditor caseId={c.id} role={role} expiresAt={c.claimExpiresAt} draftOwner={user.id} />
       </section>
     </div>
   );

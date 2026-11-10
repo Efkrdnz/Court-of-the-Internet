@@ -236,7 +236,8 @@ async function applyVerdictEffects(
       if (swing) await grantAchievements(tx, userId, ["swing-vote"], c.id);
     }
   }
-  const jurors = await tx.vote.findMany({ where: { caseId: c.id }, select: { userId: true, choice: true } });
+  // (Jurors who have since deleted their account get no notice, as everywhere else.)
+  const jurors = await tx.vote.findMany({ where: { caseId: c.id, user: { deletedAt: null } }, select: { userId: true, choice: true } });
   if (jurors.length) {
     await tx.notification.createMany({
       data: jurors.map((j) => ({

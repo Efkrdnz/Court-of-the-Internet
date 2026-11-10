@@ -673,7 +673,7 @@ test("§12 a filing rejected for an expired claim keeps the draft on the device 
     await prisma.case.update({ where: { id: c.id }, data: { claimExpiresAt: new Date(Date.now() - 24 * 60 * 60_000) } });
     await page.getByRole("button", { name: "File the defense" }).click();
     await expect(page.getByText(/Your claim expired before you filed/)).toBeVisible();
-    const key = `coti-draft-DEFENSE-${c.id}`;
+    const key = `coti-draft-DEFENSE-${c.id}-${whiskers.id}`;
     expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBe(draft);
   } finally {
     await prisma.case.update({ where: { id: c.id }, data: { status: "AWAITING_DEFENSE", claimedById: null, claimExpiresAt: null } });
@@ -780,6 +780,23 @@ test("§12 forms: a confession draft survives a reload (audit 33 D5)", async ({ 
   await page.waitForTimeout(1500);
   await page.reload();
   await expect(page.locator('textarea[name="confession"]')).toHaveValue(/snack spreadsheet/);
+  // The anonymity choice is part of the draft (audit 36 #1)…
+  await page.locator('input[name="anonymous"]').check({ force: true });
+  await page.waitForTimeout(300);
+  await page.reload();
+  await expect(page.locator('input[name="anonymous"]')).toBeChecked();
+  // …and the draft belongs to this account: logging out forgets it, and the next player on this
+  // browser starts with an empty form.
+  await page.getByRole("button", { name: /account menu/i }).click();
+  await page.getByRole("menuitem", { name: /log out/i }).click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/confess"));
+  await page.goto("/login");
+  await page.locator(`form:has(input[name="username"][value="juror_whiskers"]) button`).click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  await page.goto("/confess");
+  await page.waitForTimeout(300);
+  await expect(page.locator('textarea[name="confession"]')).toHaveValue("");
+  await expect(page.locator('input[name="title"]')).toHaveValue("");
   await context.close();
 });
 

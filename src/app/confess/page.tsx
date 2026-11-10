@@ -44,7 +44,7 @@ export default async function ConfessPage() {
       ) : user.bannedAt ? (
         <FormAlert>You are banned and cannot file new confessions.</FormAlert>
       ) : (
-        <ConfessionForm displayName={user.displayName} {...publicGameConfig()} />
+        <ConfessionForm displayName={user.displayName} draftOwner={user.id} {...publicGameConfig()} />
       )}
     </div>
   );

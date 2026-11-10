@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { announceMenuOpened, onOtherMenuOpened } from "./menu-events";
+
+/** Removes every saved confession/argument draft from this browser (shared devices). */
+function clearDrafts() {
+  try {
+    for (const key of Object.keys(localStorage)) if (key.startsWith("coti-draft-")) localStorage.removeItem(key);
+    for (const key of Object.keys(sessionStorage)) if (key.startsWith("coti-")) sessionStorage.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
 import Link from "next/link";
 import { Avatar } from "@/components/art/avatar";
 import type { AvatarConfig } from "@/lib/avatar";
@@ -89,7 +99,8 @@ export function UserMenu({
             </Link>
           ))}
           <div className="my-1 h-px bg-gold/20" />
-          <form action={logoutAction}>
+          {/* Logging out also forgets this account's unsent drafts on this device. */}
+          <form action={logoutAction} onSubmit={clearDrafts}>
             <button role="menuitem" type="submit" className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-parchment hover:bg-burgundy/50 hover:text-gold-light">
               Leave the courtroom (log out)
             </button>

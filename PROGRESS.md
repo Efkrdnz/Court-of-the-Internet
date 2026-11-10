@@ -822,6 +822,16 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6 | Small tap targets in the editor ("← Back to the … docket", "Tips from senior partners") | 36px targets | — |
 | notes | Identical confessions from different players at the same moment were all accepted; emoji-only confessions and stray leading combining marks; "Mysterious Walrus" display name; a duplicated name error; "No mail yet" on a page past the end; axe label/name mismatch on the account button and an `aria-label` on a plain span; officers could moderate their own cases | identical texts are serialised with an advisory lock (the test fails without it); confessions need 15 letters or digits and long single-emoji runs are spam; stray marks dropped; alias word pairs refused; errors de-duplicated; accurate empty-page text; label fixed and screen-reader text for the unread dot; officers recuse themselves (documented) | integration and unit |
 
+## Thirty-sixth independent audit (fresh agent, build of commit a7dc684)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** Server logs clean through every race (no 500s or deadlocks); vitest 559/559 on 3 of 3 runs; all 46 new everyday confessions accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **Drafts were shared across accounts on one browser** (a fixed storage key), and the "anonymous" choice wasn't saved, so a reload could quietly file a confession publicly | confession and argument drafts are keyed by account, include the anonymity choice, and are cleared on logout; the old unkeyed draft is removed | e2e: anonymous survives a reload; after logging out, the next account sees an empty form |
+| 2 | Filter misses in covered categories: knife threats ("slit your throat", "knife him", "gut my roommate"), "smash his skull", "push him down the stairs", "throw her off the balcony", attacking or hitting strangers / bouncers / an old lady, throwing or hurting someone's pet, scratching, spray-painting or keying a neighbour's car, a brick through a window, stealing a laptop from work, money from a grandma's purse | patterns for each, near-misses kept ("slit the envelope", "knife the cake", "gut the fish", "push him to finish the report", "throw her a surprise party", "attacked the buffet", "my cat's toy", "scratched my own car", "pushed my sister off the couch"); README coverage updated | corpus: 148 everyday sentences, 156 evasions; 341 seed texts pass |
+| 4 | Refused votes counted toward the vote limit; verdict notices were written for jurors who'd deleted their account | votes reserve an attempt and give it back when refused (looser ceiling on attempts); deleted jurors are skipped | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
