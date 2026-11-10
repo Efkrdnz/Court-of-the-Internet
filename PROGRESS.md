@@ -900,6 +900,19 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6 | A reaction could be counted on a case sealed at the same moment (moderation state read without a row lock) | `toggleReaction` locks the case row (`FOR NO KEY UPDATE`) before reading its state | existing concurrency tests |
 | N4 | A crafted action call with a `null` body gets a framework 500 (TypeError) | documented with the other framework status codes | — |
 
+## Forty-second independent audit (fresh agent, build of commit fb7aa88)
+
+**Result: 15 PASS (3 with a minor concern), 1 CONCERN (17), 0 FAIL.** No 500s apart from D1; 8 simultaneous claimers gave 1 winner; 6 concurrent votes gave 1 row; stats recomputed by SQL for 4 players and the admin audit for all 47 users matched; the audit-41 fixes (claim-holder recusal, strike resuming a review) held.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **Share images fetched emoji from a CDN (and other scripts from Google Fonts) while rendering; offline, one emoji in a title or display name crashed the image** | OG text is limited to the characters the vendored fonts draw (their measured character maps): accents fold, emoji drop, a title or name in another script becomes "Case No. …" / "the accused" and its quote is left out; documented | unit: `ogText`; integration: emoji, Cyrillic, Chinese and accented cases render with the network stubbed out, and no request is made (fails before the fix) |
+| D2 | **One account could hold a case forever by releasing and re-claiming it** | at most 2 unfiled claims per player, case and role per 24 hours; "Receive a case" skips cases the player just dropped; README and SPEC updated | integration: release/re-claim and lapse/re-claim both stop at 2; a rival can claim; the hoarder can again a day later |
+| D3 | Long display names wrapped mid-word in "The People v. …" and the profile heading at 320px | those headings (and case titles) shrink to fit their longest word (container query units, estimate calibrated against the real font); names may go to 12px | checked at 320, 360 and 1280px: 16-W names fit on one line each, ordinary names unchanged |
+| D4 | Emoji-only titles were accepted (slug "case"); keyboard-mash defenses accepted | titles need at least 3 letters or digits (any script); gibberish documented as left to jurors and reports | unit |
+| D5 | A brand-new account's report filed during a review kept the case hidden after the officer dismissed the reports they saw | after a dismiss or strike a case stays under review only while a report that counts (an established, non-party reporter) is open; the throwaway's report stays in the queue | integration: throwaway vs established newer reporter |
+| D6 | Achievement toasts cover the case header on phones | kept (they sit under the header so they never cover the vote buttons, auto-dismiss in 4–5 s, can be closed); documented | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

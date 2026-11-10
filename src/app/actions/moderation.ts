@@ -48,9 +48,14 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
           // The reports the console showed (so newer ones aren't dismissed unseen).
           const seen = formData.has("reportsSeen") ? str(formData, "reportsSeen").split(",").filter(Boolean) : undefined;
           const r = await dismissReports(mod.id, caseId, seen);
+          const newer = r.newer === 1 ? "1 newer reporter still needs" : `${r.newer} newer reporters still need`;
           message =
             r.newer > 0
-              ? `Dismissed the reports you saw; ${r.newer === 1 ? "1 newer reporter still needs" : `${r.newer} newer reporters still need`} review, so the case stays under review.`
+              ? r.stillUnderReview
+                ? `Dismissed the reports you saw; ${newer} review, so the case stays under review.`
+                : r.madeVisible
+                  ? `Dismissed the reports you saw; case visible again. ${newer} review (they're from new accounts or the trial's own parties, so they don't keep it hidden).`
+                  : `Dismissed the reports you saw; ${newer} review.`
               : r.madeVisible
                 ? "Reports dismissed; case visible again."
                 : r.sealed

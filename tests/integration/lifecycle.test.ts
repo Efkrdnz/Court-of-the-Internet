@@ -4,7 +4,7 @@ import { resetClock } from "@/server/clock";
 import { castVote, claimCase, confess, releaseClaim, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { expireStaleClaims, runMaintenanceNow } from "@/server/services/maintenance";
-import { listArchive, listJuryCases, listQueue } from "@/server/queries/cases";
+import { listArchive, listJuryCases, listQueue, pickRandomQueueCase } from "@/server/queries/cases";
 import { auditStats } from "@/server/services/stats";
 import {
   DEFENSE_TEXT,
@@ -287,6 +287,32 @@ describe("claims under concurrency and expiry", () => {
     const losers = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
     expect(losers.every((l) => l.reason.code === "CONFLICT")).toBe(true);
     expect(await db.caseClaim.count({ where: { caseId: c.id, outcome: "ACTIVE" } })).toBe(1);
+  });
+
+  it("one player can't hold a case forever by releasing and re-claiming it (audit 42 D2)", async () => {
+    const accused = await makeUser();
+    const c = await makeCase(accused);
+    const other = await makeCase(accused);
+    const [hoarder, rival] = [await makeUser(), await makeUser()];
+    await claimCase(hoarder, c.id, "DEFENSE");
+    await releaseClaim(hoarder, c.id);
+    await claimCase(hoarder, c.id, "DEFENSE"); // one change of heart is fine
+    await releaseClaim(hoarder, c.id);
+    await expect(claimCase(hoarder, c.id, "DEFENSE")).rejects.toMatchObject({ code: "INELIGIBLE", message: expect.stringContaining("other counsel") });
+    // Letting a claim lapse counts the same as releasing it.
+    await claimCase(hoarder, other.id, "DEFENSE");
+    advance(minutes(40));
+    await claimCase(hoarder, other.id, "DEFENSE");
+    advance(minutes(40));
+    await expect(claimCase(hoarder, other.id, "DEFENSE")).rejects.toMatchObject({ code: "INELIGIBLE" });
+    // "Receive a case" doesn't hand the hoarder either case back.
+    expect(await pickRandomQueueCase("DEFENSE", { id: hoarder, mutedCategories: [] })).toBeNull();
+    // Everyone else can claim it, and the hoarder can again a day later.
+    await claimCase(rival, c.id, "DEFENSE");
+    await releaseClaim(rival, c.id);
+    advance(hours(24));
+    await claimCase(hoarder, c.id, "DEFENSE");
+    await submitArgument(hoarder, c.id, "DEFENSE", DEFENSE_TEXT);
   });
 
   it("limits each player to one active claim per role, even when racing", async () => {

@@ -6,6 +6,7 @@ import { bumpViewCount, getCaseDetail, getCaseIdByNumber, relatedCases } from "@
 import { refreshCase } from "@/server/services/maintenance";
 import { appConfig } from "@/server/config";
 import { casePath, formatCaseNumber, parseCaseParam, truncate } from "@/lib/text";
+import { FIT_FONT, fitStyle } from "@/lib/fit-text";
 import { getCategory } from "@/lib/categories";
 import { VERDICT_LABEL } from "@/lib/format";
 import { db } from "@/server/db";
@@ -112,6 +113,7 @@ export default async function CasePage({ params, searchParams }: Props) {
   const viewer = user ? `u:${user.id}` : await clientIp().then((ip) => (ip ? `ip:${ip}` : null));
   if (viewer) void bumpViewCount(c.id, viewer);
   const cat = getCategory(c.category);
+  const accusedName = c.accused.displayName.replace(/^You \(as (.*)\)$/, "$1");
   const viewerRole = c.viewer.role;
   const url = `${appConfig.siteUrl}${casePath(c)}`;
   const loginHref = `/login?next=${encodeURIComponent(casePath(c))}`;
@@ -186,8 +188,18 @@ export default async function CasePage({ params, searchParams }: Props) {
           <StatusPill status={c.status} verdict={c.verdict} light />
         </div>
         <p className="mt-4 font-display text-sm font-bold uppercase tracking-[0.35em] text-burgundy">In the Court of the Internet</p>
-        <p className="mt-1 font-display text-lg italic text-sepia">The People v. {c.accused.displayName.replace(/^You \(as (.*)\)$/, "$1")}</p>
-        <h1 className="mx-auto mt-3 max-w-3xl text-balance font-display text-2xl font-black leading-tight text-ink min-[400px]:text-3xl sm:text-5xl">{c.title}</h1>
+        {/* Both shrink to fit their longest word at the column's width, rather than breaking it mid-word. */}
+        <div className="@container">
+          <p className={`mt-1 font-display italic text-sepia [--fit-max:1.125rem] [--fit-min:0.75rem] ${FIT_FONT}`} style={fitStyle(`v. ${accusedName}`)}>
+            The People v. {accusedName}
+          </p>
+          <h1
+            className={`mx-auto mt-3 max-w-3xl text-balance font-display font-black leading-tight text-ink [--fit-max:1.5rem] min-[400px]:[--fit-max:1.875rem] sm:[--fit-max:3rem] ${FIT_FONT}`}
+            style={fitStyle(c.title)}
+          >
+            {c.title}
+          </h1>
+        </div>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-sepia">
           <CategoryIcon category={c.category} className="h-7 w-7" />
           <span className="font-bold">{cat.label}</span>

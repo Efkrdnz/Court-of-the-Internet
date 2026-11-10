@@ -5,6 +5,7 @@ import { parseCaseParam, formatCaseNumber } from "@/lib/text";
 import { getCategory } from "@/lib/categories";
 import { anonymousAlias } from "@/lib/alias";
 import { shareCardStatus } from "@/lib/share-card";
+import { ogText, ogTextOr } from "@/lib/og-text";
 
 export const alt = "Court of the Internet case file";
 export const size = { width: 1200, height: 630 };
@@ -59,15 +60,21 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const status = visible ? shareCardStatus(c.status, c.verdict) : null;
   const stamp = { text: status?.stamp ?? "", color: status?.color ?? "#5c5254" };
   const longestStampWord = Math.max(0, ...stamp.text.split(" ").map((w) => w.length));
-  const accused = visible ? (c.anonymous ? anonymousAlias(c.aliasSeed).name : c.accused.displayName) : "";
+  // Only what the bundled fonts can draw: anything else would be fetched from a CDN or Google
+  // Fonts while rendering (and an emoji fetch that fails crashes the image). Text in another
+  // script falls back to neutral wording rather than showing half a name.
+  const accused = visible ? ogTextOr(c.anonymous ? anonymousAlias(c.aliasSeed).name : c.accused.displayName, "the accused") : "";
+  const title = ogTextOr(c.title, `Case No. ${formatCaseNumber(c.number)}`);
+  const quote = ogText(c.confession);
+  const quoteText = quote.lostLetters ? "" : quote.text;
   const art = await ogArt(visible && c.category === "food-crimes" ? "pizza" : closed ? "judge-stern" : "judge-shocked");
   // Lay the text out by its estimated width (not its length: 90 W's are far wider than 90 i's),
   // so the subtitle, title and quote always fit above the footer.
   const subtitle = `THE PEOPLE v. ${accused.toUpperCase()} · ${getCategory(c.category).label.toUpperCase()}`;
   const subtitleSize = lineCount(subtitle, 22, 2) <= 1 ? 22 : 18;
   const subtitleHeight = Math.min(2, lineCount(subtitle, subtitleSize, 2)) * subtitleSize * 1.3;
-  const titleSize = [48, 42, 36, 32, 28].find((size) => lineCount(c.title, size) <= 3) ?? 26;
-  const titleHeight = lineCount(c.title, titleSize) * titleSize * 1.08;
+  const titleSize = [48, 42, 36, 32, 28].find((size) => lineCount(title, size) <= 3) ?? 26;
+  const titleHeight = lineCount(title, titleSize) * titleSize * 1.08;
   // Card body height, minus the header row, margins and the footer line.
   // (36px of slack: Satori wraps wide words a little less tightly than estimated.)
   const quoteRoom = 470 - 52 - 10 - subtitleHeight - 14 - titleHeight - 18 - 44 - 36;
@@ -79,7 +86,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     const atWord = cut.replace(/\s+\S*$/, "");
     return `${(atWord.length > max * 0.6 ? atWord : cut).trimEnd().replace(/[,;:.!?-]+$/, "")}…`;
   };
-  const confession = !visible || quoteLines === 0 ? "" : c.confession.length > quoteMax ? shorten(c.confession, quoteMax) : c.confession;
+  const confession = !visible || quoteLines === 0 || !quoteText ? "" : quoteText.length > quoteMax ? shorten(quoteText, quoteMax) : quoteText;
 
   return new ImageResponse(
     (
@@ -111,7 +118,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
                 <div style={{ marginTop: 10, fontFamily: "Playfair", fontWeight: 700, fontSize: subtitleSize, color: "#5a4632", letterSpacing: 2, wordBreak: "break-word" }}>
                   {subtitle}
                 </div>
-                <div style={{ marginTop: 14, fontFamily: "Playfair", fontWeight: 900, fontSize: titleSize, lineHeight: 1.08, color: "#1a0f12", wordBreak: "break-word" }}>{c.title}</div>
+                <div style={{ marginTop: 14, fontFamily: "Playfair", fontWeight: 900, fontSize: titleSize, lineHeight: 1.08, color: "#1a0f12", wordBreak: "break-word" }}>{title}</div>
                 {confession ? <div style={{ marginTop: 18, fontFamily: "Elite", fontSize: 22, lineHeight: 1.45, color: "#2a1c16", wordBreak: "break-word" }}>{`“${confession}”`}</div> : null}
                 <div style={{ marginTop: "auto", display: "flex", gap: 24, fontSize: 24, color: "#5a4632", fontWeight: 700 }}>
                   {closed ? <span>{`Final tally: ${c.guiltyVotes} guilty · ${c.notGuiltyVotes} not guilty`}</span> : <span>{status?.footer}</span>}

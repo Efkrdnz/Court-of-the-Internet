@@ -218,6 +218,22 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
       );
     }
 
+    // No holding a case hostage by releasing and re-claiming it (or letting it lapse) over and over.
+    const windowStart = new Date(now.getTime() - gameConfig.unfiledClaimWindowMs);
+    const unfiled = await tx.caseClaim.findMany({
+      where: { caseId, userId, role, outcome: { not: "SUBMITTED" }, claimedAt: { gte: windowStart } },
+      orderBy: { claimedAt: "asc" },
+      select: { claimedAt: true },
+    });
+    if (unfiled.length >= gameConfig.maxUnfiledClaimsPerCase) {
+      const reopens = new Date(unfiled[unfiled.length - gameConfig.maxUnfiledClaimsPerCase].claimedAt.getTime() + gameConfig.unfiledClaimWindowMs);
+      const hours = Math.max(1, Math.ceil((reopens.getTime() - now.getTime()) / 3_600_000));
+      throw new CourtError(
+        "INELIGIBLE",
+        `You've already claimed this case ${gameConfig.maxUnfiledClaimsPerCase} times today without filing. Let other counsel have a turn: you can claim it again in about ${hours} hour${hours === 1 ? "" : "s"}.`,
+      );
+    }
+
     const expiresAt = new Date(now.getTime() + gameConfig.claimMs);
     const result = await tx.case.updateMany({
       where: {

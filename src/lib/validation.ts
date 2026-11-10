@@ -26,7 +26,11 @@ const checkbox = z
   .transform((v) => v === "on" || v === "true" || v === true);
 
 export const confessionSchema = z.object({
-  title: text({ ...LIMITS.title, label: "Case title", multiline: false }),
+  // A title needs some words (audit 42 D4: 90 emoji were accepted, while the confession and the
+  // arguments already insist on words).
+  title: text({ ...LIMITS.title, label: "Case title", multiline: false }).refine((s) => (s.match(/[\p{L}\p{N}]/gu)?.length ?? 0) >= 3, {
+    message: "Give your case a title in words, not just emoji or symbols.",
+  }),
   category: z.enum(CATEGORY_KEYS, { error: "Pick a category for your crime." }),
   confession: text({ ...LIMITS.confession, label: "Confession" }).refine((s) => (s.match(/[\p{L}\p{N}]/gu)?.length ?? 0) >= 15, {
     message: "Tell the court what happened in words, not just emoji or symbols.",

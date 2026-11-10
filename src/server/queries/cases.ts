@@ -267,6 +267,9 @@ export async function pickRandomQueueCase(role: "DEFENSE" | "PROSECUTION", viewe
     accusedId: { not: viewer.id },
     ...(role === "PROSECUTION" ? { attorneyId: { not: viewer.id } } : {}),
     ...(viewer.mutedCategories.length ? { category: { notIn: viewer.mutedCategories } } : {}),
+    // "Receive a case" hands out something new, not a case this player just dropped (and may be
+    // out of claims on for today).
+    claims: { none: { userId: viewer.id, role, outcome: { not: "SUBMITTED" }, claimedAt: { gte: new Date(now.getTime() - gameConfig.unfiledClaimWindowMs) } } },
   };
   const count = await db.case.count({ where });
   if (count === 0) return null;

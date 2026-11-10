@@ -90,6 +90,9 @@ actions. The client never computes or submits verdicts, eligibility or stats.
   claims are requeued lazily (any claim attempt treats them as open) and by the
   maintenance sweep, which records the expiry in `CaseClaim` history and
   notifies the player.
+  A player gets at most 2 claims on the same case and role per 24 hours without
+  filing (released or expired), so nobody can hold a case off the docket by
+  releasing and re-claiming it.
 * **Eligibility:** the accused cannot defend or prosecute their own case; the
   attorney cannot prosecute; none of the three can vote. Banned users can do
   nothing but read.

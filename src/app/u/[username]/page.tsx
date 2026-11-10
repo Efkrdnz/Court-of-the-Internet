@@ -13,6 +13,7 @@ import { Avatar } from "@/components/art/avatar";
 import { AchievementBadge } from "@/components/art/badges";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { Laurel } from "@/components/art/props";
+import { FIT_FONT, fitStyle } from "@/lib/fit-text";
 
 type Props = { params: Promise<{ username: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
@@ -60,14 +61,16 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             <Avatar config={user.avatar} className="h-36 w-36" title={user.displayName} />
             <Laurel side="right" className="absolute -right-8 top-2 h-36 w-12" />
           </div>
-          <div className="min-w-0 text-center md:text-left">
+          <div className="@container min-w-0 text-center md:text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
               {user.role === "ADMIN" ? <span className="pill bg-gold text-ink">Presiding judge</span> : null}
               {user.role === "MODERATOR" ? <span className="pill bg-gold/80 text-ink">Court clerk</span> : null}
               {user.isPatron ? <span className="pill" style={{ background: v.accent2, color: v.ink }}>Patron of the court</span> : null}
               {user.banned ? <span className="pill bg-crimson text-ivory">Held in contempt</span> : null}
             </div>
-            <h1 className="mt-2 font-display text-4xl font-black sm:text-5xl">{user.displayName}</h1>
+            <h1 className={`mt-2 font-display font-black leading-tight [--fit-max:2.25rem] [--fit-min:0.75rem] sm:[--fit-max:3rem] ${FIT_FONT}`} style={fitStyle(user.displayName)}>
+              {user.displayName}
+            </h1>
             <p className="opacity-70">@{user.username} · sworn in on {formatDate(user.createdAt)}</p>
             {user.bio ? <p className="mt-3 max-w-xl text-lg italic opacity-90">“{user.bio}”</p> : null}
             <div className="mx-auto mt-4 max-w-md md:mx-0">

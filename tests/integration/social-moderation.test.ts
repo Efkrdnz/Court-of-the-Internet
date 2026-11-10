@@ -534,6 +534,33 @@ describe("moderation", () => {
     await assertNotYetReported(reporter, c.id, "DEFENSE");
   });
 
+  it("a new account's report can't keep a reviewed case hidden; an established one's can (audit 42 D5)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const mod = await makeUser("review_clerk", "MODERATOR");
+    const reporters = await makeUsers(4, "estab");
+    advance(hours(25)); // established accounts
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    for (const r of reporters.slice(0, 3)) await fileReport(r, { caseId: c.id, target: "CASE", reason: "SPAM" });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).moderationState).toBe("UNDER_REVIEW");
+    const seen = (await db.report.findMany({ where: { caseId: c.id, status: "OPEN" }, select: { id: true } })).map((r) => r.id);
+    const throwaway = await makeUser(); // signed up a minute ago
+    await fileReport(throwaway, { caseId: c.id, target: "CASE", reason: "HARASSMENT" });
+    const res = await dismissReports(mod, c.id, seen);
+    expect(res).toMatchObject({ madeVisible: true, newer: 1, stillUnderReview: false });
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ moderationState: "VISIBLE", openReports: 1, deliberationPausedAt: null });
+    expect(await db.report.findFirstOrThrow({ where: { reporterId: throwaway } })).toMatchObject({ status: "OPEN" }); // still in the queue
+
+    // A newer report from an established account does keep it under review.
+    const c2 = await makeCase(accused);
+    for (const r of reporters.slice(0, 3)) await fileReport(r, { caseId: c2.id, target: "CASE", reason: "SPAM" });
+    const seen2 = (await db.report.findMany({ where: { caseId: c2.id, status: "OPEN" }, select: { id: true } })).map((r) => r.id);
+    await fileReport(reporters[3], { caseId: c2.id, target: "CASE", reason: "PERSONAL_INFO", details: "my real address" });
+    expect(await dismissReports(mod, c2.id, seen2)).toMatchObject({ madeVisible: false, newer: 1, stillUnderReview: true });
+    expect((await db.case.findUniqueOrThrow({ where: { id: c2.id } })).moderationState).toBe("UNDER_REVIEW");
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });

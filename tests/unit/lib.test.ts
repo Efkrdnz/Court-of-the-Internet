@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { screenFields, screenText, similarity } from "@/lib/content-filter";
 import { shareCardStatus } from "@/lib/share-card";
 import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/progression";
+import { ogDrawable, ogText, ogTextOr } from "@/lib/og-text";
 import { casePath, charCount, cleanQuery, normalizeText, parseCaseParam, slugify, truncate } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
 import { confessionSchema, signupSchema, usernameSchema } from "@/lib/validation";
@@ -145,6 +146,14 @@ describe("validation", () => {
     const noRules = confessionSchema.safeParse({ title: "A valid title", category: "food-crimes", confession: "x".repeat(10) + " this is long enough to pass the minimum." });
     expect(noRules.success).toBe(false);
     if (!noRules.success) expect(noRules.error.issues.map((i) => i.message)).toContain("You must accept the community rules.");
+    // Titles need words (audit 42 D4); any script counts.
+    const base = { category: "food-crimes", confession: "At dinner I took exactly one fry from every plate.", acceptRules: "on" };
+    const emojiTitle = confessionSchema.safeParse({ ...base, title: "\u{1F600}".repeat(90) });
+    expect(emojiTitle.success).toBe(false);
+    if (!emojiTitle.success) expect(emojiTitle.error.issues[0].message).toContain("title in words");
+    expect(confessionSchema.safeParse({ ...base, title: "\u{1F1EC}\u{1F1E7} \u{1F468}\u200D\u{1F469}\u200D\u{1F467} !!!" }).success).toBe(false);
+    expect(confessionSchema.safeParse({ ...base, title: "我吃了室友的披萨" }).success).toBe(true);
+    expect(confessionSchema.safeParse({ ...base, title: "I ate it \u{1F355}" }).success).toBe(true);
     const bad = confessionSchema.safeParse({ title: "x", category: "nope", confession: "short", acceptRules: undefined });
     expect(bad.success).toBe(false);
   });
@@ -417,6 +426,20 @@ describe("emoji joiner chains (audit 19 #1)", () => {
     const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
     expect(signupSchema.safeParse({ ...base, displayName: "Bob " + chain }).success).toBe(false);
     expect(charCount("\u{1F469}\u200D\u{1F469}\u200D\u{1F467}")).toBeLessThanOrEqual(3); // a real family emoji is still short
+  });
+});
+
+describe("share-image text (audit 42 D1)", () => {
+  it("keeps what the bundled fonts draw, folds accents and drops emoji", () => {
+    expect(ogText("Crème brûlée at the café")).toEqual({ text: "Crème brûlée at the café", lostLetters: false });
+    expect(ogText("Snack Fan \u{1F355}")).toEqual({ text: "Snack Fan", lostLetters: false });
+    expect(ogText("ā ē ī Ａ ﬁx")).toEqual({ text: "a e i A fix", lostLetters: false });
+    expect(ogText("\u{1F600}".repeat(90)).text).toBe("");
+    expect(ogText("I love Москва").lostLetters).toBe(true);
+    expect(ogTextOr("我吃了披萨", "Case No. 0001")).toBe("Case No. 0001");
+    expect(ogTextOr("\u{1F600}\u{1F600}", "the accused")).toBe("the accused");
+    expect(ogTextOr("Pizza \u{1F355} thief", "x")).toBe("Pizza thief");
+    for (const ch of ogText("“Quotes” — dashes… £5 €5 ½ × ÷ ™").text) expect(ogDrawable(ch.codePointAt(0)!)).toBe(true);
   });
 });
 

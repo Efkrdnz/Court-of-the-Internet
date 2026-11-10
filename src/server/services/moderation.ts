@@ -63,6 +63,28 @@ async function log(tx: Tx, moderatorId: string, action: string, extra: { caseId?
   await tx.moderationAction.create({ data: { moderatorId, action, ...extra, note, createdAt: clock.now() } });
 }
 
+/**
+ * Open reporters on a case who count toward hiding it. Every report reaches the moderation queue,
+ * but only established reporters can hide a case (or keep it hidden): accounts at least a day old
+ * whose earlier reports on this case weren't dismissed, and not the trial's own participants.
+ * Otherwise throwaway accounts could freeze any trial again and again.
+ */
+async function countingReporters(tx: Tx, c: { id: string; accusedId: string; attorneyId: string | null; prosecutorId: string | null }) {
+  const minAge = new Date(clock.now().getTime() - gameConfig.reporterMinAgeMs);
+  const dismissedBefore = await tx.report.findMany({ where: { caseId: c.id, status: "DISMISSED" }, select: { reporterId: true }, distinct: ["reporterId"] });
+  const established = await tx.report.findMany({
+    where: {
+      caseId: c.id,
+      status: "OPEN",
+      reporter: { createdAt: { lte: minAge } },
+      reporterId: { notIn: [...dismissedBefore.map((d) => d.reporterId), ...([c.accusedId, c.attorneyId, c.prosecutorId].filter(Boolean) as string[])] },
+    },
+    select: { reporterId: true },
+    distinct: ["reporterId"],
+  });
+  return established.length;
+}
+
 export async function fileReport(
   reporterId: string,
   input: { caseId: string; target: "CASE" | "DEFENSE" | "PROSECUTION"; reason: ReportReason; details?: string },
@@ -91,29 +113,9 @@ export async function fileReport(
       });
       const open = distinctReporters.length;
       await tx.case.update({ where: { id: c.id }, data: { openReports: open } });
-      // Every report reaches the moderation queue, but only established reporters can hide a case
-      // on their own: accounts at least a day old whose earlier reports on this case weren't
-      // dismissed. Otherwise three throwaway accounts could freeze any trial again and again.
-      const minAge = new Date(clock.now().getTime() - gameConfig.reporterMinAgeMs);
-      const dismissedBefore = await tx.report.findMany({
-        where: { caseId: c.id, status: "DISMISSED" },
-        select: { reporterId: true },
-        distinct: ["reporterId"],
-      });
-      const established = await tx.report.findMany({
-        where: {
-          caseId: c.id,
-          status: "OPEN",
-          reporter: { createdAt: { lte: minAge } },
-          // The trial's own participants can report (it reaches the queue), but can't hide or pause
-          // their own case that way.
-          reporterId: { notIn: [...dismissedBefore.map((d) => d.reporterId), ...([c.accusedId, c.attorneyId, c.prosecutorId].filter(Boolean) as string[])] },
-        },
-        select: { reporterId: true },
-        distinct: ["reporterId"],
-      });
+      const established = await countingReporters(tx, c);
       let autoReview = false;
-      if (established.length >= gameConfig.autoReviewReportThreshold && c.moderationState === "VISIBLE") {
+      if (established >= gameConfig.autoReviewReportThreshold && c.moderationState === "VISIBLE") {
         await tx.case.update({ where: { id: c.id }, data: { moderationState: "UNDER_REVIEW" } });
         await pauseDeliberation(tx, c.id); // voting is paused, so the deadline is too
         autoReview = true;
@@ -290,7 +292,7 @@ export async function dismissReports(moderatorId: string, caseId: string, seenRe
       where: { caseId, status: "OPEN", ...(seenReportIds ? { id: { in: seenReportIds } } : {}) },
       data: { status: "DISMISSED", resolvedAt: clock.now() },
     });
-    const c = await tx.case.findUnique({ where: { id: caseId }, select: { moderationState: true } });
+    const c = await tx.case.findUnique({ where: { id: caseId }, select: { id: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true } });
     if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
     const stillOpen = await tx.report.findMany({ where: { caseId, status: "OPEN" }, select: { reporterId: true }, distinct: ["reporterId"] });
     if (dismissed.count === 0) {
@@ -299,12 +301,14 @@ export async function dismissReports(moderatorId: string, caseId: string, seenRe
       if (c.moderationState === "REMOVED") throw new CourtError("INVALID_STATE", "This case was sealed since you opened it, which closed its reports. Reload the console to see the seal.");
       if (c.moderationState !== "UNDER_REVIEW") throw new CourtError("INVALID_STATE", "Those reports were already handled (another officer may have just dismissed them).");
     }
-    // Only an *under review* case with nothing left open is made visible again; a sealed one stays sealed.
-    const madeVisible = c.moderationState === "UNDER_REVIEW" && stillOpen.length === 0;
+    // An *under review* case goes back on view once no report that counts is left open (a sealed
+    // one stays sealed). Newer reports from accounts that couldn't have hidden it (under a day
+    // old, or the trial's own parties) stay in the queue but don't keep it hidden (audit 42 D5).
+    const madeVisible = c.moderationState === "UNDER_REVIEW" && (await countingReporters(tx, c)) === 0;
     await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
     if (madeVisible) await backInSession(tx, caseId);
     await log(tx, moderatorId, "DISMISS_REPORTS", { caseId });
-    return { madeVisible, sealed: c.moderationState === "REMOVED", newer: stillOpen.length };
+    return { madeVisible, sealed: c.moderationState === "REMOVED", newer: stillOpen.length, stillUnderReview: c.moderationState === "UNDER_REVIEW" && !madeVisible };
   });
 }
 
@@ -328,8 +332,8 @@ export async function strikeArgument(moderatorId: string, caseId: string, role: 
     // Striking the reported argument settles those reports; if they were what put the case under
     // review and nothing else is open, it goes back on view and its paused trial resumes (it used
     // to stay hidden with its clock stopped until someone also pressed "Dismiss", audit 41 D4).
-    const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { moderationState: true } });
-    const madeVisible = c.moderationState === "UNDER_REVIEW" && stillOpen.length === 0;
+    const c = await tx.case.findUniqueOrThrow({ where: { id: caseId }, select: { id: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true } });
+    const madeVisible = c.moderationState === "UNDER_REVIEW" && (await countingReporters(tx, c)) === 0;
     await tx.case.update({ where: { id: caseId }, data: { openReports: stillOpen.length, ...(madeVisible ? { moderationState: "VISIBLE" } : {}) } });
     if (madeVisible) await backInSession(tx, caseId);
     await log(tx, moderatorId, stricken ? `STRIKE_${role}` : `UNSTRIKE_${role}`, { caseId });

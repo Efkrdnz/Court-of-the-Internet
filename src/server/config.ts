@@ -32,6 +32,12 @@ export const gameConfig = {
   },
   /** Submissions that started before expiry are accepted this long after it. */
   claimGraceMs: 2 * 60_000,
+  /**
+   * Claims one player may take on the same case and role in a day without filing. Releasing and
+   * re-claiming would otherwise hold a case off the docket forever (audit 42 D2).
+   */
+  maxUnfiledClaimsPerCase: 2,
+  unfiledClaimWindowMs: 24 * 3_600_000,
   maxConfessionsPerDay: 5,
   autoReviewReportThreshold: 3,
   /** Reporters younger than this don't count towards auto-review (their reports still reach moderators). */
