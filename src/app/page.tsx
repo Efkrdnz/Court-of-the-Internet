@@ -10,6 +10,7 @@ import { FlourishDivider, VerdictStamp, WaxSeal, Gavel } from "@/components/art/
 import { Avatar } from "@/components/art/avatar";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { FormAlert } from "@/components/ui/FormAlert";
+import { ForgetDeletedDrafts } from "@/components/ui/ForgetDeletedDrafts";
 
 export default async function LandingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await runMaintenance();
@@ -57,6 +58,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
       {sp.farewell ? (
         <div className="mx-auto max-w-3xl px-4 pt-6">
           <FormAlert kind="info">Your account has been deleted. The court will remember you fondly (and anonymously).</FormAlert>
+          <ForgetDeletedDrafts />
         </div>
       ) : null}
 

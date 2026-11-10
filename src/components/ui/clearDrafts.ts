@@ -3,19 +3,27 @@
 const isOwnDraft = (key: string, owner: string) => key.startsWith("coti-draft-") && (key.endsWith(`-${owner}`) || key === "coti-draft-confession");
 
 /** This account's saved drafts (confession and arguments), keyed as stored. */
-export function snapshotDrafts(owner: string): Record<string, string> {
-  const out: Record<string, string> = {};
+const DELETING = "coti-deleting-account";
+
+/**
+ * Account deletion clears drafts only once it has gone through: the form notes whose account is
+ * being deleted, and the farewell page (reached only on success) clears that account's drafts. A
+ * refused attempt (wrong password, "delete" in lower case) leaves them alone (audit 52 D3).
+ */
+export function markDeletingAccount(owner: string | null) {
   try {
-    for (const key of Object.keys(localStorage)) if (isOwnDraft(key, owner)) out[key] = localStorage.getItem(key) ?? "";
+    if (owner) sessionStorage.setItem(DELETING, owner);
+    else sessionStorage.removeItem(DELETING);
   } catch {
     /* storage unavailable */
   }
-  return out;
 }
 
-export function restoreDrafts(saved: Record<string, string>) {
+export function clearDeletedAccountDrafts() {
   try {
-    for (const [key, value] of Object.entries(saved)) localStorage.setItem(key, value);
+    const owner = sessionStorage.getItem(DELETING);
+    if (owner) clearDrafts(owner);
+    sessionStorage.removeItem(DELETING);
   } catch {
     /* storage unavailable */
   }

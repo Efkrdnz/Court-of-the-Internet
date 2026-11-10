@@ -851,7 +851,8 @@ test("§12 settings: a refused account deletion keeps the player's drafts (audit
   await page.locator("#del-password").fill("objection-sustained");
   await page.locator("#del-confirm").fill("delete"); // lower case: refused
   await page.getByRole("button", { name: /Delete my account/ }).click();
-  await expect(page.getByText(/Type DELETE to confirm/).last()).toBeVisible();
+  // The server's refusal (an alert), not the field's own label.
+  await expect(page.getByRole("alert").filter({ hasText: "Type DELETE to confirm." }).first()).toBeVisible();
   await page.goto("/confess");
   await expect(page.getByLabel("Case title")).toHaveValue("Draft that must survive a typo");
   await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("coti-draft-")).forEach((k) => localStorage.removeItem(k)));
