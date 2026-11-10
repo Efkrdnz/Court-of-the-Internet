@@ -269,6 +269,7 @@ export async function pickRandomQueueCase(role: "DEFENSE" | "PROSECUTION", viewe
     ...(viewer.mutedCategories.length ? { category: { notIn: viewer.mutedCategories } } : {}),
     // "Receive a case" hands out something new, not a case this player just dropped (and may be
     // out of claims on for today).
+    moderationLog: { none: { moderatorId: viewer.id } }, // recused (audit 49 D4)
     claims: { none: { userId: viewer.id, role, outcome: { in: ["ACTIVE", "EXPIRED", "RELEASED"] }, claimedAt: { gte: new Date(now.getTime() - gameConfig.unfiledClaimWindowMs) } } },
   };
   const count = await db.case.count({ where });
@@ -282,6 +283,13 @@ export async function voteStruck(viewerId: string | null | undefined, caseId: st
   if (!viewerId) return false;
   return (await db.moderationAction.count({ where: { action: "STRIKE_VOTE", caseId, targetUserId: viewerId } })) > 0;
 }
+
+/** The viewer moderated this case as an officer, so they're recused from its jury (audit 49 D4). */
+export async function actedOnAsOfficer(viewerId: string | null | undefined, caseId: string): Promise<boolean> {
+  if (!viewerId) return false;
+  return (await db.moderationAction.count({ where: { moderatorId: viewerId, caseId } })) > 0;
+}
+export const RECUSED_REASON = "You've acted on this case as an officer of the court, so you can't sit on its jury.";
 
 export const VOTE_STRUCK_REASON = "Your vote on this trial was struck when you were held in contempt, so you can't vote on it again.";
 
@@ -312,6 +320,8 @@ export async function listJuryCases(viewer: { id: string; mutedCategories: strin
           prosecutorId: { not: viewer.id },
           ...(opts.includeVoted ? {} : { votes: { none: { userId: viewer.id } } }),
           ...(viewer.mutedCategories.length ? { category: { notIn: viewer.mutedCategories } } : {}),
+          // Officers aren't offered trials they've acted on as moderators (audit 49 D4).
+          moderationLog: { none: { moderatorId: viewer.id } },
         }
       : {}),
   };

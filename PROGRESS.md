@@ -995,6 +995,18 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6 | axe `label-content-name-mismatch` on the logo, account menu and bell | names come from on-screen text (screen-reader-only text where it's visually hidden); the bell's label starts with its badge; the a11y e2e spec now also runs the WCAG 2.1 A/AA rules and this one | e2e a11y; axe clean at 320–1400px signed in |
 | — | Share card filename "--verdict.png" for CJK titles and "verdict" before a verdict; players could take "Citizen 1234" | filename from the case number and slug, "file" or "verdict"; "Citizen N" reserved | unit |
 
+## Forty-ninth independent audit (fresh agent, build of commit 873f6aa)
+
+**Result: 15 PASS, 2 CONCERN (13, 17), 0 FAIL.** axe (WCAG 2.1 AA + best practice) found 0 violations on 30 page/viewport combinations; 25 simultaneous claimers gave 1 winner; 12 simultaneous votes gave 1 row; stats matched SQL for 4 players; hidden tallies stayed hidden in the console too.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **An officer could ban a claim holder and take the case** (the ban wasn't logged against the case, so recusal didn't apply) | each claim a ban releases is logged per case (`VOID_CLAIM`), so the officer is recused from it | integration |
+| D2 | Filter misses: "I k n i f e d my roommate", "knifed", "st.abbed", "stabbbbed", "choked my brother until he passed out", "smacked my wife", "shanked my cellmate" | a spelled-out word after "I" stays separate; a third normalised copy removes dots/dashes/underscores inside words and collapses tripled letters; knifed/shanked/smacked and choking until someone blacks out; more relatives and cellmates as victims | corpus: 226 everyday sentences, 252 evasions |
+| D3 | A player's bio could claim to be staff and phish for passwords | bios are checked for staff claims (narrower than names: "I work in admin" passes); asking for a password or login code is refused anywhere; demotion uses the same bio check | unit, integration |
+| D4 | Recused officers were still offered the trial's vote buttons, counted it in "cases await your judgement", and "Receive a case" could pick a recused case | the jury queue and random pick exclude cases the officer acted on; the vote booth says why | integration |
+| D5 | Runs of "⸻", cuneiform or "﷽" in titles and names turned headings into rows of rules or blank boxes | titles and display names refuse 6+ symbol runs (emoji excepted) and extra-wide or undrawable characters | unit |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

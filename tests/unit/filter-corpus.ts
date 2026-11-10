@@ -245,6 +245,11 @@ export const BENIGN = [
   "I held my breath underwater for a whole minute at the pool to win a bet.",
   "I locked my keys in the car on a hot day and had to call my dad.",
   "I left my coffee in the car on a hot day and drank it anyway.",
+  // Audit 49 near-misses.
+  "I knifed through the butter like a pro and nobody else got any.",
+  "I smacked my head on the cupboard door and blamed the cat.",
+  "I choked on my coffee when my boss walked in early.",
+  "I was soooo hungry I ate my roommate's cheese at 3am.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -510,4 +515,12 @@ export const EVASIONS: [string, string][] = [
   ["I held my brother underwater until he panicked","serious-crime"],
   ["I locked my toddler in the car on a hot day","serious-crime"],
   ["I left my dog in the car on a hot day while I shopped","serious-crime"],
+  // Audit 49.
+  ["I k n i f e d my roommate for eating my cereal","serious-crime"],
+  ["I knifed my roommate for eating my cereal","serious-crime"],
+  ["I st.abbed my roommate","serious-crime"],
+  ["I stabbbbed my roommate","serious-crime"],
+  ["I choked my brother until he passed out","serious-crime"],
+  ["I smacked my wife for burning dinner","serious-crime"],
+  ["I shanked my cellmate","serious-crime"],
 ];

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/current-user";
-import { getCaseDetail, listJuryCases, VOTE_STRUCK_REASON, voteStruck } from "@/server/queries/cases";
+import { actedOnAsOfficer, getCaseDetail, listJuryCases, RECUSED_REASON, VOTE_STRUCK_REASON, voteStruck } from "@/server/queries/cases";
 import { refreshCase, runMaintenance } from "@/server/services/maintenance";
 import { gameConfig } from "@/server/config";
 import { db } from "@/server/db";
@@ -117,7 +117,9 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
                     ? "Banned players cannot vote."
                     : !focusCase.viewer.vote && (await voteStruck(user?.id, focusCase.id))
                       ? VOTE_STRUCK_REASON
-                      : null
+                      : !focusCase.viewer.vote && user && user.role !== "PLAYER" && (await actedOnAsOfficer(user.id, focusCase.id))
+                        ? RECUSED_REASON
+                        : null
               }
               signedIn={!!user}
               loginHref={`/login?next=${encodeURIComponent(`/jury?case=${focusCase.number}`)}`}

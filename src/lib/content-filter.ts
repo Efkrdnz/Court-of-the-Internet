@@ -69,6 +69,8 @@ const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // 9+ digits: real numbers (with area code) are caught. Shorter runs like years ("2019-2020") never
 // match, and dates, times, score lists and counting are blanked out first (withoutEverydayNumbers).
 // Bare 7-digit local numbers are a known gap (see README).
+// Asking for someone's password or login code ("message me your password"), audit 49 D3.
+const CREDENTIAL_ASK = /\b(?:send(?:ing)?|giv(?:e|ing)|tell(?:ing)?|messag(?:e|ing)|dm(?:ing)?|pm(?:ing)?|email(?:ing)?|text(?:ing)?|whisper(?:ing)?)\s+(?:me|us|the\s+(?:court|clerks?|mods?))\s+(?:with\s+)?your\s+(?:password|login|pin|passcode|2fa|two[\s-]factor|verification\s+code|security\s+code|session|cookie)s?\b/i;
 const PHONE = /(?:\+?\p{Nd}[\s()./_,\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
 // Explicit URLs, or a domain with any two-letter country TLD or a common generic TLD.
 const URL =
@@ -140,7 +142,7 @@ function spacedOutWords(text: string): string[] {
 // A person (or pet) on the receiving end, for the past-tense harm patterns below. Objects stay
 // fine: "I killed it at karaoke", "I shot a video", "I stabbed the pizza box".
 const VICTIM =
-  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex|stranger|date|defendant|accused|prosecutor|attorney|lawyer|juror|judge|passenger|driver|customer|waiter|waitress|cashier|bartender|bouncer|referee|tourist|neighbour's\\s+kid))";
+  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex|stranger|date|defendant|accused|prosecutor|attorney|lawyer|juror|judge|passenger|driver|customer|waiter|waitress|cashier|bartender|bouncer|referee|tourist|neighbour's\\s+kid|cellmate|inmate|classmate|teammate|housemate|bandmate|nephew|niece|cousin|uncle|aunt|grandad|granddad|nan|gran|stepdad|stepmom|stepmum|toddler))";
 // Who a threat is aimed at: a person (VICTIM) or "you"/"everyone".
 const TARGET = `(?:you|ya|u|y'all|everyone|everybody|people|${VICTIM})`;
 // Games and toys: "I beat my dad at chess", "killed my brother at Fortnite", "shot my sister with a water pistol".
@@ -238,11 +240,13 @@ const VIOLENCE = [
 ];
 
 const HARM_DONE = new RegExp(
-  `\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|strangled|drowned|assaulted|beat\\s+up|kidnapped|ran\\s+over|mugged)\\s+${VICTIM}\\b${NOT_THEIR_THING}${NOT_A_GESTURE}${NOT_A_GAME}`,
+  `\\bi\\s+(?:stabbed|knifed|shanked|shot|killed|murdered|poisoned|strangled|drowned|assaulted|beat\\s+up|kidnapped|ran\\s+over|mugged)\\s+${VICTIM}\\b${NOT_THEIR_THING}${NOT_A_GESTURE}${NOT_A_GAME}`,
   "i",
 );
 
 const SERIOUS = [
+  // Audit 49: choking someone until they black out.
+  new RegExp(`\\b(?:choked|strangled|throttled)\\s+${VICTIM}\\s+(?:until|till|til)\\s+(?:he|she|they)\\s+(?:passed\\s+out|blacked\\s+out|went\\s+limp|fainted|turned\\s+blue|couldn'?t\\s+breathe)\\b`, "i"),
   // Audit 46: a slap across the face, a head held under water.
   new RegExp(`\\b(?:slapped|smacked|backhanded|punched|struck|hit)\\s+${VICTIM}\\s+(?:so\\s+)?(?:hard\\s+)?(?:across|in|on)\\s+(?:the|his|her|their)\\s+(?:face|head|cheek|mouth|jaw)\\b`, "i"),
   new RegExp(`\\b(?:held|pushed|dunked|forced|kept)\\s+${VICTIM}(?:['’]s\\s+head)?\\s+under(?:\\s*water|\\s+the\\s+water|\\s+the\\s+surface)\\b`, "i"),
@@ -287,7 +291,7 @@ const SERIOUS = [
   /\barson\b|\bburn(?:ed|t)\s+down\s+(?:a|the|my|his|her|their|our)\b|\bset\s+fire\s+to\s+(?:a|the|my|his|her|their|our)\s+(?:\w+\s+)?(?:house|home|car|building|school|shop|store|apartment|flat|office|garage)\b/i,
   // Domestic violence (siblings' pillow fights stay petty).
   // ("kicked my dad out of his recliner", "hit my dad up for cash" are something else.)
-  /\bi\s+(?:hit|punched|slapped|kicked|choked|beat)\s+(?:my|his|her)\s+(?:wife|husband|girlfriend|boyfriend|partner|kid|kids|child|children|son|daughter|baby|mom|mum|mother|dad|father|grandma|grandpa)\b(?!['’]s|\s+(?:out|off|up)\b)(?!\s+(?:at|in|on)\s+(?:\w+\s+){0,2}(?:chess|scrabble|cards|poker|monopoly|uno|tennis|golf|pool|darts|bowling|fortnite|minecraft|video\s*games?|board\s*games?|games?|races?|trivia|checkers|ping\s*pong|basketball|football|soccer|wordle|arm\s+wrestling)\b|\s+to\s+(?:the|a)\b)/i,
+  /\bi\s+(?:hit|punched|slapped|smacked|kicked|choked|beat)\s+(?:my|his|her)\s+(?:wife|husband|girlfriend|boyfriend|partner|kid|kids|child|children|son|daughter|baby|mom|mum|mother|dad|father|grandma|grandpa)\b(?!['’]s|\s+(?:out|off|up)\b)(?!\s+(?:at|in|on)\s+(?:\w+\s+){0,2}(?:chess|scrabble|cards|poker|monopoly|uno|tennis|golf|pool|darts|bowling|fortnite|minecraft|video\s*games?|board\s*games?|games?|races?|trivia|checkers|ping\s*pong|basketball|football|soccer|wordle|arm\s+wrestling)\b|\s+to\s+(?:the|a)\b)/i,
   // Hitting or hurting non-family: housemates, neighbours, colleagues, pets ("kicked my dog").
   /\bi\s+(?:punched|kicked|slapped|choked|drowned|strangled|headbutted|bit)\s+(?:my|his|her|their|the|a|our)\s+(?:\w+\s+)?(?:roommate|room-mate|flatmate|neighbou?r|coworker|co-worker|colleague|boss|teacher|landlord|dog|cat|puppy|kitten|pet|hamster|rabbit|bird|parrot|horse)\b/i,
   /\b(?:beat|stabbed|kicked|choked|strangled|starved|burned|burnt)\s+(?:\w+(?:'s|s')?\s+){1,3}to\s+death\b/i,
@@ -518,7 +522,13 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   // Digit-like tokens read O as 0 and I/l as 1 ("O77OO 9OO 123").
   const deLettered = text.replace(/\b[\dOoIl]*\d[\dOoIl]*\b/g, (tok) => tok.replace(/[Oo]/g, "0").replace(/[Il]/g, "1"));
   const numbered = deLettered.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
-  const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
+  // A lone "I" before a spelled-out word stays a word of its own ("I k n i f e d my…" → "I knifed my…").
+  const joined = text
+    .replace(/\b(I)\s+((?:[a-z][\s.\-_*]+){2,}[a-z])\b/g, (_, i: string, run: string) => `${i} ${run.replace(/[^a-z]/gi, "")}`)
+    .replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
+  // …and words broken up or stretched inside: "st.abbed", "stab_bed", "stabbbbed" (audit 49 D2).
+  const squeezed = joined.replace(/(\p{L})[.\-_*]+(?=\p{L})/gu, "$1").replace(/(\p{L})\1{2,}/gu, "$1$1");
+  if (CREDENTIAL_ASK.test(text)) return fail("personal-info");
   if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").
@@ -588,8 +598,8 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   if (HATE_STATEMENTS.some((re) => re.test(text))) return fail("hate");
   // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
   const decoded = text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c);
-  if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("violence");
-  if (SERIOUS.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("serious-crime");
+  if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined) || re.test(squeezed))) return fail("violence");
+  if (SERIOUS.some((re) => re.test(text) || re.test(decoded) || re.test(joined) || re.test(squeezed))) return fail("serious-crime");
   // Same specific message as titles get, rather than the generic spam one.
   if (allowSpamCheck && LONG_WORD.test(raw)) return { ok: false, issue: "spam", message: LONG_WORD_MESSAGE };
   if (allowSpamCheck && looksLikeSpam(raw)) return fail("spam");

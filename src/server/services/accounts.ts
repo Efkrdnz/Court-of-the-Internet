@@ -14,7 +14,7 @@ import {
   type UnlockContext,
 } from "@/lib/cosmetics";
 import { levelForXp } from "@/lib/progression";
-import { COURT_TITLE_MESSAGE, hasAdminTitle, hasCourtTitle } from "@/lib/validation";
+import { bioImpersonatesStaff, COURT_TITLE_MESSAGE, hasAdminTitle, hasCourtTitle } from "@/lib/validation";
 import { getAchievement } from "@/lib/achievements";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
@@ -207,6 +207,10 @@ export async function updateProfile(
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR NO KEY UPDATE`;
     const me = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } });
     if (me.role === "PLAYER" && hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
+    // …or a bio that claims to speak for the court (audit 49 D3).
+    if (me.role === "PLAYER" && bioImpersonatesStaff(input.bio)) {
+      throw new CourtError("VALIDATION", "Your bio can't claim to be an officer of the court or speak for it.", "bio");
+    }
     // A moderator may wear clerk titles, but not the presiding judge's (audit 47 D2).
     if (me.role === "MODERATOR" && hasAdminTitle(input.displayName)) {
       throw new CourtError("VALIDATION", "That title belongs to the presiding judge. Pick your own.", "displayName");

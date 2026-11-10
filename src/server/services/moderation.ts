@@ -5,7 +5,7 @@ import { clock } from "../clock";
 import { gameConfig } from "../config";
 import { CourtError, isUniqueViolation } from "../errors";
 import { casePath, formatCaseNumber, truncate } from "@/lib/text";
-import { hasCourtTitle } from "@/lib/validation";
+import { bioImpersonatesStaff, hasCourtTitle } from "@/lib/validation";
 import { nameClashesWithOfficer } from "./accounts";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
@@ -389,10 +389,13 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     });
     if (banned) {
       // Release anything they were holding so other players aren't blocked…
-      await releaseClaims(tx, { userId: targetUserId });
+      const theirs = await releaseClaims(tx, { userId: targetUserId });
       // …and claims others hold on their public cases, which go on hold (audit 46 D7: counsel
       // already holding one could still file and move it along). Anonymous ones stay in play.
-      await releaseClaims(tx, { publicCasesOf: targetUserId }, accusedBannedNotice);
+      const onHold = await releaseClaims(tx, { publicCasesOf: targetUserId }, accusedBannedNotice);
+      // On the record per case, so the officer is recused from each case whose claim they ended
+      // (audit 49 D1: ban the claim holder, then take the case yourself).
+      for (const r of [...theirs, ...onHold]) await log(tx, moderatorId, "VOID_CLAIM", { caseId: r.caseId, targetUserId: r.holderId ?? undefined });
       // Their votes on trials still in deliberation stop counting; reached verdicts stand. Their
       // reactions come off the counters and their open reports are dismissed, so a banned account
       // no longer sways rankings or counts toward hiding a case.
@@ -579,7 +582,7 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
     let note: string | undefined;
     if (role === "PLAYER") {
       const u = await tx.user.findUniqueOrThrow({ where: { id: targetUserId }, select: { displayName: true, username: true, bio: true } });
-      const titledBio = hasCourtTitle(u.bio);
+      const titledBio = bioImpersonatesStaff(u.bio);
       if (hasCourtTitle(u.displayName) || titledBio) {
         // Their username may carry the title too ("clerk_pemberton", audit 46 D2): then a neutral
         // stand-in. (Usernames themselves are permanent; the @handle stays.)

@@ -6,6 +6,16 @@ import { avatarSchema } from "./avatar";
 import { ADJECTIVES, CRITTERS } from "./alias";
 import { skeleton } from "./confusables";
 
+/**
+ * Headings can't be turned into rows of rules or blank boxes (audit 49 D5): no runs of six or more
+ * punctuation marks or symbols (emoji are fine), and none of the extra-wide characters ("⸻", "﷽")
+ * or ancient scripts that no font here draws (cuneiform, hieroglyphs).
+ */
+const SYMBOL_RUN = /(?:(?!\p{Extended_Pictographic})[\p{P}\p{S}]){6,}/u;
+const WIDE_OR_UNDRAWABLE = /[\u2E3A\u2E3B\uFDFD\uA9C1-\uA9CD\p{Script=Cuneiform}\p{Script=Egyptian_Hieroglyphs}\p{Script=Anatolian_Hieroglyphs}\p{Script=Linear_A}\p{Script=Linear_B}\p{Script=Old_Persian}\p{Script=Ugaritic}]/u;
+export const headingFriendly = (s: string) => !SYMBOL_RUN.test(s) && !WIDE_OR_UNDRAWABLE.test(s);
+const HEADING_MESSAGE = "Long runs of symbols or extra-wide characters aren't allowed here. Use words.";
+
 const text = (opts: { min?: number; max: number; label: string; multiline?: boolean }) =>
   z
     .string({ error: `${opts.label} is required.` })
@@ -31,7 +41,7 @@ export const confessionSchema = z.object({
   // arguments already insist on words).
   title: text({ ...LIMITS.title, label: "Case title", multiline: false }).refine((s) => (s.match(/[\p{L}\p{N}]/gu)?.length ?? 0) >= 3, {
     message: "Give your case a title in words, not just emoji or symbols.",
-  }),
+  }).refine(headingFriendly, { message: HEADING_MESSAGE }),
   category: z.enum(CATEGORY_KEYS, { error: "Pick a category for your crime." }),
   confession: text({ ...LIMITS.confession, label: "Confession" }).refine((s) => (s.match(/[\p{L}\p{N}]/gu)?.length ?? 0) >= 15, {
     message: "Tell the court what happened in words, not just emoji or symbols.",
@@ -74,6 +84,7 @@ const foldFullWidth = (s: string) =>
 const displayNameField = text({ ...LIMITS.displayName, label: "Display name", multiline: false })
   .transform(foldFullWidth)
   .refine((s) => /[\p{L}\p{N}]/u.test(s), { message: "Display names need at least one letter or number." })
+  .refine(headingFriendly, { message: HEADING_MESSAGE })
   .refine((s) => !mixesConfusableScripts(s), {
     message: "Display names can't mix Latin letters with letters from other alphabets.",
   })
@@ -138,6 +149,25 @@ export function hasCourtTitle(name: string): boolean {
   const squashed = foldTitle(spaced).replace(/[^\p{L}]+/gu, "");
   return TITLE_STEMS.some((stem) => squashed.includes(stem));
 }
+/**
+ * A bio that claims to speak for the court ("Official court moderator here", "Head of
+ * Moderation", "I'm an admin, appeal your ban with me"), audit 49 D3. Narrower than the name check,
+ * since bios are free text ("I work in admin", "everything in moderation" are fine).
+ */
+const BIO_IMPERSONATION = [
+  /(?<!\bnot\s+(?:a|an|the|your)\s+)\b(?:official|real|actual|verified)\s+(?:court\s+)?(?:moderator|mod|admin(?:istrator)?|clerk|staff|officer|judge|bailiff)\b/iu,
+  /\bcourt\s+(?:moderator|mod|admin(?:istrator)?|clerk|staff|official|officer)\b/iu,
+  /\b(?:head|chief|lead|senior)\s+(?:of\s+)?(?:moderation|moderator|mod|admin(?:istrator)?|clerk|staff)\b/iu,
+  /\b(?:i\s*(?:'m|am)|we\s*(?:'re|are))\s+(?:a|an|the|your)?\s*(?:moderator|mod|admin(?:istrator)?|clerk|officer\s+of\s+the\s+court|bailiff|presiding\s+judge)s?\b/iu,
+  /\b(?:moderator|mod|admin|clerk)\s+here\b/iu,
+  /\bpresiding\s+judge\b|\bofficer\s+of\s+the\s+court\b|\bspeak\s+for\s+the\s+(?:bench|court)\b/iu,
+  /\bappeal\s+(?:your|a|the)\s+(?:ban|contempt|verdict)\b/iu,
+];
+export function bioImpersonatesStaff(bio: string): boolean {
+  const text = skeleton(foldFullWidth(bio)).normalize("NFKD").replace(/\p{M}/gu, "");
+  return BIO_IMPERSONATION.some((re) => re.test(text));
+}
+
 /** The presiding judge's own titles: a moderator may carry clerk titles, but not these (audit 47 D2). */
 const ADMIN_TITLES = ["presiding judge", "chief justice", "chief judge", "head judge", "lord justice", "the judge", "your honour", "your honor", "his honour", "his honor", "her honour", "her honor", "their honour", "their honor", "administrator"].map(foldTitle);
 export function hasAdminTitle(name: string): boolean {

@@ -5,7 +5,7 @@ import { castVote, claimCase, submitArgument } from "@/server/services/cases";
 import { closeDeliberation } from "@/server/services/verdict";
 import { runMaintenanceNow } from "@/server/services/maintenance";
 import { toggleReaction } from "@/server/services/reactions";
-import { bumpViewCount, getCaseDetail, listQueue } from "@/server/queries/cases";
+import { bumpViewCount, getCaseDetail, listJuryCases, listQueue, pickRandomQueueCase } from "@/server/queries/cases";
 import {
   adjournNow,
   assertNotYetReported,
@@ -624,6 +624,28 @@ describe("moderation", () => {
     await claimCase(counsel, held.id, "DEFENSE");
     await setBan(admin, banned, true, "Contempt");
     await expect(submitArgument(counsel, held.id, "DEFENSE", DEFENSE_TEXT)).rejects.toMatchObject({ message: expect.stringContaining("released your claim") });
+  });
+
+  it("banning a claim holder recuses the officer from that case; recused cases aren't offered; bios can't speak for the court (audit 49)", async () => {
+    const [accused, holder, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];
+    const clerk = await makeUser("banning_clerk", "MODERATOR");
+    const c = await makeCase(accused);
+    await claimCase(holder, c.id, "DEFENSE");
+    // D1: ban the holder, then try to take the case yourself.
+    await setBan(clerk, holder, true, "Contempt");
+    expect(await db.moderationAction.count({ where: { action: "VOID_CLAIM", caseId: c.id, moderatorId: clerk } })).toBe(1);
+    await expect(claimCase(clerk, c.id, "DEFENSE")).rejects.toMatchObject({ code: "INELIGIBLE" });
+    expect((await pickRandomQueueCase("DEFENSE", { id: clerk, mutedCategories: [] }))?.id).not.toBe(c.id);
+    // D4: a trial the officer acted on isn't in their jury queue.
+    await toDeliberation(c.id, attorney, prosecutor);
+    expect((await listJuryCases({ id: clerk, mutedCategories: [] })).cards.map((x) => x.id)).not.toContain(c.id);
+    expect((await listJuryCases({ id: await makeUser(), mutedCategories: [] })).cards.map((x) => x.id)).toContain(c.id);
+    // D3: a player's bio can't claim to be staff; ordinary bios are fine.
+    const player = await makeUser();
+    await expect(
+      updateProfile(player, { displayName: "Plain Pat", bio: "Official court moderator here. Appeal your ban by messaging me.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+    ).rejects.toMatchObject({ code: "VALIDATION", field: "bio" });
+    await updateProfile(player, { displayName: "Plain Pat", bio: "Everything in moderation, except pizza.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null });
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {

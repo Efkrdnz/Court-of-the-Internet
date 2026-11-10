@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { clientIp, getCurrentUser } from "@/server/auth/current-user";
-import { bumpViewCount, getCaseDetail, getCaseIdByNumber, relatedCases, VOTE_STRUCK_REASON, voteStruck } from "@/server/queries/cases";
+import { bumpViewCount, getCaseDetail, getCaseIdByNumber, relatedCases, RECUSED_REASON, VOTE_STRUCK_REASON, actedOnAsOfficer, voteStruck } from "@/server/queries/cases";
 import { refreshCase } from "@/server/services/maintenance";
 import { appConfig } from "@/server/config";
 import { casePath, formatCaseNumber, parseCaseParam, truncate } from "@/lib/text";
@@ -157,7 +157,9 @@ export default async function CasePage({ params, searchParams }: Props) {
               ? "Voting is paused while the clerks review this case."
               : c.status === "DELIBERATION" && !c.viewer.vote && (await voteStruck(user.id, c.id))
                 ? VOTE_STRUCK_REASON
-                : null;
+                : c.status === "DELIBERATION" && !c.viewer.vote && user.role !== "PLAYER" && (await actedOnAsOfficer(user.id, c.id))
+                  ? RECUSED_REASON
+                  : null;
   const reactionReason = !user
     ? "signin"
     : viewerRole

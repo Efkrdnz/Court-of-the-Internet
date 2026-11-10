@@ -5,7 +5,7 @@ import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/p
 import { ogDrawable, ogText, ogTextOr } from "@/lib/og-text";
 import { casePath, charCount, cleanQuery, normalizeText, parseCaseParam, slugify, truncate } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
-import { confessionSchema, hasCourtTitle, signupSchema, usernameSchema } from "@/lib/validation";
+import { bioImpersonatesStaff, confessionSchema, hasCourtTitle, headingFriendly, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
 import { safeNext } from "@/lib/safe-next";
 import { decideVerdict, controversyScore } from "@/server/services/verdict";
@@ -451,6 +451,25 @@ describe("anonymous look-alike names and spelled-out domains (audit 47 D3, D4)",
   });
   it.each(["I wore my polka dot top to the funeral and nobody said anything", "I drew a dot on my brother's forehead while he slept on the sofa"])("allows %j", (text) => {
     expect(screenText(text).ok).toBe(true);
+  });
+});
+
+describe("headings and bios (audit 49 D3, D5)", () => {
+  it.each(["I ate cake " + "\u2E3B".repeat(34), "\u{12000}".repeat(32), "!!!!!!!!", "I ate cake \uFDFD"])("refuses %j in titles and names", (text) => {
+    expect(headingFriendly(text)).toBe(false);
+  });
+  it.each(["I ate the cake!!!", "Who ate my fries?! (Not me...)", "Pizza \u{1F355}\u{1F355}\u{1F355}\u{1F355}\u{1F355}\u{1F355} forever", "Café — c’est moi"])("allows %j", (text) => {
+    expect(headingFriendly(text)).toBe(true);
+  });
+  it.each(["Official court moderator here.", "Head of Moderation. I speak for the bench.", "I am a moderator, DM me", "Mod here, report issues to me"])("flags the bio %j", (bio) => {
+    expect(bioImpersonatesStaff(bio)).toBe(true);
+  });
+  it.each(["I work in admin and eat cake", "Everything in moderation, except pizza", "My mum was a court reporter"])("allows the bio %j", (bio) => {
+    expect(bioImpersonatesStaff(bio)).toBe(false);
+  });
+  it("refuses asking for passwords", () => {
+    expect(screenText("Appeal your ban by messaging me your password.")).toMatchObject({ ok: false, issue: "personal-info" });
+    expect(screenText("I forgot my password three times today and blamed the cat").ok).toBe(true);
   });
 });
 
