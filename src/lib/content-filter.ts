@@ -124,8 +124,22 @@ const NUMBER_WORDS: Record<string, string> = { zero: "0", oh: "0", one: "1", two
 /** A phone number spelled out ("five five five, eight six seven…"): 7+ digit words in a row. */
 function spelledPhone(text: string): boolean {
   let run: number[] = [];
-  for (const w of text.toLowerCase().split(/[^a-z]+/).filter(Boolean)) {
-    run = w in NUMBER_WORDS ? [...run, Number(NUMBER_WORDS[w])] : [];
+  // "double oh", "triple seven" repeat the next digit; digits typed as numbers count too
+  // ("oh seven seven double oh 9…"), audit 53 #5.
+  let repeat = 1;
+  for (const w of text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)) {
+    if (w === "double" || w === "triple") {
+      repeat = w === "double" ? 2 : 3;
+      continue;
+    }
+    const digits = w in NUMBER_WORDS ? [Number(NUMBER_WORDS[w])] : /^\d{1,4}$/.test(w) && run.length > 0 ? [...w].map(Number) : null;
+    if (!digits) {
+      run = [];
+      repeat = 1;
+      continue;
+    }
+    for (let i = 0; i < repeat; i++) run.push(...digits);
+    repeat = 1;
     // Counting up ("one, two, three…") isn't a phone number.
     if (run.length >= 9 && !run.every((n, i) => i === 0 || n === run[i - 1] + 1)) return true;
   }

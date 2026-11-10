@@ -226,6 +226,7 @@ export async function listQueue(opts: QueueOptions) {
     db.case.count({ where }),
   ]);
   const cards = await toCaseCards(rows, opts.viewer);
+  const blocked = await claimBlockReasons(opts.viewer?.id, rows.map((r) => r.id), opts.role);
   const defenses =
     opts.role === "PROSECUTION" && rows.length
       ? await db.argument.findMany({
@@ -238,7 +239,7 @@ export async function listQueue(opts: QueueOptions) {
       const d = defenses.find((x) => x.caseId === c.id);
       return {
         ...c,
-        eligibility: queueEligibility(rows.find((r) => r.id === c.id)!, opts.role, opts.viewer?.id),
+        eligibility: blocked.has(c.id) ? { ok: false, reason: blocked.get(c.id) } : queueEligibility(rows.find((r) => r.id === c.id)!, opts.role, opts.viewer?.id),
         defenseExcerpt: d && !d.stricken ? d.body : null,
       };
     }),
@@ -257,6 +258,28 @@ export function queueEligibility(
   if (row.accusedId === viewerId) return { ok: false, reason: "This is your own confession" };
   if (role === "PROSECUTION" && row.attorneyId === viewerId) return { ok: false, reason: "You defended this case" };
   return { ok: true };
+}
+
+/**
+ * Why `viewerId` can't claim these cases even though the queue shows them: they acted on one as an
+ * officer (recused), or already claimed it twice today without filing. The claim itself refuses
+ * both; this lets the button say so up front (audit 53 #2).
+ */
+export async function claimBlockReasons(viewerId: string | null | undefined, caseIds: string[], role: "DEFENSE" | "PROSECUTION"): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!viewerId || caseIds.length === 0) return out;
+  const since = new Date(clock.now().getTime() - gameConfig.unfiledClaimWindowMs);
+  const [acted, claims] = await Promise.all([
+    db.moderationAction.findMany({ where: { moderatorId: viewerId, caseId: { in: caseIds } }, select: { caseId: true }, distinct: ["caseId"] }),
+    db.caseClaim.groupBy({
+      by: ["caseId"],
+      where: { userId: viewerId, role, caseId: { in: caseIds }, outcome: { in: ["ACTIVE", "EXPIRED", "RELEASED"] }, claimedAt: { gte: since } },
+      _count: { _all: true },
+    }),
+  ]);
+  for (const c of claims) if (c._count._all >= gameConfig.maxUnfiledClaimsPerCase) out.set(c.caseId, "You've claimed this case twice today without filing");
+  for (const a of acted) if (a.caseId) out.set(a.caseId, "You've acted on this case as an officer, so another player has to take it");
+  return out;
 }
 
 /** For "assign me a case": random eligible case for the viewer. */

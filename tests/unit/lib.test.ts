@@ -461,11 +461,15 @@ describe("headings and bios (audit 49 D3, D5)", () => {
   it.each(["I ate the cake!!!", "Who ate my fries?! (Not me...)", "Pizza \u{1F355}\u{1F355}\u{1F355}\u{1F355}\u{1F355}\u{1F355} forever", "Café — c’est moi"])("allows %j", (text) => {
     expect(headingFriendly(text)).toBe(true);
   });
-  it.each(["Official court moderator here.", "Head of Moderation. I speak for the bench.", "I am a moderator, DM me", "Mod here, report issues to me", "I'm on the mod team, message me to get unbanned", "admin of this site", "Court of the Internet staff", "Official account. Want free XP?", "Staff member. Ask me to reverse any verdict.", "I handle bans and appeals here. DM me if you got held in contempt."])("flags the bio %j", (bio) => {
+  it.each(["Official court moderator here.", "Head of Moderation. I speak for the bench.", "I am a moderator, DM me", "Mod here, report issues to me", "I'm on the mod team, message me to get unbanned", "admin of this site", "Court of the Internet staff", "Official account. Want free XP?", "Staff member. Ask me to reverse any verdict.", "I handle bans and appeals here. DM me if you got held in contempt.", "Your friendly neighbourhood clerk. DMs open for appeals.", "I'm one of the clerks around here", "Officially appointed by Judge Wigsworth himself", "I can get your case restored. Ask me."])("flags the bio %j", (bio) => {
     expect(bioImpersonatesStaff(bio)).toBe(true);
   });
   it.each(["I work in admin and eat cake", "Everything in moderation, except pizza", "My mum was a court reporter"])("allows the bio %j", (bio) => {
     expect(bioImpersonatesStaff(bio)).toBe(false);
+  });
+  it("refuses a phone number spelled with double/triple and digits (audit 53 #5)", () => {
+    expect(screenText("call her on oh seven seven double oh nine one two three four five six")).toMatchObject({ ok: false, issue: "personal-info" });
+    expect(screenText("double double toil and trouble, I ate the cauldron cake").ok).toBe(true);
   });
   it("refuses asking for passwords", () => {
     expect(screenText("Appeal your ban by messaging me your password.")).toMatchObject({ ok: false, issue: "phishing" });
@@ -498,11 +502,13 @@ describe("court titles in names (audit 44 #1)", () => {
     // Audit 51 #3.
     "Court of the Internet", "Official Court Account", "COTI Official", "Trust and Safety", "Site Owner", "Court Team", "M o d", "M.o.d", "helpdesk_coti",
     // Audit 52 D2.
-    "courtoftheinternet", "CourtOfTheInternet", "CourtSupport", "Court Internet Official", "Internet Court HQ", "The Presiding Owl", "System", "Notifications"])(
+    "courtoftheinternet", "CourtOfTheInternet", "CourtSupport", "Court Internet Official", "Internet Court HQ", "The Presiding Owl", "System", "Notifications",
+    // Audit 53 #3.
+    "C.O.T.I. Team", "The Internet's Court", "Kourt of the Internet", "Court ov da Internet", "Court Notification", "System Message", "Verified \u2714", "\u2714 Official", "Deleted User", "[deleted]"])(
     "refuses %s",
     (name) => expect(hasCourtTitle(name)).toBe(true),
   );
-  it.each(["Judge Mental", "Marshal Law", "Wordsworth Fan", "Modest Mouse", "Administer Snacks", "Clerkenwell Kid", "Staffie Lover", "Courtney", "Justice League Fan", "Clark Kent", "Office Goblin", "Model Citizen", "Bailey", "duchess_of_dishes", "Sheriff Bob", "Badminton Queen", "Administer Snacks", "Officially Snacking", "System Of A Down Fan", "Internet Explorer", "Basketball Court Hero"])(
+  it.each(["Judge Mental", "Marshal Law", "Wordsworth Fan", "Modest Mouse", "Administer Snacks", "Clerkenwell Kid", "Staffie Lover", "Courtney", "Justice League Fan", "Clark Kent", "Office Goblin", "Model Citizen", "Bailey", "duchess_of_dishes", "Sheriff Bob", "Badminton Queen", "Administer Snacks", "Officially Snacking", "System Of A Down Fan", "Internet Explorer", "Basketball Court Hero", "Internet Cat Lover", "Court Jester"])(
     "allows %s",
     (name) => expect(hasCourtTitle(name)).toBe(false),
   );

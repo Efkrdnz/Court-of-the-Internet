@@ -636,6 +636,8 @@ describe("moderation", () => {
     expect(await db.moderationAction.count({ where: { action: "VOID_CLAIM", caseId: c.id, moderatorId: clerk } })).toBe(1);
     await expect(claimCase(clerk, c.id, "DEFENSE")).rejects.toMatchObject({ code: "INELIGIBLE" });
     expect((await pickRandomQueueCase("DEFENSE", { id: clerk, mutedCategories: [] }))?.id).not.toBe(c.id);
+    // …and the docket says so up front instead of offering an enabled button (audit 53 #2).
+    expect((await listQueue({ role: "DEFENSE", viewer: { id: clerk, mutedCategories: [] } })).cards.find((x) => x.id === c.id)?.eligibility).toMatchObject({ ok: false, reason: expect.stringContaining("acted on this case") });
     // D4: a trial the officer acted on isn't in their jury queue.
     await toDeliberation(c.id, attorney, prosecutor);
     expect((await listJuryCases({ id: clerk, mutedCategories: [] })).cards.map((x) => x.id)).not.toContain(c.id);

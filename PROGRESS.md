@@ -1049,6 +1049,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D5 | Reacting to a sealed case says it was sealed (claims and reports say "not found") | same as votes: only someone who had the page open sees it, and case ids are unguessable; no change | — |
 | D6 | `maxLength` counted UTF-16 units, so the browser silently cut emoji names (and then the server called them letterless) | name, bio and title inputs allow 4 units per character; the server's own grapheme-based limit gives the message | — |
 
+## Fifty-third independent audit (fresh agent, build of commit 6188161)
+
+**Result: 14 PASS, 3 CONCERN (10, 13 cosmetic, 17), 0 FAIL; no security hole, race, wrong number or data loss.** Every counter for every user and case matched the rows; 12 concurrent mixed votes gave 1 row; 10 concurrent claimers 1 winner; drafts survived a refused deletion and an aborted request; axe (WCAG 2.0/2.1/2.2 AA + best practice) found 0 violations on 29 page/viewport combinations.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | A case title of 35-letter words broke mid-word on desktop: its font was fitted to the 1024px card, but the heading is capped at 768px | the title has its own container at the heading's width | — |
+| 2 | Recused officers and players out of claims saw an enabled "Take this case" that failed on click | the docket and case page ask the same questions as the claim (recusal, 2 unfiled claims a day) and disable the button with the reason | integration |
+| 3 | Names still posing as the site or staff: "C.O.T.I. Team", "The Internet's Court", "Kourt of the Internet", "Court Notification", "System Message", "Verified ✔", "Deleted User" | more stems (folded like names), "court" spelt any way around "internet", verification ticks, "verified"/"official"/"deleted" | unit |
+| 4 | Bios still claiming staff powers: "your friendly neighbourhood clerk. DMs open for appeals", "one of the clerks", "appointed by Judge …", "I can get your case restored" | phrases added (near-misses kept: a neighbourhood snack thief, DMs open for memes, appointed by a team) | unit |
+| 5 | A phone number spelled out with "double oh" and digits passed | spelled-phone detection understands double/triple and digits in the run | unit |
+| 6 | Vote stuffing with sockpuppets when exposed without a proxy | documented deployment requirement; no change | — |
+| 7 | 404 page gradient "ends halfway" | the fixed body background in a full-page screenshot (a capture artefact noted in audit 44); a real viewport shows no seam | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { clientIp, getCurrentUser } from "@/server/auth/current-user";
-import { bumpViewCount, getCaseDetail, getCaseIdByNumber, relatedCases, RECUSED_REASON, VOTE_STRUCK_REASON, actedOnAsOfficer, voteStruck } from "@/server/queries/cases";
+import { bumpViewCount, getCaseDetail, getCaseIdByNumber, relatedCases, RECUSED_REASON, VOTE_STRUCK_REASON, actedOnAsOfficer, claimBlockReasons, voteStruck } from "@/server/queries/cases";
 import { refreshCase } from "@/server/services/maintenance";
 import { appConfig } from "@/server/config";
 import { casePath, formatCaseNumber, parseCaseParam, truncate } from "@/lib/text";
@@ -200,12 +200,16 @@ export default async function CasePage({ params, searchParams }: Props) {
           <p className={`mt-1 font-display italic text-sepia [--fit-max:1.125rem] [--fit-min:0.75rem] ${FIT_FONT}`} style={fitStyle(`v. ${accusedName}`)}>
             The People v. {accusedName}
           </p>
-          <h1
-            className={`mx-auto mt-3 max-w-3xl text-balance font-display font-black leading-tight text-ink [--fit-max:1.5rem] min-[400px]:[--fit-max:1.875rem] sm:[--fit-max:3rem] ${FIT_FONT}`}
-            style={fitStyle(c.title)}
-          >
-            {c.title}
-          </h1>
+          {/* Its own container at the heading's width (max-w-3xl), so the font is fitted to the
+              768px the title really has, not the wider card (audit 53 #1). */}
+          <div className="@container mx-auto mt-3 max-w-3xl">
+            <h1
+              className={`text-balance font-display font-black leading-tight text-ink [--fit-max:1.5rem] min-[400px]:[--fit-max:1.875rem] sm:[--fit-max:3rem] ${FIT_FONT}`}
+              style={fitStyle(c.title)}
+            >
+              {c.title}
+            </h1>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-sepia">
           <CategoryIcon category={c.category} className="h-7 w-7" />
@@ -246,6 +250,7 @@ export default async function CasePage({ params, searchParams }: Props) {
               signedIn={!!user}
               loginHref={loginHref}
               onHold={onHold}
+              blockedReason={user && !viewerRole ? (await claimBlockReasons(user.id, [c.id], c.status.includes("DEFENSE") ? "DEFENSE" : "PROSECUTION")).get(c.id) : undefined}
             />
           ) : null}
           {(c.status === "DEFENSE_CLAIMED" || c.status === "PROSECUTION_CLAIMED") && c.claimedBySomeone ? (
@@ -368,6 +373,7 @@ function StageCallout({
   signedIn,
   loginHref,
   onHold = false,
+  blockedReason,
 }: {
   role: "DEFENSE" | "PROSECUTION";
   caseId: string;
@@ -376,6 +382,8 @@ function StageCallout({
   loginHref: string;
   /** The (public) accused is banned, so nobody can take the case right now. */
   onHold?: boolean;
+  /** This viewer can't take it: recused as an officer, or out of claims on it for today. */
+  blockedReason?: string;
 }) {
   const isDefense = role === "DEFENSE";
   if (onHold) {
@@ -393,7 +401,9 @@ function StageCallout({
         : "You can't prosecute your own case."
       : viewerRole === "DEFENSE" && !isDefense
         ? "You defended this case."
-        : undefined;
+        : blockedReason
+          ? `${blockedReason}.`
+          : undefined;
   return (
     <div className="velvet flex flex-wrap items-center gap-5 p-6">
       <div className="min-w-0 flex-1">

@@ -134,7 +134,7 @@ const COURT_TITLES = [
   // Audit 47 D4.
   "supreme court", "high court", "magistrate", "magistrates", "your worship", "his worship", "her worship", "the bench", "official judge",
   // Audit 51 #3: names posing as the site itself or its staff.
-  "court of the internet", "coti", "official court", "presiding", "official account", "court account", "court team", "trust and safety", "trust safety", "site owner", "site official", "support", "helpdesk", "help desk",
+  "court of the internet", "coti", "official court", "presiding", "verified", "official", "deleted", "official account", "court account", "court team", "trust and safety", "trust safety", "site owner", "site official", "support", "helpdesk", "help desk",
 ].map(foldTitle);
 
 // Distinctive stems also caught inside joined, numbered or split-up names ("ModeratorBob",
@@ -142,7 +142,9 @@ const COURT_TITLES = [
 // words that happen to contain one are removed first.
 const TITLE_STEMS = ["moderator", "moderation", "admin", "clerk", "bailiff", "sysop", "officer", "yourhonour", "yourhonor", "courtstaff",
   // The site's own name, however it's joined or reordered (audit 52 D2).
-  "courtoftheinternet", "courtinternet", "internetcourt", "courtsupport", "courtofficial", "courthq", "courtbot", "courtnews", "courtnotices"].map((t) => foldTitle(t).trim());
+  "courtoftheinternet", "courtinternet", "internetcourt", "courtsupport", "courtofficial", "courthq", "courtbot", "courtnews", "courtnotices",
+  // Audit 53 #3.
+  "internetscourt", "cotiteam", "cotiofficial", "cotistaff", "cotisupport", "cotiadmin", "court notification", "court message", "system message", "system notice", "deleted user", "removed user"].map((t) => foldTitle(t).replace(/[^\p{L}]+/gu, ""));
 const NOT_A_TITLE = /\b(?:badminton\w*|administ(?:er|ers|ered|ering|rative)|clerkenwell|staff(?:ie|ies|y|ordshire|ord)|officers?\s+mess)\b/giu;
 
 // Short titles spelled out letter by letter ("M o d", "M.o.d"), audit 51 #3.
@@ -154,6 +156,11 @@ const SYSTEM_NAMES = new Set(["system", "notifications", "notification", "announ
 export function hasCourtTitle(name: string): boolean {
   const folded = foldTitle(name);
   if (SYSTEM_NAMES.has(folded)) return true;
+  // Verification ticks ("Verified ✔", "✔ Official") and the site's name misspelled around
+  // "internet" ("Kourt of the Internet", "Court ov da Internet"), audit 53 #3.
+  if (/[\u2713\u2714\u2611\u2705\u{1F5F8}]/u.test(name)) return true;
+  const letters = folded.replace(/[^\p{L}]+/gu, "");
+  if (letters.includes("internet") && /[ck]o?u?r+t/.test(letters.replace("internet", " "))) return true;
   if (COURT_TITLES.some((title) => folded.includes(title))) return true;
   if (SHORT_TITLES.has(folded.replace(/[^\p{L}]+/gu, "").replace(/\d+$/, ""))) return true;
   // Split camel case before folding ("ModeratorBob"), drop harmless words, then squash to letters.
@@ -182,6 +189,13 @@ const BIO_IMPERSONATION = [
   // Audit 52 D2: "Staff member. Ask me to reverse any verdict.", "I handle bans and appeals here".
   /\bstaff\s+member\b|\b(?:reverse|overturn|undo|change|fix)\s+(?:any|your|a|the)\s+(?:verdict|ban|sentence|ruling)s?\b/iu,
   /\bi\s+(?:handle|deal\s+with|process|review|run|manage|decide)\s+(?:the\s+|all\s+)?(?:bans|appeals|reports|moderation|verdicts|contempt)\b/iu,
+  // Audit 53 #4: "your friendly neighbourhood clerk", "one of the clerks", "appointed by Judge …",
+  // "DMs open for appeals", "I can get your case restored".
+  /\b(?:your|the)\s+(?:(?:friendly|local|neighbou?rhood|resident|favou?rite|trusty|humble)\s+){1,3}(?:clerk|moderator|mod|admin|bailiff|judge|officer)\b/iu,
+  /\bone\s+of\s+the\s+(?:clerks|moderators|mods|admins|judges|bailiffs|officers)\b/iu,
+  /\b(?:officially\s+)?appointed\s+by\s+(?:the\s+)?(?:judge|court|bench|presiding|admin|administrator|moderators?|clerks?|staff)\b/iu,
+  /\b(?:dms?|messages?|inbox|pms?)\s+(?:are\s+|is\s+)?open\s+for\s+(?:appeals|unbans|bans|reports|pardons)\b/iu,
+  /\b(?:get|have)\s+(?:your|a)\s+(?:case|ban|verdict|contempt|sentence)\s+(?:restored|unsealed|lifted|overturned|reversed|removed|cleared)\b/iu,
   /\b(?:held\s+in\s+contempt|banned|suspended)\b.{0,40}\b(?:dm|pm|message|contact|ping|write\s+to)\s+me\b|\b(?:dm|pm|message|contact|ping)\s+me\b.{0,40}\b(?:held\s+in\s+contempt|banned|unban|appeal)/iu,
 ];
 export function bioImpersonatesStaff(bio: string): boolean {
