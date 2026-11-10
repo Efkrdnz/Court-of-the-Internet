@@ -210,6 +210,7 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
     if (accused?.bannedAt) throw new CourtError("INVALID_STATE", "The accused has been held in contempt of court, so this case is on hold.");
     const ineligible = eligibilityError(c, userId, role);
     if (ineligible) throw new CourtError("INELIGIBLE", ineligible);
+    await assertNotActedOnAsOfficer(tx, userId, caseId);
     if (c.status !== openStatus && c.status !== claimedStatus) {
       const ahead = role === "DEFENSE" || (c.status !== "AWAITING_DEFENSE" && c.status !== "DEFENSE_CLAIMED");
       throw new CourtError(
@@ -357,6 +358,11 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
     const ineligible = eligibilityError({ ...c, prosecutorId: null }, userId, role);
     if (ineligible) throw new CourtError("INELIGIBLE", ineligible);
     if (c.status !== claimedStatus || c.claimedById !== userId) {
+      // Say why when the court ended the claim (a seal, or the accused held in contempt), audit 48 D5.
+      const mine = await tx.caseClaim.findFirst({ where: { caseId, userId, role }, orderBy: { claimedAt: "desc" }, select: { outcome: true } });
+      if (mine?.outcome === "VOIDED") {
+        throw new CourtError("INVALID_STATE", "The court released your claim: the case was sealed, or the accused was held in contempt and the case is on hold. Your draft is saved on this device.");
+      }
       throw new CourtError("INVALID_STATE", "You don't hold the claim on this case. It may have expired and been requeued.");
     }
     if (!c.claimExpiresAt || c.claimExpiresAt.getTime() + gameConfig.claimGraceMs < now.getTime()) {
@@ -475,6 +481,7 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
     if ([c.accusedId, c.attorneyId, c.prosecutorId].includes(userId)) {
       throw new CourtError("INELIGIBLE", "You're part of this case, so you can't sit on its jury. Nice try.");
     }
+    await assertNotActedOnAsOfficer(tx, userId, caseId);
     const existing = await tx.vote.findUnique({ where: { caseId_userId: { caseId, userId } }, select: { id: true } });
     if (existing) throw new CourtError("ALREADY_DONE", "You've already voted on this case. The court remembers.");
     // A vote struck by a ban isn't a second chance: after an unban the juror can't come back and
@@ -506,6 +513,18 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
     });
     return { choice, ...tallies };
   });
+}
+
+/**
+ * Recusal works both ways: an officer who took any moderation action on a case (struck an
+ * argument, sealed or restored it, dismissed its reports, adjourned it…) can't then argue it or
+ * sit on its jury. Otherwise they could strike the defense and claim the prosecution (audit 48 D1).
+ */
+async function assertNotActedOnAsOfficer(tx: Tx, userId: string, caseId: string) {
+  const acted = await tx.moderationAction.findFirst({ where: { moderatorId: userId, caseId }, select: { id: true } });
+  if (acted) {
+    throw new CourtError("INELIGIBLE", "You've acted on this case as an officer of the court, so you can't argue it or sit on its jury.");
+  }
 }
 
 /** Re-exported for actions that need to know eligibility without mutating. */

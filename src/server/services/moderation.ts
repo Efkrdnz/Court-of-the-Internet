@@ -6,6 +6,7 @@ import { gameConfig } from "../config";
 import { CourtError, isUniqueViolation } from "../errors";
 import { casePath, formatCaseNumber, truncate } from "@/lib/text";
 import { hasCourtTitle } from "@/lib/validation";
+import { nameClashesWithOfficer } from "./accounts";
 import { assertActiveUser, notify } from "./progress";
 import { closeDeliberation } from "./verdict";
 import { accusedBannedNotice, releaseClaims, sealedCaseNotice } from "./claims";
@@ -361,6 +362,11 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     const target = await liveTarget(tx, targetUserId);
     // Checked first, so an officer on a jury isn't told about a conflict with themselves (audit 47 D5).
     if (targetUserId === moderatorId) throw new CourtError("FORBIDDEN", "You cannot hold yourself in contempt.");
+    // No-ops are answered before the conflict check, so a pointless "unban" can't be used to
+    // learn which players share an open trial with the officer (audit 48 D4).
+    if (banned === !!target.bannedAt) {
+      throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
+    }
     // Recusal reaches bans too: an officer can't ban (or unban) someone who is a party or juror on a
     // trial they're arguing or accused in. Banning the jurors who voted against you would delete
     // their votes and swing your own verdict.
@@ -373,9 +379,6 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
     });
     if (conflicted) {
       throw new CourtError("FORBIDDEN", "You're part of an open trial (as a party or juror) that this player is also part of, so another officer has to decide this.");
-    }
-    if (banned === !!target.bannedAt) {
-      throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
     }
     if (target.role !== "PLAYER" && mod.role !== "ADMIN") {
       throw new CourtError("FORBIDDEN", banned ? "Only an admin can hold another officer of the court in contempt." : "Only an admin can lift contempt for another officer of the court.");
@@ -557,6 +560,19 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
       throw new CourtError("INVALID_STATE", role === "MODERATOR" ? "That player is already a court clerk." : "That player isn't a court clerk.");
     }
     if (role === "MODERATOR" && target.bannedAt) throw new CourtError("INVALID_STATE", "A player held in contempt can't be appointed. Lift the contempt first.");
+    // Officers' names are reserved, so a new clerk needs a name no other player already goes by
+    // (audit 48 D2: two "Honest Harriet"s, one of them now a clerk without the badge's name to itself).
+    if (role === "MODERATOR") {
+      const me = await tx.user.findUniqueOrThrow({ where: { id: targetUserId }, select: { displayName: true } });
+      const others = await tx.user.findMany({ where: { id: { not: targetUserId }, deletedAt: null }, select: { displayName: true }, take: 50_000 });
+      const lookalikes = others.filter((o) => nameClashesWithOfficer(me.displayName, o.displayName)).length;
+      if (lookalikes > 0) {
+        throw new CourtError(
+          "CONFLICT",
+          `${lookalikes === 1 ? "Another player goes" : `${lookalikes} other players go`} by a name like “${me.displayName}”, and officers' names are reserved. Ask them to choose a more distinctive display name before appointing them.`,
+        );
+      }
+    }
     await tx.user.update({ where: { id: targetUserId }, data: { role } });
     // A former officer doesn't keep a court title in their name once the badge is gone
     // ("Chief Justice Moderator", audit 45 D2): they go by their username until they pick another.

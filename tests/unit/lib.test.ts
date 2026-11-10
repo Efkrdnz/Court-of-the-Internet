@@ -440,7 +440,7 @@ describe("joined words count as one long word (audit 44 #3)", () => {
 });
 
 describe("anonymous look-alike names and spelled-out domains (audit 47 D3, D4)", () => {
-  it.each(["Anonymous", "anonymous defendant", "Anon Pigeon", "An Anonymous Confessor"])("refuses the name %j", (name) => {
+  it.each(["Anonymous", "anonymous defendant", "Anon Pigeon", "An Anonymous Confessor", "Citizen 1234"])("refuses the name %j", (name) => {
     expect(signupRefuses(name)).toBe(true);
   });
   it.each(["Anonymous Andy fan club", "Benchwarmer Bob", "Court Jester"])("allows the name %j", (name) => {

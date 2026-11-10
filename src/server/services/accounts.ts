@@ -65,6 +65,19 @@ function containsNearly(hay: string, needle: string): boolean {
 /** Titles and filler that don't identify a particular officer. */
 const TITLE_WORDS = new Set(["judge", "clerk", "the", "court", "your", "honour", "honor", "justice", "officer", "bailiff", "chief", "presiding", "moderator", "admin", "marshal", "sheriff", "sir", "lord", "lady", "madam", "mister", "dame"]);
 
+/** Whether `candidate` could pass for the officer called `staffName` (exact, contained, a typo away, or their distinctive name word). */
+export function nameClashesWithOfficer(staffName: string, candidate: string): boolean {
+  const key = nameKey(candidate);
+  if (!key) return false;
+  const staffKey = nameKey(staffName);
+  if (staffKey === key || (staffKey.length >= 8 && (key.includes(staffKey) || withinOneEdit(staffKey, key)))) return true;
+  return staffName
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((word) => !TITLE_WORDS.has(word.toLowerCase()))
+    .map(nameKey)
+    .some((word) => word.length >= 5 && containsNearly(key, word));
+}
+
 /** Nobody (player or another officer) can take an officer of the court's display name ("Judge Wigsworth" is the real one). */
 export async function assertNotStaffName(displayName: string, selfId?: string, field: "displayName" | "username" = "displayName") {
   const staff = await db.user.findMany({
@@ -81,15 +94,7 @@ export async function assertNotStaffName(displayName: string, selfId?: string, f
   // …and near-misses one typo away ("Judge Wiggsworth").
   // The officer's own name word on its own or with another title, typo included: "Wigsworth",
   // "Your Honour Wiggsworth" (only distinctive words of 5+ letters, so "Judge" alone is fine).
-  const clashes = (staffName: string) => {
-    const staffKey = nameKey(staffName);
-    if (staffKey === key || (staffKey.length >= 8 && (key.includes(staffKey) || withinOneEdit(staffKey, key)))) return true;
-    return staffName
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter((word) => !TITLE_WORDS.has(word.toLowerCase()))
-      .map(nameKey)
-      .some((word) => word.length >= 5 && containsNearly(key, word));
-  };
+  const clashes = (staffName: string) => nameClashesWithOfficer(staffName, displayName);
   if (key && staff.some((u) => clashes(u.displayName) || clashes(u.username.replace(/_/g, " ")))) {
     throw new CourtError("VALIDATION", "That name belongs to an officer of the court. Pick your own.", field);
   }

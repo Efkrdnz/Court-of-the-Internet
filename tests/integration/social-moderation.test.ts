@@ -586,6 +586,46 @@ describe("moderation", () => {
     await submitArgument(player, c.id, "DEFENSE", DEFENSE_TEXT);
   });
 
+  it("an officer who acted on a case can't then argue it or judge it; promotions keep officer names unique (audit 48)", async () => {
+    const [accused, attorney, juror] = [await makeUser(), await makeUser(), await makeUser()];
+    const clerk = await makeUser("acting_clerk", "MODERATOR");
+    const admin = await makeUser("acting_judge", "ADMIN");
+    const c = await makeCase(accused);
+    await claimCase(attorney, c.id, "DEFENSE");
+    await submitArgument(attorney, c.id, "DEFENSE", DEFENSE_TEXT);
+    // D1: strike the defense, then try to prosecute it.
+    await strikeArgument(clerk, c.id, "DEFENSE");
+    await expect(claimCase(clerk, c.id, "PROSECUTION")).rejects.toMatchObject({ code: "INELIGIBLE", message: expect.stringContaining("acted on this case") });
+    await strikeArgument(clerk, c.id, "DEFENSE", false);
+    const prosecutor = await makeUser();
+    await claimCase(prosecutor, c.id, "PROSECUTION");
+    await submitArgument(prosecutor, c.id, "PROSECUTION", PROSECUTION_TEXT);
+    await expect(castVote(clerk, c.id, "GUILTY")).rejects.toMatchObject({ code: "INELIGIBLE" });
+    await castVote(juror, c.id, "GUILTY"); // others are unaffected
+
+    // D4: a pointless "unban" doesn't reveal who shares an open trial with the officer.
+    const clerk2 = await makeUser("juror_clerk_two", "MODERATOR");
+    await castVote(clerk2, c.id, "NOT_GUILTY");
+    await expect(setBan(clerk2, juror, false)).rejects.toMatchObject({ code: "INVALID_STATE", message: expect.stringContaining("isn't held in contempt") });
+
+    // D2: a player whose name others already use can't be appointed until it's distinctive.
+    const harrietA = await makeUser("harriet_a");
+    const harrietB = await makeUser("harriet_b");
+    await db.user.update({ where: { id: harrietA }, data: { displayName: "Honest Harriet" } });
+    await db.user.update({ where: { id: harrietB }, data: { displayName: "Honest Harriet" } });
+    await expect(setUserRole(admin, harrietA, "MODERATOR")).rejects.toMatchObject({ code: "CONFLICT" });
+    await db.user.update({ where: { id: harrietA }, data: { displayName: "Clerk Quillsworth" } });
+    await setUserRole(admin, harrietA, "MODERATOR");
+
+    // D5: counsel whose claim a ban released is told why.
+    const banned = await makeUser();
+    const counsel = await makeUser();
+    const held = await makeCase(banned);
+    await claimCase(counsel, held.id, "DEFENSE");
+    await setBan(admin, banned, true, "Contempt");
+    await expect(submitArgument(counsel, held.id, "DEFENSE", DEFENSE_TEXT)).rejects.toMatchObject({ message: expect.stringContaining("released your claim") });
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });

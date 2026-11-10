@@ -17,7 +17,7 @@ export function ShareBar({ url, summary, title, cardHref, closed = true }: { url
     <div className="flex flex-wrap items-center gap-2">
       <CopyButton text={url} label="Copy link" copiedLabel="Link copied!" icon={<IconCopy className="h-4 w-4" />} />
       <CopyButton text={summary} label={closed ? "Copy verdict summary" : "Copy case summary"} copiedLabel="Summary copied!" icon={<IconCopy className="h-4 w-4" />} />
-      <a href={cardHref} download={`${title.slice(0, 40).replace(/[^a-z0-9]+/gi, "-")}-verdict.png`} className="btn btn-ghost btn-sm">
+      <a href={cardHref} download={`court-of-the-internet-case-${cardHref.split("/")[2] ?? "card"}-${closed ? "verdict" : "file"}.png`} className="btn btn-ghost btn-sm">
         <IconDownload className="h-4 w-4" /> Share card
       </a>
       {canShare ? (

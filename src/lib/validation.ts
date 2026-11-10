@@ -91,6 +91,10 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
   .refine((s) => !new RegExp(`^\\s*(?:an?\\s+)?anon(?:ymous)?\\b(?:\\s+(?:defendant|confessor|user|player|citizen|accused|${CRITTERS.join("|")}))?\\s*$`, "iu").test(s.normalize("NFKC")), {
     message: "That's what anonymous confessors are called. Pick something else.",
   })
+  // "Citizen 1234" is the stand-in name for a demoted officer, and "Former Citizen" a deleted account's.
+  .refine((s) => !/^\s*citizen\s*\d+\s*$/iu.test(s.normalize("NFKC")), {
+    message: "That name is reserved by the court. Pick something else.",
+  })
   // An alias's two words alone ("Mysterious Walrus") would pass for one too.
   .refine((s) => !new RegExp(`^\\s*(?:${ADJECTIVES.join("|")})\\s+(?:${CRITTERS.join("|")})\\s*$`, "iu").test(s.normalize("NFKC")), {
     message: "That's what anonymous confessors are called. Pick something else.",

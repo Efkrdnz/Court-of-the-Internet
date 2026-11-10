@@ -20,7 +20,8 @@ export function NotificationBell({ unread }: { unread: number }) {
     <Link
       href="/notifications"
       className="relative grid h-11 w-11 place-items-center rounded-full text-parchment/80 transition hover:bg-burgundy/40 hover:text-gold-light"
-      aria-label={shown ? `Notifications (${shown} unread)` : "Notifications"}
+      // Starts with the badge's own text ("4", "99+"), so the name matches what's on screen.
+      aria-label={shown ? `${shown > 99 ? "99+" : shown} unread notifications` : "Notifications"}
     >
       <IconBell className="h-5 w-5" />
       {shown ? (

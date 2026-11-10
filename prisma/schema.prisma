@@ -381,6 +381,7 @@ model ModerationAction {
   note         String?
   createdAt    DateTime @default(now())
 
+  @@index([caseId, moderatorId])
   @@index([createdAt])
 }
 

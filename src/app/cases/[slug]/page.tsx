@@ -171,7 +171,10 @@ export default async function CasePage({ params, searchParams }: Props) {
     defense: ["AWAITING_PROSECUTION", "PROSECUTION_CLAIMED"],
     prosecution: ["DELIBERATION"],
   };
-  const filedMessage = typeof sp.filed === "string" && FILED_STAGE[sp.filed]?.includes(c.status) ? FILED_MESSAGES[sp.filed] : undefined;
+  // …and only to the player who filed it, not to anyone the URL is shared with (audit 48 D3).
+  const FILED_BY: Record<string, string> = { "1": "ACCUSED", defense: "DEFENSE", prosecution: "PROSECUTION" };
+  const filedMessage =
+    typeof sp.filed === "string" && FILED_STAGE[sp.filed]?.includes(c.status) && viewerRole === FILED_BY[sp.filed] ? FILED_MESSAGES[sp.filed] : undefined;
 
   return (
     <article className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-6">

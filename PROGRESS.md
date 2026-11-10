@@ -981,6 +981,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6 | The "community rules" link in the accept-rules labels was 17px tall | inline padding enlarges its tap area without changing the layout | — |
 | D7 | Party chips truncated long display names at every width | names wrap to two lines (full name on hover); checked at 320 and 1280px | — |
 
+## Forty-eighth independent audit (fresh agent, build of commit 6579f5a)
+
+**Result: 15 PASS, 2 CONCERN (13 documented, 17), 0 FAIL.** 8-way claim races over 5 rounds gave one winner each; 12 concurrent mixed votes gave 1 row; tallies, reactions and openReports equal their rows across the database; seal/restore moved the clock by exactly the paused time; no 500s from URL fuzzing.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **An officer could moderate a case and then join it** (strike the defense, then claim the prosecution and file) | recusal works both ways: any moderation action an officer took on a case bars them from claiming it or voting on it (indexed lookup, migration `20261110220000_modaction_case_index`) | integration: strike → claim refused; vote refused; others unaffected |
+| D2 | Promoting a player left another player with the same display name as the new officer | a promotion is refused until no other player goes by a name like the candidate's (same look-alike rules as the officer-name check) | integration |
+| D3 | The "your confession has been entered" banner showed to anyone opening a `?filed=` URL | shown only to the player who filed that stage | — |
+| D4 | A no-op "unban" revealed whether a player shared an open trial with the officer | no-op ban/unban requests are answered before the conflict check | integration |
+| D5 | Counsel whose claim a ban released got "may have expired" | a court-voided claim says the court released it (sealed, or accused in contempt) | integration |
+| D6 | axe `label-content-name-mismatch` on the logo, account menu and bell | names come from on-screen text (screen-reader-only text where it's visually hidden); the bell's label starts with its badge; the a11y e2e spec now also runs the WCAG 2.1 A/AA rules and this one | e2e a11y; axe clean at 320–1400px signed in |
+| — | Share card filename "--verdict.png" for CJK titles and "verdict" before a verdict; players could take "Citizen 1234" | filename from the case number and slug, "file" or "verdict"; "Citizen N" reserved | unit |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

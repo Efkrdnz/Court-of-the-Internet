@@ -56,16 +56,17 @@ export function UserMenu({
         className="flex items-center gap-2 rounded-full border border-gold/40 bg-night/40 py-1 pl-1 pr-3 transition hover:border-gold-light"
         aria-expanded={open}
         aria-haspopup="menu"
-        // Starts with the visible text ("Hammy Lv 2"), so voice-control users can say what they see.
-        aria-label={`${displayName} Lv ${level}, account menu`}
       >
+        {/* Named by its text: the visible "Hammy Lv 2" (kept for screen readers where it's visually
+            hidden) plus "account menu", so the name matches what's on screen (audit 48 D6). */}
         <span aria-hidden className="shrink-0">
           <Avatar config={avatar} className="h-9 w-9" title={displayName} />
         </span>
-        <span className="hidden text-left leading-tight sm:block lg:hidden xl:block">
+        <span className="sr-only text-left leading-tight sm:not-sr-only sm:block lg:sr-only xl:not-sr-only xl:block">
           <span className="block max-w-[9rem] truncate text-sm font-bold text-parchment">{displayName}</span>{" "}
           <span className="block text-[11px] font-semibold text-gold-light">Lv {level}</span>
         </span>
+        <span className="sr-only">, account menu</span>
       </button>
       {open ? (
         <div role="menu" className="velvet !absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden p-2">

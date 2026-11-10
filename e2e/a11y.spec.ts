@@ -8,7 +8,7 @@ for (const path of PUBLIC_PAGES) {
   test(`no serious accessibility violations on ${path}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(path);
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).options({ rules: { "label-content-name-mismatch": { enabled: true } } }).analyze();
     const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(", ")}`)).toEqual([]);
   });
@@ -19,7 +19,7 @@ for (const path of ["/court", "/confess", "/settings"]) {
     const page = await demoPage(browser, "juror_whiskers");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(path);
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).options({ rules: { "label-content-name-mismatch": { enabled: true } } }).analyze();
     const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(", ")}`)).toEqual([]);
   });
