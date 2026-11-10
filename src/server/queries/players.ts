@@ -195,6 +195,20 @@ export async function getLeaderboards() {
       streak: r.row.currentProsecutionStreak,
     })),
     convicts: convicts.map((r) => ({ ...lbPerson(r.user), convictions: r.timesConvicted, acquittals: r.timesAcquitted, confessed: r.casesConfessed })),
+    // Players tied with the 10th place but cut off by the top 10 (shown as "…and N more tied").
+    convictsMoreTied:
+      convicts.length === 10
+        ? (await db.userStats.count({ where: { user: activeUser, timesConvicted: convicts[9].timesConvicted } })) -
+          convicts.filter((r) => r.timesConvicted === convicts[9].timesConvicted).length
+        : 0,
+    streaksMoreTied: (() => {
+      const all = streakers.map((r) => Math.max(r.longestDefenseStreak, r.longestProsecutionStreak)).sort((a, b) => b - a);
+      return all.length > 10 ? all.slice(10).filter((v) => v === all[9]).length : 0;
+    })(),
+    jurorsMoreTied:
+      jurors.length === 10
+        ? (await db.userStats.count({ where: { user: activeUser, juryVotes: jurors[9].juryVotes } })) - jurors.filter((r) => r.juryVotes === jurors[9].juryVotes).length
+        : 0,
     streaks: streakers
       .map((r) => ({
         ...lbPerson(r.user),

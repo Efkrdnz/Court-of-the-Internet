@@ -52,14 +52,15 @@ export function ConfessionForm({ displayName, quorum, deliberationHours }: { dis
     }, 0);
     return () => clearTimeout(t);
   }, []);
-  const draftFailed = !!state && !state.ok;
+  // Saved on every edit, and again after each rejected filing: `state` is a new object per
+  // response, so two rejections in a row both put the draft back (submitting clears it).
   useEffect(() => {
     try {
       if (title || confession || context || category) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, category, confession, context }));
     } catch {
       /* ignore */
     }
-  }, [title, category, confession, context, draftFailed]);
+  }, [title, category, confession, context, state]);
   const cat = category ? getCategory(category) : null;
   const previewAlias = anonymousAlias(title || "preview").name;
 

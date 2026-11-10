@@ -58,7 +58,10 @@ export async function fileReport(
       // Serialise reports per case, so simultaneous reporters each count the others (otherwise
       // the stored reporter count lags behind the reports actually filed).
       await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${input.caseId} FOR UPDATE`;
-      const c = await tx.case.findUnique({ where: { id: input.caseId }, select: { id: true, moderationState: true } });
+      const c = await tx.case.findUnique({
+        where: { id: input.caseId },
+        select: { id: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true },
+      });
       if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
       if (input.target !== "CASE") {
         const arg = await tx.argument.findFirst({ where: { caseId: c.id, role: input.target }, select: { id: true } });
@@ -87,7 +90,9 @@ export async function fileReport(
           caseId: c.id,
           status: "OPEN",
           reporter: { createdAt: { lte: minAge } },
-          reporterId: { notIn: dismissedBefore.map((d) => d.reporterId) },
+          // The trial's own participants can report (it reaches the queue), but can't hide or pause
+          // their own case that way.
+          reporterId: { notIn: [...dismissedBefore.map((d) => d.reporterId), ...([c.accusedId, c.attorneyId, c.prosecutorId].filter(Boolean) as string[])] },
         },
         select: { reporterId: true },
         distinct: ["reporterId"],
@@ -355,6 +360,8 @@ export async function adjournNow(moderatorId: string, caseId: string) {
     });
     if (res.count === 0) {
       const c = await tx.case.findUnique({ where: { id: caseId }, select: { status: true } });
+      // Another officer's adjourn (or the clock) closed it a moment ago: report that verdict below.
+      if (c?.status === "CLOSED") return;
       throw new CourtError(
         "INVALID_STATE",
         c?.status === "DELIBERATION" ? "That case is sealed or under review. Restore it or dismiss the reports first." : "That case is not in deliberation.",

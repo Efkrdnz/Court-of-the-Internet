@@ -58,7 +58,8 @@ export async function claimAction(caseId: string, role: ArgumentRole): Promise<A
     await enforceRateLimit(`claim-attempt:${user.id}`, 120, 600);
     const refund = await reserveAttempt([{ key: `claim:${user.id}`, limit: 20, windowSeconds: 600, message: "Order in the court! You're doing that too fast. Try again in a moment." }]);
     try {
-      await claimCase(user.id, caseId, role);
+      // Re-claiming a case you already hold (a double-click) is free.
+      if ((await claimCase(user.id, caseId, role)).alreadyHeld) await refund();
     } catch (e) {
       await refund();
       throw e;

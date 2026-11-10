@@ -76,6 +76,8 @@ const URL =
 // A handle is "@name" not glued to a word on its left (that would be an email, checked first).
 const HANDLE = /(?:^|[^\p{L}\p{N}_.%+-])@[\p{L}\p{N}_.]{3,}/u;
 // Number + Capitalised Name(s) + street suffix, e.g. "42 Wallaby Way".
+// UK postcodes ("SW1A 1AA"), written in capitals as on an envelope.
+const UK_POSTCODE = /\b(?:[A-Z]{1,2}\d[A-Z\d]?|GIR)\s\d[A-Z]{2}\b/;
 const STREET =
   /\b\d{1,5}[A-Za-z]?\s+(?:[A-Z][a-z]+\s){1,3}(?:[Ss]treet|St|[Aa]venue|Ave|[Rr]oad|Rd|[Bb]oulevard|Blvd|[Ll]ane|Ln|[Dd]rive|Dr|[Cc]ourt|Ct|[Ww]ay|[Pp]lace|Pl|[Tt]errace)\b\.?/;
 // Lower-case addresses ("42 wallaby way"): one or two name words that aren't everyday filler,
@@ -136,7 +138,7 @@ function spacedOutWords(text: string): string[] {
 // A person (or pet) on the receiving end, for the past-tense harm patterns below. Objects stay
 // fine: "I killed it at karaoke", "I shot a video", "I stabbed the pizza box".
 const VICTIM =
-  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex|stranger|passenger|driver|customer|waiter|waitress|cashier|bartender|bouncer|referee|tourist|neighbour's\\s+kid))";
+  "(?:him|her|them|someone|somebody|(?:my|his|her|their|our|a|an|the|this|that|some)\\s+(?:\\w+\\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|manager|friend|brother|sister|mom|mum|mother|dad|father|wife|husband|partner|boyfriend|girlfriend|kid|kids|child|children|son|daughter|teacher|student|cop|officer|man|woman|guy|girl|boy|person|people|baby|grandma|grandpa|cat|dog|puppy|kitten|landlord|ex|stranger|date|passenger|driver|customer|waiter|waitress|cashier|bartender|bouncer|referee|tourist|neighbour's\\s+kid))";
 // Who a threat is aimed at: a person (VICTIM) or "you"/"everyone".
 const TARGET = `(?:you|ya|u|y'all|everyone|everybody|people|${VICTIM})`;
 // Games and toys: "I beat my dad at chess", "killed my brother at Fortnite", "shot my sister with a water pistol".
@@ -149,6 +151,13 @@ const NAMED = "(?!(?:It|This|That|The|Time|Monday|Tuesday|Wednesday|Thursday|Fri
 const NOT_THEIR_THING = "(?!['’]s\\s+(?!(?:\\w+\\s+)?(?:cat|dog|puppy|kitten|pet|hamster|parrot|rabbit|bird|horse|baby|kid|son|daughter|wife|husband)\\b))";
 // "shot my brother a dirty look", "shot my boss a text": a gesture or message, not a gun.
 const NOT_A_GESTURE = "(?!\\s+(?:a|an|the|some|another)\\s+(?:\\w+\\s+){0,2}(?:look|looks|glance|text|message|email|e-mail|smile|wink|grin|stare|dm|photo|pic|picture|video|selfie|reply|question|warning|eyebrow|thumbs)\\b)";
+
+const GROUPS =
+  "(?:gay|lesbian|bi|trans|transgender|queer|black|white|brown|asian|jewish|muslim|christian|hindu|sikh|mexican|arab|african|chinese|indian|disabled|autistic|immigrant|refugee)\\s+(?:people|folks|men|women|kids|guys|ones)|(?:gays|lesbians|trans\\s+people|blacks|whites|asians|jews|muslims|christians|hindus|sikhs|mexicans|arabs|africans|immigrants|refugees|migrants|foreigners|women|men)";
+const HATE_STATEMENTS = [
+  new RegExp(`\\b(?:all\\s+)?(?:${GROUPS})\\s+(?:are|r)\\s+(?:all\\s+|just\\s+|nothing\\s+but\\s+)?(?:disgusting|vermin|animals|subhuman|scum|parasites|rats|cockroaches|filth|trash|garbage|evil|inferior|a\\s+disease|a\\s+plague|a\\s+cancer|savages|degenerates|criminals|terrorists|abominations?)\\b`, "i"),
+  /\bjews\s+(?:control|run|own)\s+(?:the|all|every)\b/i,
+];
 
 const VIOLENCE = [
   /\bkill\s+(?:your\s*self|urself|yourselves)\b/i,
@@ -175,7 +184,7 @@ const VIOLENCE = [
   /\b(?:i\s*(?:will|'ll|would|'d)|gonna|going\s+to|want\s+to)\s+(?:end|unalive|off)\s+(?:him|them|someone|somebody|everyone|(?:my|his|her|their)\s+(?:\w+\s+)?(?:neighbou?r|roommate|room-mate|flatmate|coworker|co-worker|colleague|boss|friend|brother|sister|mom|mum|dad|wife|husband|partner|boyfriend|girlfriend|landlord|ex|teacher))\b/i,
   // Intent + harm + a person: "I want to kill my neighbour", "planning to poison his dog".
   // Needs a human target, so "kill time", "could kill for a nap" and "mom will kill me" stay fine.
-  new RegExp(`\\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|about|tr(?:y|ying|ied)|decided|need)\\s+to\\s+(?:kill|murder|stab|shoot|poison|strangle|hurt|beat\\s+up)\\s+${TARGET}\\b${NOT_THEIR_THING}`, "i"),
+  new RegExp(`\\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|about|tr(?:y|ying|ied)|decided|need)\\s+to\\s+(?:kill|murder|stab|shoot|poison|strangle|hurt|punch|smack|beat\\s+up)\\s+${TARGET}\\b${NOT_THEIR_THING}`, "i"),
   // Poisoning or drugging someone's food or drink is aimed at them ("poison my roommate's coffee").
   new RegExp(`\\b(?:want(?:ed|s)?|plan(?:ned|ning|s)?|intend(?:ed|s)?|about|tr(?:y|ying|ied)|decided|need|going|gonna)\\s+(?:to\\s+)?(?:poison|drug|spike|lace)\\s+${TARGET}\\b`, "i"),
   // "I would kill my brother", but not the everyday "I could kill my brother for eating my fries".
@@ -193,13 +202,15 @@ const VIOLENCE = [
   new RegExp(`\\b${TARGET}\\s+(?:deserves?\\s+to|should(?:\\s+just)?|needs?\\s+to|ought\\s+to)\\s+(?:die|be\\s+killed|be\\s+shot|rot\\s+in\\s+hell)\\b`, "i"),
   new RegExp(`\\bput\\s+${TARGET}\\s+in\\s+(?:the\\s+|a\\s+)?(?:hospital|icu|coma|ground|grave|morgue)\\b`, "i"),
   new RegExp(`\\b(?:make\\s+sure|so\\s+that)\\s+${TARGET}\\s+(?:never|doesn'?t|won'?t)\\s+wakes?\\s+up\\b`, "i"),
+  new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll)|want\\s+to)\\s+run\\s+${TARGET}\\s+over\\b`, "i"),
+  /\b(?:you'?re|you\s+are|ur|he'?s|she'?s|they'?re)\s+dead\s+meat\b/i,
   /\bshoot\s+up\b/i,
   /\b(?:make|build|plant)\s+a\s+bomb\b/i,
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,
 ];
 
 const HARM_DONE = new RegExp(
-  `\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|strangled|drowned|assaulted|beat\\s+up|drugged|kidnapped|ran\\s+over|mugged)\\s+${VICTIM}\\b${NOT_THEIR_THING}${NOT_A_GESTURE}${NOT_A_GAME}`,
+  `\\bi\\s+(?:stabbed|shot|killed|murdered|poisoned|strangled|drowned|assaulted|beat\\s+up|kidnapped|ran\\s+over|mugged)\\s+${VICTIM}\\b${NOT_THEIR_THING}${NOT_A_GESTURE}${NOT_A_GAME}`,
   "i",
 );
 
@@ -248,11 +259,19 @@ const SERIOUS = [
   /\b(?:sold|sell|selling|dealt|deal|dealing|supplied)\s+(?:some\s+)?coke\b(?!\s+(?:zero|cans?|bottles?))/,
   // Burglary (your own car or piggy bank is fine), shoplifting something big, fraud, hit-and-run.
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
-  /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps5|xbox|switch|jewel\w*|watch|watches|bikes?|tools?)\b/i,
+  /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
+  // Drugging someone ("drugged my date", "roofied a girl"), alcohol slipped into their drink.
+  /\broofi(?:ed|es|e|ing)\b/i,
+  new RegExp(`\\bdrugged\\s+${VICTIM}\\b(?!\\s+with\\s+(?:too\\s+much\\s+)?(?:\\w+\\s+)?(?:bread|pizza|cake|cookies?|food|sugar|coffee|kindness|love|snacks?|carbs))`, "i"),
+  /\b(?:put|poured|slipped|mixed|added)\s+(?:\w+\s+){0,2}(?:vodka|alcohol|booze|rum|gin|tequila|whisk(?:e)?y|liquor|spirits|drugs?|pills?)\s+(?:in|into)\s+(?:(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:drink|coffee|tea|juice|soda|water|smoothie|coke|lemonade|beer|wine)\b/i,
+  // Hit-and-run with a person ("ran someone over and drove off").
+  /\b(?:(?:hit|knocked\s+(?:down|over)|ran\s+over|struck|clipped|mowed\s+down)\s+(?:someone|somebody|him|her|them)|ran\s+(?:someone|somebody|him|her|them)\s+over)\b.{0,60}\b(?:(?:drove|sped|took|ran)\s+(?:off|away)|kept\s+(?:on\s+)?driving|didn'?t\s+stop|fled|left\s+the\s+scene)\b/i,
+  // Cruelty to animals ("hit my dog with a belt", "starved my hamster", "drowned the kittens").
+  /\b(?:hit|beat|kicked|whipped|starved|drowned|tortured|burned|burnt|strangled|abused|stabbed|skinned|mutilated)\s+(?:my|his|her|their|the|a|an|some|our|two|three)\s+(?:\w+\s+)?(?:dogs?|cats?|pupp(?:y|ies)|kittens?|hamsters?|rabbits?|bunn(?:y|ies)|birds?|parrots?|horses?|pon(?:y|ies)|squirrels?|pets?|guinea\s+pigs?|goldfish|ferrets?|tortoises?|turtles?|animals?)\b(?!['’]s)/i,
   // Taking hard drugs ("did coke", "took MDMA", "smoked crack"), dealing or growing weed.
   /\b(?:did|doing|do|took|taking|take|smoked|smoking|snorted|snorting|injected|injecting|dropped|tried)\s+(?:some\s+|a\s+(?:line|bump|hit)\s+of\s+)?(?:coke(?!\s+zero)|cocaine|mdma|ecstasy|crack|heroin|meth|ketamine|lsd|shrooms|magic\s+mushrooms|speed|ket)\b/i,
-  /\b(?:dealt|deal|dealing|sold|sell|selling|supplied)\s+(?:\w+\s+){0,2}(?:weed|cannabis|marijuana|skunk|hash)\b/i,
+  /\b(?:dealt|deal|dealing|sold|sell|selling|supplied)\s+(?:\w+\s+){0,2}(?:weed|cannabis|marijuana|skunk|hash)\b|\b(?:dealt|deal|dealing)\s+(?:\w+\s+)?pills\b/i,
   /\bgr(?:ow|ew|owing|own)\s+(?:\w+\s+)?(?:weed|cannabis|marijuana|skunk)\b/i,
   // Groping: someone's body grabbed, or touching without consent.
   /\b(?:grabbed|touched|groped|pinched|slapped|squeezed)\s+(?:a|an|the|my|his|her|some|this)\s+(?:\w+\s+)?(?:woman|girl|man|guy|stranger|lady|coworker|co-worker|colleague|person|waitress|waiter)['’]s\s+(?:bum|butt|ass|arse|breasts?|boobs?|chest|crotch|private\s+parts|thigh|backside)\b/i,
@@ -262,7 +281,7 @@ const SERIOUS = [
   // Poisoning someone's food or drink ("poisoned my coworker's coffee").
   /\b(?:poisoned|drugged|laced)\s+(?:(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:coffee|tea|drink|food|lunch|water|meal|dinner|breakfast|soup|smoothie|juice|beer|wine|snack|sandwich)\b/i,
   // Image-based abuse and voyeurism, groping.
-  /\b(?:posted|shared|leaked|sent|uploaded|spread|sold)\s+(?:\w+\s+){0,2}(?:nudes?|nude\s+(?:photos?|pics?|pictures?|images?|videos?)|intimate\s+(?:photos?|pics?|pictures?|images?|videos?)|naked\s+(?:photos?|pics?|pictures?|videos?)|sex\s+tape)\b|\brevenge\s+porn\b|\bupskirt/i,
+  /\b(?:posted|shared|leaked|sent|uploaded|spread|sold|forwarded|texted|airdropped|showed)\s+(?:[\w'’-]+\s+){0,2}(?:nudes?|nude\s+(?:photos?|pics?|pictures?|images?|videos?)|intimate\s+(?:photos?|pics?|pictures?|images?|videos?)|naked\s+(?:photos?|pics?|pictures?|videos?)|sex\s+tape)\b|\brevenge\s+porn\b|\bupskirt/i,
   /\b(?:filmed|recorded|photographed|watched|spied\s+on)\s+(?:\w+\s+){1,3}(?:in\s+the\s+shower|showering|undressing|changing|naked)\b(?=.{0,40}\b(?:without|secretly|didn'?t\s+know|not\s+knowing|hidden|spy\s+cam)\b)|\b(?:hidden|spy)\s+cam(?:era)?\s+in\s+(?:the|my|her|his|their)\s+(?:bathroom|shower|bedroom|changing\s+room)\b/i,
   /\bgrop(?:ed|ing|e|es)\b/i,
   // Assault: a blow to the face or head, a push down the stairs.
@@ -367,7 +386,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   const deLettered = text.replace(/\b[\dOoIl]*\d[\dOoIl]*\b/g, (tok) => tok.replace(/[Oo]/g, "0").replace(/[Il]/g, "1"));
   const numbered = deLettered.replace(/(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)/gi, (w) => NUMBER_WORDS[w.toLowerCase()] ?? w);
   const joined = text.replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
-  if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
+  if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").
   const spacedRuns: string[] = [];
@@ -431,6 +450,9 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     const collapsed = collapseRepeats(word);
     if (collapsed !== word && SLURS_COLLAPSED.has(collapsed)) return fail("hate");
   }
+  // Hate without slurs: a protected group called vermin, disgusting, subhuman… or a stock
+  // conspiracy line ("Jews control the banks").
+  if (HATE_STATEMENTS.some((re) => re.test(text))) return fail("hate");
   // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
   const decoded = text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c);
   if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined))) return fail("violence");

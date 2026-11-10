@@ -772,5 +772,13 @@ test("§12 forms: a confession draft survives a reload (audit 33 D5)", async ({ 
   await page.reload();
   await expect(page.locator('input[name="title"]')).toHaveValue("I alphabetised the office snacks");
   await expect(page.locator('textarea[name="confession"]')).toHaveValue(/Nobody asked me to/);
+  // Two rejected filings in a row (a phone number in it) still leave the draft for later (audit 34 D3).
+  await page.locator('textarea[name="confession"]').fill("Nobody asked me to. Call me on 07700 900123 if you want the snack spreadsheet.");
+  await page.getByRole("button", { name: /^Submit my confession/ }).click();
+  await expect(page.locator("[data-alert]").first()).toBeVisible();
+  await page.getByRole("button", { name: /^Submit my confession/ }).click();
+  await page.waitForTimeout(1500);
+  await page.reload();
+  await expect(page.locator('textarea[name="confession"]')).toHaveValue(/snack spreadsheet/);
   await context.close();
 });

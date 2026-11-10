@@ -32,7 +32,7 @@ export async function claimRandomAction(role: "DEFENSE" | "PROSECUTION"): Promis
         throw new CourtError("NOT_FOUND", "The docket is empty! Every case has a lawyer. Check back soon, or confess something yourself.");
       }
       try {
-        await claimCase(user.id, pick.id, role);
+        if ((await claimCase(user.id, pick.id, role)).alreadyHeld) await refundClaim();
         target = role === "DEFENSE" ? `/defend/${pick.id}` : `/prosecute/${pick.id}`;
       } catch (e) {
         if (!(isCourtError(e) && (e.code === "CONFLICT" || e.code === "INELIGIBLE"))) throw e;

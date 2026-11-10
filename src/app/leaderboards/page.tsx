@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pluralize } from "@/lib/text";
 import Link from "next/link";
 import clsx from "clsx";
 import { getLeaderboards } from "@/server/queries/players";
@@ -20,6 +21,7 @@ function Board<T extends Person>({
   rows,
   stat,
   tieKey,
+  moreTied = 0,
   detail,
   empty,
   tone,
@@ -30,6 +32,8 @@ function Board<T extends Person>({
   stat: (r: T) => React.ReactNode;
   /** Rows with an equal tie key share a rank (1, 1, 3…) instead of getting arbitrary distinct ones. */
   tieKey?: (r: T) => string | number;
+  /** Players tied with the last row shown but cut off by the top 10. */
+  moreTied?: number;
   detail: (r: T) => React.ReactNode;
   empty: string;
   tone: "teal" | "crimson" | "gold" | "plum";
@@ -81,6 +85,7 @@ function Board<T extends Person>({
           })}
         </ol>
       )}
+      {moreTied > 0 ? <p className="mt-2 px-2 text-xs text-parchment/60">…and {pluralize(moreTied, "more player")} tied at that rank.</p> : null}
     </section>
   );
 }
@@ -128,6 +133,7 @@ export default async function LeaderboardsPage() {
           rows={lb.convicts}
           stat={(r) => r.convictions}
           tieKey={(r) => r.convictions}
+          moreTied={lb.convictsMoreTied}
           detail={(r) => `${r.convictions}× guilty · ${r.acquittals}× acquitted · ${r.confessed} public ${r.confessed === 1 ? "confession" : "confessions"}`}
           empty="Nobody has been convicted yet. Suspicious."
           tone="gold"
@@ -138,6 +144,7 @@ export default async function LeaderboardsPage() {
           rows={lb.streaks}
           stat={(r) => r.streak}
           tieKey={(r) => r.streak}
+          moreTied={lb.streaksMoreTied}
           detail={(r) => `${r.side} streak`}
           empty="No streaks yet. Be the first."
           tone="plum"
@@ -148,6 +155,7 @@ export default async function LeaderboardsPage() {
           rows={lb.jurors}
           stat={(r) => r.votes}
           tieKey={(r) => r.votes}
+          moreTied={lb.jurorsMoreTied}
           detail={(r) => `${percent(r.agreement)} with the majority (decided cases)`}
           empty="The jury box is empty. Report for duty!"
           tone="gold"

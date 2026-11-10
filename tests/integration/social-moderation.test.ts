@@ -108,11 +108,13 @@ describe("moderation", () => {
       code: "ALREADY_DONE",
     });
     await fileReport(reporters[1], { caseId: c.id, target: "CASE", reason: "HARASSMENT" });
+    // The accused's own report reaches the queue but doesn't count toward hiding it (audit 34 D6).
+    expect(await fileReport(accused, { caseId: c.id, target: "CASE", reason: "SPAM" })).toEqual({ autoReview: false });
     const result = await fileReport(reporters[2], { caseId: c.id, target: "CASE", reason: "PERSONAL_INFO" });
     expect(result.autoReview).toBe(true);
     const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
     expect(row.moderationState).toBe("UNDER_REVIEW");
-    expect(row.openReports).toBe(3);
+    expect(row.openReports).toBe(4); // the accused's report counts in the queue
     const lawyer = await makeUser();
     await expect(claimCase(lawyer, c.id, "DEFENSE")).rejects.toMatchObject({ code: "INVALID_STATE" });
 
@@ -162,6 +164,9 @@ describe("moderation", () => {
     // Two moderators adjourning at once: one close, one audit entry, both told the verdict (audit 28 #6).
     const outcomes = await Promise.all([adjournNow(admin, c.id), adjournNow(admin, c.id)]);
     for (const outcome of outcomes) expect(outcome).toMatchObject({ kind: "closed", verdict: "GUILTY" });
+    expect(await db.moderationAction.count({ where: { action: "ADJOURN_NOW", caseId: c.id } })).toBe(1);
+    // A later adjourn (the close already committed) is told the verdict too, and logs nothing (audit 34 D4).
+    expect(await adjournNow(admin, c.id)).toMatchObject({ kind: "closed", verdict: "GUILTY" });
     expect(await db.moderationAction.count({ where: { action: "ADJOURN_NOW", caseId: c.id } })).toBe(1);
 
     await removeCase(admin, c.id, "Names a real person");

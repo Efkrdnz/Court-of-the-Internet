@@ -14,13 +14,14 @@ export const contentType = "image/png";
 
 /** Width of the text column left of the stamp and art, in pixels. */
 const COLUMN = 650;
-/** Special Elite is a typewriter face: about 0.6em per character at 22px. */
-const QUOTE_CHARS_PER_LINE = Math.floor(COLUMN / (22 * 0.6));
+/** Special Elite is a typewriter face: about 0.55em per character at 22px (measured). */
+const QUOTE_CHARS_PER_LINE = Math.floor(COLUMN / (22 * 0.56));
 
 /** Rough rendered width in em: wide capitals count more than narrow lower-case letters. */
 function emWidth(text: string): number {
   let em = 0;
-  for (const ch of text) em += /[WM@%]/.test(ch) ? 1 : /[wm]/.test(ch) ? 0.8 : /[A-Z0-9]/.test(ch) ? 0.72 : ch === " " ? 0.28 : /[iljtf.,'’!:;|]/.test(ch) ? 0.3 : 0.55;
+  // (Fitted to Satori's Playfair 900: "I licked every cookie so" at 48px is about 520px wide.)
+  for (const ch of text) em += /[WM@%]/.test(ch) ? 1 : /[wm]/.test(ch) ? 0.78 : /[A-Z0-9]/.test(ch) ? 0.7 : ch === " " ? 0.25 : /[iljtf.,'’!:;|]/.test(ch) ? 0.3 : 0.5;
   return em;
 }
 
@@ -72,7 +73,13 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const quoteRoom = 470 - 52 - 10 - subtitleHeight - 14 - titleHeight - 18 - 44 - 36;
   const quoteLines = Math.max(0, Math.floor(quoteRoom / (22 * 1.45)));
   const quoteMax = quoteLines * QUOTE_CHARS_PER_LINE - 4;
-  const confession = !visible || quoteLines === 0 ? "" : c.confession.length > quoteMax ? `${c.confession.slice(0, Math.max(0, quoteMax - 3)).trimEnd()}…` : c.confession;
+  // Shortened at a word boundary, so it never ends mid-word ("until the ver…").
+  const shorten = (text: string, max: number) => {
+    const cut = text.slice(0, Math.max(0, max - 1));
+    const atWord = cut.replace(/\s+\S*$/, "");
+    return `${(atWord.length > max * 0.6 ? atWord : cut).trimEnd().replace(/[,;:.!?-]+$/, "")}…`;
+  };
+  const confession = !visible || quoteLines === 0 ? "" : c.confession.length > quoteMax ? shorten(c.confession, quoteMax) : c.confession;
 
   return new ImageResponse(
     (

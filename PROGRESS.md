@@ -795,6 +795,19 @@ Not changed: a concurrent confession burst exactly at the daily cap can tell one
 
 Verification tooling, found while confirming this round: the phase script now builds first (its browser phases had been testing the previous build), and each Playwright run starts its own server after the previous one has gone.
 
+## Thirty-fourth independent audit (fresh agent, build of commit 6d77a52)
+
+**Result: 13 PASS, 4 CONCERN (7, 10, 15, 17), 0 FAIL.** No errors or deadlocks in the server log after all its races; all 60 new everyday confessions it wrote were accepted (0 false positives).
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Sharing intimate images written as a possessive ("sent my ex's nudes", "forwarded my girlfriend's nudes") passed | the pattern steps over possessives; more verbs (forwarded, texted, airdropped, showed) | corpus |
+| 2 | Other misses in covered categories: "drugged my date", "roofied", vodka in a friend's drink, "ran someone over and drove off", animal cruelty ("hit my dog with a belt", "starved my hamster", "drowned the kittens"), "shoplifted a PlayStation"; slur-free hate statements ("… people are disgusting", "Jews control the banks", "immigrants are vermin"); also "want to punch my boss", "run my ex over", "dead meat", "dealing pills", UK postcodes | patterns for each, with near-misses kept ("drugged my date with too much garlic bread", vodka in the punch at my own party, "ran over my own foot", "hit my dog's ball", "starved my sourdough starter", "a PlayStation sticker", "seagulls are vermin", "punch the air", "run my errands over lunch", "dead meat from the reduced aisle"); README lists the new coverage | corpus: 130 everyday sentences, 121 evasions; 341 seed texts pass |
+| 3 | The confession draft was lost after two rejected filings in a row (the save effect keyed on a boolean that didn't change) | it keys on the action result, a new object each time | e2e: two rejections, reload, draft still there |
+| 4 | Two officers adjourning: if the first close committed before the second got the lock, the second got "That case is not in deliberation" (an intermittent test failure) | a closed case reports its verdict to the second officer, without logging | integration: a later adjourn after the close returns the verdict and logs nothing |
+| 5 | "Most convicted defendants" silently cut a tie at 10 | tie-ranked boards say "…and N more tied at that rank" | integration (13 tied → 10 shown, 3 more) |
+| 6 | Re-claiming a held case cost claim budget; the accused's own report counted toward auto-review; the share card cut the quote short mid-word | already-held claims are refunded; a trial's own participants' reports reach the queue but don't count toward hiding it; the card's width estimate is fitted to the rendered font and the quote is cut at a word | integration (reports); rendered normal and extreme cards checked by eye |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

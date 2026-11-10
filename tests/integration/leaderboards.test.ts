@@ -112,4 +112,12 @@ describe("leaderboards", () => {
     // The anonymous case appears on no board with a linkable defendant.
     expect(lb.entertaining.every((c) => !c.anonymous || c.accused.username === null)).toBe(true);
   });
+
+  it("says how many more players are tied at the last rank shown (audit 34 D5)", async () => {
+    const ids = await makeUsers(13, "tie");
+    await db.userStats.updateMany({ where: { userId: { in: ids } }, data: { timesConvicted: 1, casesConfessed: 1 } });
+    const lb = await getLeaderboards();
+    expect(lb.convicts).toHaveLength(10);
+    expect(lb.convictsMoreTied).toBe(3);
+  });
 });
