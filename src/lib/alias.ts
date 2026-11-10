@@ -21,7 +21,7 @@ export const CRITTERS = [
   "Walrus",
 ] as const;
 
-const ADJECTIVES = [
+export const ADJECTIVES = [
   "Suspicious",
   "Sweaty",
   "Shifty",

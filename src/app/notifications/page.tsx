@@ -47,7 +47,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
           <p className="eyebrow">Court correspondence</p>
           <h1 className="font-display text-4xl font-black text-parchment">Notifications</h1>
           <p className="text-parchment/60">
-            {unread ? `${pluralize(unread, "new notification")} since your last visit` : "All caught up."}
+            {unread ? `${pluralize(unread, "new notification")} since your last visit` : items.length > 0 || page === 1 ? "All caught up." : ""}
             {unread > shownUnread.length ? ` (${shownUnread.length} on this page; the rest are on older pages).` : ""}
           </p>
         </div>
@@ -56,7 +56,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
       {items.length === 0 ? (
         <div className="velvet flex flex-col items-center p-10 text-center">
           <TumbleweedDocket className="w-full max-w-xs" />
-          <p className="mt-4 text-parchment/70">No mail from the court yet. Go cause some trouble.</p>
+          <p className="mt-4 text-parchment/70">{page > 1 ? "No older notifications." : "No mail from the court yet. Go cause some trouble."}</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -77,7 +77,12 @@ export default async function NotificationsPage({ searchParams }: { searchParams
                   <p className="text-sm text-parchment/75">{n.body}</p>
                   <p className="mt-1 text-xs text-parchment/50">{relativeTime(n.createdAt)}</p>
                 </div>
-                {!n.readAt ? <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-gold" aria-label="Unread" /> : null}
+                {!n.readAt ? (
+                  <>
+                    <span aria-hidden className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-gold" />
+                    <span className="sr-only">Unread</span>
+                  </>
+                ) : null}
               </div>
             );
             return <li key={n.id}>{n.href ? <Link href={n.href}>{body}</Link> : body}</li>;

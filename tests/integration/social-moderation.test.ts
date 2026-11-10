@@ -366,6 +366,31 @@ describe("moderation", () => {
     await submitArgument(holder, c.id, "PROSECUTION", PROSECUTION_TEXT);
   });
 
+  it("two officers adjourning a below-quorum trial are both told it was extended (audit 35 D3)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const [modA, modB] = [await makeUser("adj_ext_a", "ADMIN"), await makeUser("adj_ext_b", "MODERATOR")];
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await voteAll(c.id, await makeUsers(2, "ext"), 1); // quorum is 10
+    // Both consoles show the same deadline; the second press must not act again (which would
+    // extend and then dismiss the trial).
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    const seen = { endsAt: row.deliberationEndsAt!, extensionsUsed: row.extensionsUsed };
+    const outcomes = await Promise.all([adjournNow(modA, c.id, seen), adjournNow(modB, c.id, seen)]);
+    for (const o of outcomes) expect(o).toMatchObject({ kind: "extended" });
+    expect(await db.moderationAction.count({ where: { action: "ADJOURN_NOW", caseId: c.id } })).toBe(1);
+    expect((await db.case.findUniqueOrThrow({ where: { id: c.id } })).status).toBe("DELIBERATION");
+  });
+
+  it("officers recuse themselves from cases they're a party to (audit 35 notes)", async () => {
+    const clerk = await makeUser("party_clerk", "MODERATOR");
+    const other = await makeUser("other_clerk", "MODERATOR");
+    const c = await makeCase(clerk);
+    await expect(removeCase(clerk, c.id, "Hiding my own case")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(dismissReports(clerk, c.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await removeCase(other, c.id, "Another officer can");
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });
@@ -597,6 +622,14 @@ describe("moderation", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(grantEntitlement(player, player, "theme:velvet-rope")).rejects.toMatchObject({ code: "FORBIDDEN" });
     await grantEntitlement(admin, player, "theme:velvet-rope");
+    // A repeat grant is refused (no second gift notice or log entry), also when two arrive together (audit 35 D2).
+    await expect(grantEntitlement(admin, player, "theme:velvet-rope")).rejects.toMatchObject({ code: "INVALID_STATE" });
+    const both = await Promise.allSettled([grantEntitlement(admin, player, "theme:gilded"), grantEntitlement(admin, player, "theme:gilded")]);
+    expect(both.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(both.find((r) => r.status === "rejected")).toMatchObject({ reason: { code: "INVALID_STATE" } });
+    expect(await db.moderationAction.count({ where: { action: "GRANT_COSMETIC", targetUserId: player } })).toBe(2);
+    // Role changes refuse no-ops (audit 35 D4).
+    await expect(setUserRole(admin, player, "PLAYER")).rejects.toMatchObject({ code: "INVALID_STATE" });
     // Unknown and deleted accounts are refused cleanly, for every console action (audit 31 #3).
     await expect(grantEntitlement(admin, "cnotarealuserid000000000", "theme:velvet-rope")).rejects.toMatchObject({ code: "NOT_FOUND" });
     const gone = await makeUser();

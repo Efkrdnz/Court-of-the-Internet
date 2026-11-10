@@ -808,6 +808,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 5 | "Most convicted defendants" silently cut a tie at 10 | tie-ranked boards say "…and N more tied at that rank" | integration (13 tied → 10 shown, 3 more) |
 | 6 | Re-claiming a held case cost claim budget; the accused's own report counted toward auto-review; the share card cut the quote short mid-word | already-held claims are refunded; a trial's own participants' reports reach the queue but don't count toward hiding it; the card's width estimate is fitted to the rendered font and the quote is cut at a word | integration (reports); rendered normal and extreme cards checked by eye |
 
+## Thirty-fifth independent audit (fresh agent, build of commit 1d3e870)
+
+**Result: 16 PASS, 1 CONCERN (17), 0 FAIL.** Vitest passed 3 of 3 runs; no deadlocks; all 50 new everyday confessions accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | Filter misses: "drove home really drunk" / "after six pints", "I want my boss dead", "I wish my sister was dead", "want my neighbour to die", "put something in her drink", sleeping pills crushed into dinner, "logged into my ex's Snapchat", "guessed my sister's password", "filmed my roommate in the shower", a hidden camera in someone's bedroom, "smash my coworker's face in" | patterns for each, with near-misses kept ("drove home really slowly", "six pints of lemonade", "dead tired", "a tiny cocktail umbrella", biscuits in yoghurt, the office wifi password, "smash my coworker's high score"); README coverage updated | corpus: 139 everyday sentences, 134 evasions; 341 seed texts pass |
+| D2 | Granting a cosmetic twice: concurrent grants threw unique-constraint errors, a repeat grant notified and logged again | insert-or-nothing; a repeat is refused cleanly | integration (sequential and concurrent) |
+| D3 | Two officers adjourning a below-quorum trial: the second was told it had been sealed, and could dismiss it after the first extended it | the console sends the deadline and extension count it showed; if the trial changed since, the press does nothing and reports what happened | integration: both told "extended", one log entry, still in deliberation (8/8 runs) |
+| D4 | Role changes: no-op "make player" logged; a banned player could be appointed; wrong wording for a moderator unbanning an officer | no-ops refused; banned players can't be appointed; accurate message | integration |
+| D5 | Back after taking a case showed "Take this case" again | claim buttons mark the tab; a restored page refreshes (shared `useFreshAfterBack` hook) | e2e |
+| D6 | Small tap targets in the editor ("← Back to the … docket", "Tips from senior partners") | 36px targets | — |
+| notes | Identical confessions from different players at the same moment were all accepted; emoji-only confessions and stray leading combining marks; "Mysterious Walrus" display name; a duplicated name error; "No mail yet" on a page past the end; axe label/name mismatch on the account button and an `aria-label` on a plain span; officers could moderate their own cases | identical texts are serialised with an advisory lock (the test fails without it); confessions need 15 letters or digits and long single-emoji runs are spam; stray marks dropped; alias word pairs refused; errors de-duplicated; accurate empty-page text; label fixed and screen-reader text for the unread dot; officers recuse themselves (documented) | integration and unit |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

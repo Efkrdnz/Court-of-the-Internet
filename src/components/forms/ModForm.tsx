@@ -19,6 +19,7 @@ export function ModForm({
   reasonPlaceholder,
   options,
   confirmText,
+  hidden,
 }: {
   op: string;
   label: string;
@@ -29,6 +30,8 @@ export function ModForm({
   reasonPlaceholder?: string;
   options?: { name: string; label: string; values: { value: string; label: string }[] };
   confirmText?: string;
+  /** Extra hidden fields, e.g. the deadline the officer was looking at when adjourning. */
+  hidden?: Record<string, string>;
 }) {
   const flash = useModFlash();
   const run = useCallback(
@@ -55,6 +58,7 @@ export function ModForm({
       <input type="hidden" name="op" value={op} />
       {caseId ? <input type="hidden" name="caseId" value={caseId} /> : null}
       {userId ? <input type="hidden" name="userId" value={userId} /> : null}
+      {hidden ? Object.entries(hidden).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />) : null}
       {withReason ? <input name="reason" placeholder={reasonPlaceholder ?? "Reason"} className="input min-h-9 !w-56 !py-1.5 text-sm" aria-label="Reason" /> : null}
       {options ? (
         <select name={options.name} className="select min-h-9 !w-56 !py-1.5 text-sm" aria-label={options.label}>

@@ -26,7 +26,7 @@ export async function EditorPage({ role, caseId }: { role: "DEFENSE" | "PROSECUT
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <Link href={base} className="text-sm font-semibold text-gold-light hover:underline">
+      <Link href={base} className="inline-flex min-h-9 items-center text-sm font-semibold text-gold-light hover:underline">
         ← Back to the {role === "DEFENSE" ? "defense" : "prosecution"} docket
       </Link>
       <header className="mt-4 flex flex-wrap items-center gap-4">

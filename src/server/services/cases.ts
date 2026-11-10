@@ -96,6 +96,10 @@ export async function confess(userId: string, input: ConfessionData) {
     await assertActiveUser(tx, userId);
     // Serialise confessions per user so the daily cap can't be raced.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"confess:" + userId}))`;
+    // Identical confessions from different players at the same moment are serialised too, so the
+    // site-wide duplicate check below sees the first one. (Always taken after the per-user lock,
+    // and by nothing else, so the two can't deadlock.)
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"confess-text:" + input.confession.toLowerCase()}))`;
 
     await checkConfessionAllowed(tx, userId, input);
 

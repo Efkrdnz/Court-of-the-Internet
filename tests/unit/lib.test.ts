@@ -649,3 +649,24 @@ describe("symbol-only display names (audit 30 D6)", () => {
     expect(signupSchema.safeParse({ ...base, displayName: "★ Nova ★" }).success).toBe(true);
   });
 });
+
+describe("emoji-only text, stray marks and alias names (audit 35 notes)", () => {
+  const base = { username: "valid_name", password: "objection-sustained", confirmPassword: "objection-sustained", acceptRules: "on" };
+  it("refuses an emoji-only confession and long runs of one emoji", () => {
+    const flags = "🏳️‍🌈".repeat(40);
+    expect(confessionSchema.safeParse({ title: "A very proud confession", category: "petty-theft", confession: flags }).success).toBe(false);
+    expect(screenText(`I did it ${"🏳️‍🌈".repeat(30)}`)).toMatchObject({ ok: false, issue: "spam" });
+  });
+  it("drops combining marks with nothing to sit on", () => {
+    expect(normalizeText("́́Title with stray marks")).toBe("Title with stray marks");
+    expect(normalizeText("café")).toBe("café");
+  });
+  it("refuses an alias's two words as a display name, once", () => {
+    const parsed = signupSchema.safeParse({ ...base, displayName: "Mysterious Walrus" });
+    expect(parsed.success).toBe(false);
+    const hashed = signupSchema.safeParse({ ...base, displayName: "Sweaty Walrus #D89B" });
+    const messages = hashed.success ? [] : hashed.error.issues.filter((i) => i.path[0] === "displayName").map((i) => i.message);
+    expect(new Set(messages).size).toBeGreaterThan(0);
+    expect(signupSchema.safeParse({ ...base, displayName: "Walrus Enthusiast" }).success).toBe(true);
+  });
+});

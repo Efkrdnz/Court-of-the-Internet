@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { claimAction } from "@/app/actions/cases";
 import { claimRandomAction } from "@/app/actions/queue";
 import { Spinner } from "@/components/ui/SubmitButton";
+import { useFreshAfterBack } from "@/components/ui/useFreshAfterBack";
 
 export function ClaimButton({
   caseId,
@@ -22,6 +23,8 @@ export function ClaimButton({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const text = label ?? (role === "DEFENSE" ? "Take this case" : "Prosecute this case");
+  // Back from the editor must not show this case as still open.
+  const { markActed, clearActed } = useFreshAfterBack(`claim-${caseId}`);
   return (
     <div className="flex flex-col gap-2">
       <button
@@ -31,8 +34,12 @@ export function ClaimButton({
         onClick={() =>
           start(async () => {
             setError(null);
+            markActed();
             const result = await claimAction(caseId, role);
-            if (result && !result.ok) setError(result.error);
+            if (result && !result.ok) {
+              clearActed();
+              setError(result.error);
+            }
           })
         }
         className={clsx("btn h-auto w-full whitespace-normal py-2.5 text-center leading-snug", role === "DEFENSE" ? "btn-teal" : "btn-crimson", className)}
@@ -52,6 +59,7 @@ export function ClaimButton({
 export function AssignMeButton({ role }: { role: "DEFENSE" | "PROSECUTION" }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { markActed, clearActed } = useFreshAfterBack(`assign-${role}`);
   return (
     <div>
       <button
@@ -61,8 +69,12 @@ export function AssignMeButton({ role }: { role: "DEFENSE" | "PROSECUTION" }) {
         onClick={() =>
           start(async () => {
             setError(null);
+            markActed();
             const result = await claimRandomAction(role);
-            if (result && !result.ok) setError(result.error);
+            if (result && !result.ok) {
+              clearActed();
+              setError(result.error);
+            }
           })
         }
       >

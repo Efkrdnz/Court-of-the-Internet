@@ -3,7 +3,7 @@ import { CATEGORY_KEYS } from "./categories";
 import { LIMITS } from "./limits";
 import { charCount, normalizeText } from "./text";
 import { avatarSchema } from "./avatar";
-import { CRITTERS } from "./alias";
+import { ADJECTIVES, CRITTERS } from "./alias";
 
 const text = (opts: { min?: number; max: number; label: string; multiline?: boolean }) =>
   z
@@ -28,7 +28,9 @@ const checkbox = z
 export const confessionSchema = z.object({
   title: text({ ...LIMITS.title, label: "Case title", multiline: false }),
   category: z.enum(CATEGORY_KEYS, { error: "Pick a category for your crime." }),
-  confession: text({ ...LIMITS.confession, label: "Confession" }),
+  confession: text({ ...LIMITS.confession, label: "Confession" }).refine((s) => (s.match(/[\p{L}\p{N}]/gu)?.length ?? 0) >= 15, {
+    message: "Tell the court what happened in words, not just emoji or symbols.",
+  }),
   context: text({ max: LIMITS.context.max, label: "Additional context" })
     .optional()
     .transform((s) => (s ? s : undefined)),
@@ -79,6 +81,10 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
   // …or without the hash at all: "Sneaky Pigeon D577" (an alias critter followed by a 4-hex tag).
   .refine((s) => !new RegExp(`\\b(?:${CRITTERS.join("|")})\\W*[0-9a-f]{4}\\W*$`, "iu").test(s.normalize("NFKC")), {
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
+  })
+  // An alias's two words alone ("Mysterious Walrus") would pass for one too.
+  .refine((s) => !new RegExp(`^\\s*(?:${ADJECTIVES.join("|")})\\s+(?:${CRITTERS.join("|")})\\s*$`, "iu").test(s.normalize("NFKC")), {
+    message: "That's what anonymous confessors are called. Pick something else.",
   })
   // The court's own titles for staff.
   .refine((s) => !/^\s*(?:presiding\s+judge|court\s+clerk|the\s+court|the\s+clerks?|the\s+judge|the\s+bailiff|(?:your|his|her|their)\s+hono(?:u)?r|officer\s+of\s+the\s+court|moderator|mod|administrator|admin)\b/i.test(s.normalize("NFKC")), {
@@ -185,7 +191,9 @@ export function fieldErrors(error: z.ZodError): FieldErrors {
   const out: FieldErrors = {};
   for (const issue of error.issues) {
     const key = issue.path.length ? String(issue.path[0]) : "_form";
-    (out[key] ??= []).push(ZOD_DEFAULT.test(issue.message) ? GENERIC_FIELD_ERROR : issue.message);
+    const message = ZOD_DEFAULT.test(issue.message) ? GENERIC_FIELD_ERROR : issue.message;
+    const list = (out[key] ??= []);
+    if (!list.includes(message)) list.push(message); // two rules can share a message
   }
   return out;
 }

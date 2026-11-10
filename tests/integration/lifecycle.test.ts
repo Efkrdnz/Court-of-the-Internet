@@ -374,6 +374,16 @@ describe("confession rules", () => {
     await makeCase(accused);
   });
 
+  it("accepts only one of the same confession filed by different players at the same moment (audit 35)", async () => {
+    const players = await makeUsers(4, "copycat");
+    const text = "I replaced every pen in the office with one that only writes in green ink, then denied everything.";
+    const results = await Promise.allSettled(
+      players.map((p, i) => confess(p, { title: `The green ink incident, part ${i + 1}`, category: "petty-theft", confession: text, anonymous: false })),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    for (const r of results.filter((x) => x.status === "rejected")) expect(r).toMatchObject({ reason: { code: "CONFLICT" } });
+  });
+
   it("counts a vote that is still committing when the close starts (audit 9 #1)", async () => {
     process.env.COURT_QUORUM = "3";
     const [accused, attorney, prosecutor, late] = [await makeUser(), await makeUser(), await makeUser(), await makeUser()];

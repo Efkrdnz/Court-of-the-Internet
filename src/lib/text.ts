@@ -13,6 +13,8 @@ export function normalizeText(input: string, { multiline = true }: { multiline?:
   // Vietnamese "ệ" has two). Counted on the decomposed form, so a precomposed "á" plus extra
   // accents counts its own accent too.
   s = s.normalize("NFD").replace(/(\p{M}{2})\p{M}+/gu, "$1").normalize("NFC");
+  // Combining marks with nothing to sit on (at the start, or after a space) are stray.
+  s = s.replace(/(^|\s)\p{M}+/gu, "$1");
   // ASCII control chars except tab/newline.
   s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
   s = s.replace(/\r\n?/g, "\n").replace(/\t/g, " ");

@@ -782,3 +782,29 @@ test("§12 forms: a confession draft survives a reload (audit 33 D5)", async ({ 
   await expect(page.locator('textarea[name="confession"]')).toHaveValue(/snack spreadsheet/);
   await context.close();
 });
+
+test("§12 navigation: Back after taking a case doesn't offer it again (audit 35 D5)", async ({ browser }) => {
+  const intern = await prisma.user.findUniqueOrThrow({ where: { username: "fresh_intern" }, select: { id: true } });
+  const held = await prisma.case.count({ where: { claimedById: intern.id } });
+  test.skip(held > 0, "fresh_intern already holds a claim in this run");
+  const c = await prisma.case.findFirstOrThrow({
+    where: { status: "AWAITING_DEFENSE", moderationState: "VISIBLE", accusedId: { not: intern.id }, anonymous: false, arguments: { none: {} } },
+    select: { id: true, number: true, slug: true },
+  });
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await page.goto("/login");
+    await page.locator(`form:has(input[name="username"][value="fresh_intern"]) button`).click();
+    await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+    await page.goto(`/cases/${c.number}-${c.slug}`);
+    await page.getByRole("button", { name: "Take this case" }).click();
+    await page.waitForURL(new RegExp(`/defend/${c.id}`));
+    await page.goBack();
+    await expect(page.getByRole("button", { name: "Take this case" })).toHaveCount(0, { timeout: 10_000 });
+  } finally {
+    await prisma.case.update({ where: { id: c.id }, data: { status: "AWAITING_DEFENSE", claimedById: null, claimExpiresAt: null } });
+    await prisma.caseClaim.deleteMany({ where: { caseId: c.id, userId: intern.id } }).catch(() => undefined);
+    await context.close().catch(() => {});
+  }
+});

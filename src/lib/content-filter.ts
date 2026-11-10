@@ -204,6 +204,9 @@ const VIOLENCE = [
   new RegExp(`\\b(?:make\\s+sure|so\\s+that)\\s+${TARGET}\\s+(?:never|doesn'?t|won'?t)\\s+wakes?\\s+up\\b`, "i"),
   new RegExp(`\\b(?:going\\s+to|gonna|i\\s*(?:will|'ll)|want\\s+to)\\s+run\\s+${TARGET}\\s+over\\b`, "i"),
   /\b(?:you'?re|you\s+are|ur|he'?s|she'?s|they'?re)\s+dead\s+meat\b/i,
+  new RegExp(`\\b(?:want|wish|hope)\\s+${TARGET}\\s+(?:was\\s+|were\\s+|would\\s+be\\s+|to\\s+be\\s+|is\\s+)?dead\\b(?!\\s+(?:tired|serious|beat|on|wrong|right|set|last|quiet|silent|centre|center|even|to\\s+the\\s+world))`, "i"),
+  new RegExp(`\\bwant\\s+${TARGET}\\s+to\\s+(?:die|drop\\s+dead|get\\s+killed)\\b`, "i"),
+  /\b(?:going\s+to|gonna|i\s*(?:will|'ll))\s+(?:smash|bash|kick|punch|cave)\s+(?:your|his|her|their|(?:my|the|a)\s+[\w-]+(?:'s|’s|s'))\s+(?:face|head|skull|teeth)\s+in\b/i,
   /\bshoot\s+up\b/i,
   /\b(?:make|build|plant)\s+a\s+bomb\b/i,
   /\bswat(?:ting)?\s+(?:him|her|them|someone)\b/i,
@@ -219,7 +222,9 @@ const SERIOUS = [
   // Dosing someone's food or drink, or spiking it.
   // Needs the act ("put", "slipped"…) or "in/into" the drink, so "Molly spilled her coffee" and
   // "Senna and I drink coffee" (people's names) stay fine.
-  /\b(?:put|putting|slipped|slip|added|adding|dropped|mixed|crushed|stirred|poured|laced|dosed|spiked)\b.{0,30}\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\b.{0,40}\b(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
+  /\b(?:put|putting|slipped|slip|added|adding|dropped|mixed|crushed|stirred|poured|laced|dosed|spiked)\b.{0,30}\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\b.{0,40}\b(?:coffee|drink|food|lunch|dinner|breakfast|dessert|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
+  // "put something in her drink" (unless it's then named, "…: a cocktail umbrella").
+  /\b(?:put|slipped|dropped)\s+(?:something|stuff|a\s+pill|pills|a\s+tablet|powder)\s+in(?:to)?\s+(?:her|his|their|someone'?s|somebody'?s|(?:my|a|the)\s+[\w-]+(?:'s|’s|s'))\s+drinks?\b(?!\s*:)/i,
   /\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\s+(?:in|into)\s+(?:\w+\s+){0,3}(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
   /\bspiked\b.{0,40}\b(?:with|using)\s+(?:\w+\s+)?(?:vodka|alcohol|booze|rum|gin|tequila|drugs|pills|molly|xanax|laxatives?)\b/i,
   // Burning or vandalising someone else's things.
@@ -250,7 +255,9 @@ const SERIOUS = [
   /\bhit\s+(?:a|an|the|some)\s+(?:\w+\s+)?(?:pedestrian|cyclist|biker|jogger|kid|child|person|man|woman|girl|boy)\b.{0,40}\b(?:drove|sped|took|ran)\s+(?:off|away)\b/i,
   /\bmugg(?:ed|ing)\s+(?:a|an|the|someone|somebody|him|her|them|people)\b/i,
   // Drink- or drug-driving.
-  /\b(?:drove|driving|drive)\s+(?:home\s+|there\s+|back\s+)?(?:drunk|wasted|hammered|high|blackout)\b|\bdrunk[\s-]driving\b|\bDUI\b/i,
+  /\b(?:drove|driving|drive)\s+(?:home\s+|there\s+|back\s+)?(?:(?:really|completely|totally|super|so|very|pretty|absolutely|properly|stupidly|blind|falling[\s-]down)\s+)?(?:drunk|wasted|hammered|high|blackout|plastered|smashed)\b|\bdrunk[\s-]driving\b|\bDUI\b/i,
+  // "I drove home after six pints" (but not "six pints of lemonade").
+  /\bdrove\s+(?:home\s+|back\s+|there\s+)?after\s+(?:\w+\s+){0,2}(?:pints|beers|drinks|shots|cocktails|glasses\s+of\s+wine|bottles\s+of\s+wine)\b(?!\s+of\s+(?:lemonade|water|juice|coke|soda|milk|tea|squash|kombucha))/i,
   // Anything sold to minors.
   /\b(?:sold|sell|selling|gave|supplied)\s+(?:\w+\s+){0,3}(?:weed|cannabis|marijuana|pot|vapes?|alcohol|booze|pills|drugs)\s+to\s+(?:\w+\s+)?(?:kids|children|minors|teens|teenagers|students|underage|high[\s-]?schoolers|middle[\s-]?schoolers|freshmen)\b/i,
   // Dealing hard drugs.
@@ -261,6 +268,9 @@ const SERIOUS = [
   /\bbroke\s+into\s+(?:a|an|the|someone'?s|somebody'?s|his|her|their|(?:my|our|the|a)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:house|home|apartment|flat|car|truck|van|garage|shop|store|office|school)\b|\bburglar(?:y|ies|ized|ised|izing|ising)\b|\bbreaking\s+and\s+entering\b/i,
   /\bshoplift(?:ed|ing)?\s+(?:a|an|the|two|three|some|several)\s+(?:\w+\s+)?(?:tvs?|televisions?|laptops?|phones?|iphones?|ipads?|tablets?|consoles?|ps4|ps5|playstation|xbox|switch|nintendo|airpods|macbook|cameras?|drones?|jewel\w*|watch|watches|bikes?|tools?)\b(?!\s+(?:stickers?|posters?|cases?|covers?|cables?|keychains?|magnets?|games?|manuals?))/i,
   /\bembezzl/i,
+  // Getting into someone's accounts ("logged into my ex's Snapchat", "guessed my sister's password").
+  /\b(?:logged|broke|got|hacked)\s+into\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:snapchat|instagram|insta|facebook|tiktok|twitter|email|e-mail|gmail|account|accounts|phone|icloud|bank|whatsapp|messages|dms|laptop)\b/i,
+  /\bguessed\s+(?:(?:my|his|her|their|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s)\s+(?:\w+\s+)?(?:password|passcode|pin)\b/i,
   // Drugging someone ("drugged my date", "roofied a girl"), alcohol slipped into their drink.
   /\broofi(?:ed|es|e|ing)\b/i,
   new RegExp(`\\bdrugged\\s+${VICTIM}\\b(?!\\s+with\\s+(?:too\\s+much\\s+)?(?:\\w+\\s+)?(?:bread|pizza|cake|cookies?|food|sugar|coffee|kindness|love|snacks?|carbs))`, "i"),
@@ -282,7 +292,9 @@ const SERIOUS = [
   /\b(?:poisoned|drugged|laced)\s+(?:(?:my|his|her|their|a|the|our)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:coffee|tea|drink|food|lunch|water|meal|dinner|breakfast|soup|smoothie|juice|beer|wine|snack|sandwich)\b/i,
   // Image-based abuse and voyeurism, groping.
   /\b(?:posted|shared|leaked|sent|uploaded|spread|sold|forwarded|texted|airdropped|showed)\s+(?:[\w'’-]+\s+){0,2}(?:nudes?|nude\s+(?:photos?|pics?|pictures?|images?|videos?)|intimate\s+(?:photos?|pics?|pictures?|images?|videos?)|naked\s+(?:photos?|pics?|pictures?|videos?)|sex\s+tape)\b|\brevenge\s+porn\b|\bupskirt/i,
-  /\b(?:filmed|recorded|photographed|watched|spied\s+on)\s+(?:\w+\s+){1,3}(?:in\s+the\s+shower|showering|undressing|changing|naked)\b(?=.{0,40}\b(?:without|secretly|didn'?t\s+know|not\s+knowing|hidden|spy\s+cam)\b)|\b(?:hidden|spy)\s+cam(?:era)?\s+in\s+(?:the|my|her|his|their)\s+(?:bathroom|shower|bedroom|changing\s+room)\b/i,
+  // Filming someone in the shower or undressing, unless they plainly asked for it.
+  /\b(?:filmed|videoed|photographed|spied\s+on)\s+(?:\w+\s+){1,3}(?:in\s+the\s+shower|showering|undressing|changing|naked)\b(?!.{0,60}\b(?:(?:she|he|they)\s+(?:asked|wanted|agreed)|with\s+(?:her|his|their)\s+(?:permission|consent)))/i,
+  /\b(?:hidden|spy|secret)\s+cam(?:era)?s?\s+in\s+(?:(?:my|his|her|their|the|a)\s+[\w-]+(?:'s|’s|s')\s+|(?:the|my|her|his|their)\s+)(?:bathroom|shower|bedroom|changing\s+room|room)\b/i,
   /\bgrop(?:ed|ing|e|es)\b/i,
   // Assault: a blow to the face or head, a push down the stairs.
   new RegExp(`\\bi\\s+(?:punched|kicked|slapped|headbutted|elbowed|kneed|hit)\\s+${VICTIM}\\s+in\\s+the\\s+(?:face|head|nose|mouth|jaw|eye|teeth|throat|stomach|gut|balls|groin)\\b`, "i"),
@@ -317,6 +329,15 @@ const LONG_WORD = /(?:(?![\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p
 
 function looksLikeSpam(text: string): boolean {
   if (/(.)\1{9,}/.test(text)) return true; // aaaaaaaaaa
+  // …and long runs of one emoji (🏳️‍🌈 ×25), counted as whole graphemes. A playful row of 🍕
+  // is fine; emoji-only confessions are refused by validation (they need words).
+  let last = "";
+  let run = 0;
+  for (const { segment } of new Intl.Segmenter("en", { granularity: "grapheme" }).segment(text)) {
+    run = segment === last && !/\s/.test(segment) ? run + 1 : 1;
+    last = segment;
+    if (run >= 25) return true;
+  }
   if (LONG_WORD.test(text)) return true; // a 36+ character "word" is keyboard-mash, not a crime
   const letters = text.replace(/[^A-Za-z]/g, "");
   if (letters.length >= 30) {

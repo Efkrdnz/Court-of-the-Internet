@@ -160,7 +160,7 @@ export function ArgumentEditor({ caseId, role, expiresAt }: { caseId: string; ro
         {state && !state.ok && !state.fieldErrors?.body ? <FormAlert className="mt-3">{state.error}</FormAlert> : null}
 
         <details className="mt-4 text-sm text-ink/80">
-          <summary className="cursor-pointer font-bold text-burgundy">Tips from senior partners</summary>
+          <summary className="cursor-pointer py-2 font-bold text-burgundy">Tips from senior partners</summary>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {TIPS[role].map((t) => (
               <li key={t}>{t}</li>

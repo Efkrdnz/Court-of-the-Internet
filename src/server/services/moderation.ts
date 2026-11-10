@@ -18,8 +18,14 @@ import { PROFILE_THEMES, LOCKED_AVATAR_ITEMS, avatarItemKey, themeItemKey } from
  * Moderation actions on one case run one at a time: each takes the case row lock first, so
  * e.g. a seal and a concurrent "dismiss reports" can't interleave and silently undo each other.
  */
-async function lockCase(tx: Tx, caseId: string) {
+async function lockCase(tx: Tx, caseId: string, moderatorId: string) {
   await tx.$queryRaw`SELECT "id" FROM "Case" WHERE "id" = ${caseId} FOR UPDATE`;
+  // Officers recuse themselves from cases they're a party to (accused, attorney or prosecutor):
+  // another officer has to seal, restore, dismiss, strike, adjourn or pin it.
+  const parties = await tx.case.findUnique({ where: { id: caseId }, select: { accusedId: true, attorneyId: true, prosecutorId: true } });
+  if (parties && [parties.accusedId, parties.attorneyId, parties.prosecutorId].includes(moderatorId)) {
+    throw new CourtError("FORBIDDEN", "You're a party to this case, so another officer of the court has to handle it.");
+  }
 }
 
 /** Deliberation time a paused trial still had when it was paused (0 if it had been adjourned). */
@@ -121,7 +127,7 @@ export async function fileReport(
 export async function removeCase(moderatorId: string, caseId: string, reason: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    await lockCase(tx, caseId);
+    await lockCase(tx, caseId, moderatorId);
     const c = await tx.case.findUnique({
       where: { id: caseId },
       select: { id: true, number: true, slug: true, accusedId: true, attorneyId: true, prosecutorId: true, title: true, moderationState: true, status: true },
@@ -156,7 +162,7 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
 export async function restoreCase(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    await lockCase(tx, caseId);
+    await lockCase(tx, caseId, moderatorId);
     const exists = await tx.case.findUnique({
       where: { id: caseId },
       select: {
@@ -210,7 +216,7 @@ export async function restoreCase(moderatorId: string, caseId: string) {
 export async function dismissReports(moderatorId: string, caseId: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    await lockCase(tx, caseId);
+    await lockCase(tx, caseId, moderatorId);
     const dismissed = await tx.report.updateMany({ where: { caseId, status: "OPEN" }, data: { status: "DISMISSED", resolvedAt: clock.now() } });
     const c = await tx.case.findUnique({ where: { id: caseId }, select: { moderationState: true } });
     if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
@@ -250,7 +256,7 @@ export async function dismissReports(moderatorId: string, caseId: string) {
 export async function strikeArgument(moderatorId: string, caseId: string, role: "DEFENSE" | "PROSECUTION", stricken = true) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    await lockCase(tx, caseId);
+    await lockCase(tx, caseId, moderatorId);
     const res = await tx.argument.updateMany({ where: { caseId, role, stricken: !stricken }, data: { stricken } });
     if (res.count === 0) {
       const exists = await tx.argument.count({ where: { caseId, role } });
@@ -284,7 +290,9 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
       throw new CourtError("INVALID_STATE", banned ? "That player is already held in contempt." : "That player isn't held in contempt.");
     }
     if (targetUserId === moderatorId) throw new CourtError("FORBIDDEN", "You cannot hold yourself in contempt.");
-    if (target.role !== "PLAYER" && mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only an admin can hold another officer of the court in contempt.");
+    if (target.role !== "PLAYER" && mod.role !== "ADMIN") {
+      throw new CourtError("FORBIDDEN", banned ? "Only an admin can hold another officer of the court in contempt." : "Only an admin can lift contempt for another officer of the court.");
+    }
     await tx.user.update({
       where: { id: targetUserId },
       data: banned ? { bannedAt: clock.now(), banReason: reason?.slice(0, 300) ?? "Contempt of court" } : { bannedAt: null, banReason: null },
@@ -345,11 +353,21 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
   });
 }
 
-/** Ends deliberation immediately; quorum rules still apply. */
-export async function adjournNow(moderatorId: string, caseId: string) {
+/**
+ * Ends deliberation immediately; quorum rules still apply. `seen` is the deadline (and extension
+ * count) the officer was looking at: if the trial has changed since (another officer just adjourned it, or
+ * it was extended for low participation), nothing is done twice. Without that check, two
+ * officers pressing Adjourn together could extend a below-quorum trial and then dismiss it.
+ */
+export async function adjournNow(moderatorId: string, caseId: string, seen?: { endsAt: Date; extensionsUsed: number }) {
   await db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    await lockCase(tx, caseId);
+    await lockCase(tx, caseId, moderatorId);
+    if (seen) {
+      const current = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, deliberationEndsAt: true, extensionsUsed: true } });
+      const changed = current?.deliberationEndsAt?.getTime() !== seen.endsAt.getTime() || current?.extensionsUsed !== seen.extensionsUsed;
+      if (current?.status === "DELIBERATION" && changed) return;
+    }
     // Already adjourned (or simply due) by someone else a moment ago: nothing to change or log,
     // the close below reports what happened.
     const due = await tx.case.count({ where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE", deliberationEndsAt: { lte: clock.now() } } });
@@ -372,9 +390,16 @@ export async function adjournNow(moderatorId: string, caseId: string) {
   const outcome = await closeDeliberation(caseId);
   if (outcome.kind !== "not-due") return outcome;
   // Someone else's close may have won the race: report what actually happened.
-  const now = await db.case.findUnique({ where: { id: caseId }, select: { status: true, verdict: true, guiltyVotes: true, notGuiltyVotes: true } });
+  const now = await db.case.findUnique({
+    where: { id: caseId },
+    select: { status: true, verdict: true, guiltyVotes: true, notGuiltyVotes: true, moderationState: true, deliberationEndsAt: true },
+  });
   if (now?.status === "CLOSED" && now.verdict) {
     return { kind: "closed" as const, verdict: now.verdict, guilty: now.guiltyVotes, notGuilty: now.notGuiltyVotes };
+  }
+  // …or extended it for low participation a moment ago (still visible, deadline back in the future).
+  if (now?.status === "DELIBERATION" && now.moderationState === "VISIBLE" && now.deliberationEndsAt && now.deliberationEndsAt > clock.now()) {
+    return { kind: "extended" as const, endsAt: now.deliberationEndsAt };
   }
   return outcome;
 }
@@ -394,11 +419,10 @@ export async function grantEntitlement(moderatorId: string, targetUserId: string
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can grant cosmetics.");
     if (!GRANTABLE.has(itemKey)) throw new CourtError("VALIDATION", "Unknown cosmetic item.");
     await liveTarget(tx, targetUserId);
-    await tx.entitlement.upsert({
-      where: { userId_itemKey: { userId: targetUserId, itemKey } },
-      create: { userId: targetUserId, itemKey, source: "GRANTED" },
-      update: {},
-    });
+    // Insert-or-nothing: a repeat grant (or two admins at once) is a clean no-op, not a second
+    // gift notification and log entry.
+    const granted = await tx.entitlement.createMany({ data: [{ userId: targetUserId, itemKey, source: "GRANTED" }], skipDuplicates: true });
+    if (granted.count === 0) throw new CourtError("INVALID_STATE", "That player already owns this cosmetic.");
     await notify(tx, targetUserId, {
       type: "MODERATION",
       title: "A gift from the bench",
@@ -415,6 +439,10 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can appoint moderators.");
     const target = await liveTarget(tx, targetUserId);
     if (target.role === "ADMIN") throw new CourtError("FORBIDDEN", "Admins can't be demoted here.");
+    if (target.role === role) {
+      throw new CourtError("INVALID_STATE", role === "MODERATOR" ? "That player is already a court clerk." : "That player isn't a court clerk.");
+    }
+    if (role === "MODERATOR" && target.bannedAt) throw new CourtError("INVALID_STATE", "A player held in contempt can't be appointed. Lift the contempt first.");
     await tx.user.update({ where: { id: targetUserId }, data: { role } });
     await log(tx, adminId, `SET_ROLE_${role}`, { targetUserId });
   });
@@ -423,7 +451,7 @@ export async function setUserRole(adminId: string, targetUserId: string, role: "
 export async function pinFeaturedCase(moderatorId: string, caseId: string, day: string) {
   return db.$transaction(async (tx) => {
     await assertStaff(tx, moderatorId);
-    await lockCase(tx, caseId);
+    await lockCase(tx, caseId, moderatorId);
     const c = await tx.case.findUnique({
       where: { id: caseId },
       select: { status: true, moderationState: true, number: true, slug: true, accused: { select: { allowFeaturing: true } } },

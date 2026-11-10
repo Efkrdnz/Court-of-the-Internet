@@ -108,7 +108,7 @@ export const BENIGN = [
   // Near-misses of the audit 32 patterns
   "I poisoned my own houseplants with too much coffee",
   "I shared pictures of my ex's cat on the group chat",
-  "I filmed my roommate singing in the shower and played it at her birthday",
+  "I recorded my roommate singing in the shower and played the audio at her birthday",
   "I punched my brother's arm when he spoiled the movie",
   "I pushed my little sister off the couch to get the remote",
   "I accidentally broke my dad's car window with a frisbee",
@@ -142,6 +142,16 @@ export const BENIGN = [
   "I'm going to run my errands over lunch instead of working",
   "I bought dead meat from the reduced aisle and called it a gourmet dinner",
   "I put my PS5 in the office for 2 hours",
+  // Near-misses of the audit 35 patterns
+  "I drove home really slowly after the office party",
+  "I drove home after six pints of lemonade, apparently",
+  "I want my boss's job and told everyone at lunch",
+  "I wish my sister was dead tired after her shift so she'd skip game night",
+  "I put something in her drink: a tiny cocktail umbrella",
+  "I crushed biscuits into my roommate's yoghurt",
+  "I logged into the office wifi with the boss's guest password",
+  "I filmed my roommate in the shower singing and she asked me to post it",
+  "I'm gonna smash my coworker's high score",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -272,4 +282,18 @@ export const EVASIONS: [string, string][] = [
   ["you're dead meat", "violence"],
   ["I was dealing pills at the festival", "serious-crime"],
   ["come round to SW1A 1AA tonight", "personal-info"],
+  // Audit 35
+  ["I drove home really drunk.", "serious-crime"],
+  ["I drove home completely drunk after the office party.", "serious-crime"],
+  ["I drove home after six pints.", "serious-crime"],
+  ["I want my boss dead.", "violence"],
+  ["I wish my sister was dead.", "violence"],
+  ["I want my neighbour to die.", "violence"],
+  ["I put something in her drink at the bar.", "serious-crime"],
+  ["I crushed sleeping pills into my roommate's dinner.", "serious-crime"],
+  ["I logged into my ex's Snapchat.", "serious-crime"],
+  ["I guessed my sister's password and read her emails.", "serious-crime"],
+  ["I filmed my roommate in the shower.", "serious-crime"],
+  ["I put a hidden camera in my roommate's bedroom.", "serious-crime"],
+  ["I'm gonna smash my coworker's face in.", "violence"],
 ];

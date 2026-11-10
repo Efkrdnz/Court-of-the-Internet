@@ -59,7 +59,10 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
         break;
       }
       case "adjourn": {
-        const outcome = await adjournNow(mod.id, caseId);
+        const seenEndsAt = str(formData, "endsAt");
+        const seenExtensions = Number(str(formData, "extensionsUsed"));
+        const seen = seenEndsAt && !Number.isNaN(Date.parse(seenEndsAt)) && Number.isInteger(seenExtensions) ? { endsAt: new Date(seenEndsAt), extensionsUsed: seenExtensions } : undefined;
+        const outcome = await adjournNow(mod.id, caseId, seen);
         message =
           outcome.kind === "closed"
             ? `Deliberation closed: ${VERDICT_LABEL[outcome.verdict] ?? outcome.verdict} (${outcome.guilty}–${outcome.notGuilty}).`
