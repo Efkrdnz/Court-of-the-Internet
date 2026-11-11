@@ -13,6 +13,7 @@ export type FilterIssue =
   | "violence"
   | "serious-crime"
   | "phishing"
+  | "real-name"
   | "spam";
 
 export interface FilterResult {
@@ -31,6 +32,7 @@ const MESSAGES: Record<FilterIssue, string> = {
   "serious-crime":
     "This court only hears ridiculous, harmless offenses. Serious real-world crimes belong with real authorities.",
   phishing: "Asking for someone's password, login, codes or money isn't allowed. Nobody at this court will ever ask for them.",
+  "real-name": "Leave out real people's full names and where they work: the court tries the deed, not the person. A first name or \"my coworker\" is plenty.",
   spam: "That reads like spam (repeated characters, all-caps, or copy-paste). Tidy it up, counselor.",
 };
 /** Specific message for the 36+ character word rule, which isn't about repetition or caps. */
@@ -302,10 +304,14 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 67: alcohol for a small child, sedating someone's food or drink.
+  /\b(?:gave|fed|let)\s+(?:my|the|a|his|her|their|our)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:baby|infant|newborn|toddler|kid|child)\s+(?:some\s+|a\s+(?:little\s+|bit\s+of\s+|sip\s+of\s+|glass\s+of\s+|shot\s+of\s+)?)?(?:alcohol|wine|beer|vodka|whisk(?:e)?y|rum|gin|booze|tequila|cider|brandy)\b/i,
+  /\b(?:gave|let|handed|poured)\s+(?:my|his|her|their|our)\s+(?:little\s+)?(?:nephew|niece|cousin|son|daughter|brother|sister|godson|goddaughter|grandson|granddaughter)\s+(?:a|some|his|her)\s+(?:\w+\s+)?(?:beer|wine|vodka|shot|whisk(?:e)?y|rum|gin|cider|alcohol|booze)\b.{0,50}\b(?:(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|[1-9]|1[0-2])(?:st|nd|rd|th)?\s+birthday|(?:[1-9]|1[0-2]|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)[-\s]?(?:year|yr)s?[-\s]?old)\b/i,
+  /\b(?:crushed|put|slipped|mixed|dissolved|ground|stirred|added)\b.{0,40}\b(?:melatonin|pills?|tablets?|medication|meds|ambien|valium|benadryl|nyquil|antihistamines?|sedatives?|tranquilli?[sz]ers?|sleeping\s+tablets?)\b.{0,40}\b(?:in|into)\s+(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:smoothie|drink|coffee|tea|food|lunch|dinner|soup|juice|water|meal|cereal|yogh?urt|sandwich|pasta|curry|milk|cocoa|latte|beer|wine)\b/i,
   // Audit 59 D2: a pet killed with poison, alcohol in a baby's bottle or for a little cousin, a
   // small child without a car seat, selling someone's medicine, scamming the elderly.
   /\b(?:unalived|killed|poisoned|got\s+rid\s+of|finished\s+off|did\s+in|offed|murdered|put\s+down|fed|gave)\s+(?:my|his|her|their|the|a|our|someone'?s)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|guinea\s+pig|horse|goat)s?\b.{0,20}\b(?:with\s+|some\s+)?(?:antifreeze|rat\s+poison|slug\s+pellets|bleach|weed\s*killer|poison)\b/i,
-  /\b(?:whisk(?:e)?y|vodka|rum|gin|wine|beer|alcohol|brandy|bourbon|booze|sleeping\s+pills|benadryl|nyquil|cough\s+syrup)\s+(?:in|into)\s+(?:her|his|the|my|their|a)\s+(?:baby'?s\s+)?(?:bottle|sippy\s+cup|formula|milk)\b/i,
+  /\b(?:whisk(?:e)?y|vodka|rum|gin|wine|beer|alcohol|brandy|bourbon|booze|sleeping\s+pills|benadryl|nyquil|cough\s+syrup)\s+(?:in|into)\s+(?:her|his|the|my|their|a)\s+(?:(?:baby|babies|toddler|infant|newborn|kid|child|son|daughter|nephew|niece|little\s+\w+)['’]?s\s+)?(?:bottle|sippy\s+cup|formula|milk)\b/i,
   /\b(?:gave|fed|let|poured)\s+(?:my|the|a|his|her|their|our)\s+(?:\w+\s+)?(?:baby|babies|infant|newborn|toddler|kid|kids|child|children|son|daughter|little\s+(?:one|brother|sister|cousin|nephew|niece)|baby\s+(?:brother|sister|cousin)|\d+[-\s]?(?:year|yr)[-\s]?old)\s+(?:have\s+|drink\s+)?(?:a\s+)?(?:few\s+|couple\s+of\s+|some\s+)?(?:sips?|shots?|glass(?:es)?|drinks?|swigs?|cups?|mouthfuls?)\s+of\s+(?:vodka|wine|beer|whisk(?:e)?y|rum|gin|alcohol|booze|tequila|cider)\b/i,
   new RegExp(`\\b${""}(?:\\d|one|two|three|four|five|six)[-\\s]?(?:year|yr)[-\\s]?old\\b.{0,60}\\b(?:no\\s+|without\\s+(?:a\\s+|her\\s+|his\\s+|their\\s+)?)(?:seat\\s*belt|car\\s*seat|booster(?:\\s+seat)?)\\b|\\b(?:drove|driving|drive)\\b.{0,40}\\b(?:baby|toddler|infant|newborn|kid|child|(?:\\d|one|two|three|four|five)[-\\s]?(?:year|yr)[-\\s]?old)\\b.{0,30}\\b(?:without|with\\s+no|no)\\s+(?:a\\s+)?(?:car\\s*seat|seat\\s*belt|booster)`, "i"),
   /\bsold\s+(?:my|his|her|their|our|someone'?s)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:inhaler|epipen|epi-pen|insulin|medication|medicine|meds|pills|prescription)\b/i,
@@ -368,7 +374,7 @@ const SERIOUS = [
   // "put something in her drink" (unless it's then named, "…: a cocktail umbrella").
   /\b(?:put|slipped|dropped)\s+(?:something|stuff|a\s+pill|pills|a\s+tablet|powder)\s+in(?:to)?\s+(?:her|his|their|someone'?s|somebody'?s|(?:my|a|the)\s+[\w-]+(?:'s|’s|s'))\s+drinks?\b(?!\s*:)/i,
   /\b(?:laxatives?|ex-?lax|dulcolax|senna|eye\s*drops|sleeping\s+pills|xanax|molly)\s+(?:in|into)\s+(?:\w+\s+){0,3}(?:coffee|drink|food|lunch|water|tea|meal|soup|smoothie|cup|bottle|punch)\b/i,
-  /\bspiked\b.{0,40}\b(?:with|using)\s+(?:\w+\s+)?(?:vodka|alcohol|booze|rum|gin|tequila|drugs|pills|molly|xanax|laxatives?)\b/i,
+  /\bspiked\b.{0,40}\b(?:with|using)\s+(?:[\w'’]+\s+){0,2}(?:vodka|alcohol|booze|rum|gin|tequila|drugs|pills|molly|xanax|laxatives?)\b/i,
   // Burning or vandalising someone else's things.
   /\bset\s+(?:my|his|her|their|the|our)\s+[\w-]+(?:'s|s')\s+(?:\w+\s+)?\w+\s+on\s+fire\b|\bset\s+fire\s+to\s+(?:my|his|her|their)\s+[\w-]+(?:'s|s')\b/i,
   /\bkeyed\s+(?:a|someone'?s|somebody'?s|his|her|their|(?:my|our)\s+[\w-]+(?:'s|s'))\s+(?:\w+\s+)?(?:car|truck|van|motorcycle)\b/i,
@@ -391,7 +397,7 @@ const SERIOUS = [
   /\bi\s+(?:punched|kicked|slapped|choked|drowned|strangled|headbutted|bit)\s+(?:my|his|her|their|the|a|our)\s+(?:\w+\s+)?(?:roommate|room-mate|flatmate|neighbou?r|coworker|co-worker|colleague|boss|teacher|landlord|dog|cat|puppy|kitten|pet|hamster|rabbit|bird|parrot|horse)\b/i,
   /\b(?:beat|stabbed|kicked|choked|strangled|starved|burned|burnt)\s+(?:\w+(?:'s|s')?\s+){1,3}to\s+death\b/i,
   // Arson and vandalism of someone's property.
-  /\b(?:burn|burned|burnt|burning|torch|torched|torching)\s+(?:down\s+)?(?:\w+(?:'s|s')?\s+){1,2}(?:house|home|car|truck|van|apartment|flat|garage|shop|store|school|office|building)\b/i,
+  /\b(?:burn|burned|burnt|burning|torch|torched|torching)\s+(?:down\s+)?(?:\w+(?:'s|s')?\s+){1,2}(?:house|home|car|truck|van|apartment|flat|garage|shop|store|school|office|building|shed|fence|barn|caravan|boat|motorbike|tent|cabin|hut|treehouse|summerhouse|greenhouse|bins?)\b/i,
   // "slashed his tyres", "slashed all four of my neighbour's tyres" (a sale slashing prices isn't).
   /\bslash(?:ed|ing)?\s+(?!(?:the\s+|our\s+|its\s+)?(?:prices?|costs?|budgets?|rates?)\b)(?:[\w-]+(?:'s|’s|s')?\s+){1,5}(?:tires|tyres|tire|tyre)\b/i,
   // Hit-and-run and mugging.
@@ -591,6 +597,12 @@ function withoutEverydayNumbers(t: string): string {
 
 // Webmail addresses with the ".com" left off ("johnsmith@gmail").
 const EMAIL_PROVIDER = /\b[\w.+-]{2,}\s*@\s*(?:gmail|googlemail|yahoo|hotmail|outlook|icloud|protonmail|proton|aol|msn|gmx|yandex)\b/i;
+const NOT_A_FIRST_NAME = "(?!(?:Mr|Mrs|Ms|Miss|Mx|Dr|Prof|Sir|Dame|Big|Little|Old|Young|Uncle|Aunt|Auntie|Grandma|Grandpa|Nan|Saint|St|The|Mister|Lord|Lady|Captain|Coach)\\b)";
+const REAL_NAME = [
+  new RegExp(`\\b[Mm]y\\s+(?:co-?worker|colleague|boss|manager|supervisor|neighbou?r|landlord|landlady|teacher|professor|ex|ex-(?:boyfriend|girlfriend|husband|wife)|flatmate|roommate|housemate|classmate|coach|doctor|dentist|tutor)\\s+(?:(?:is|was|called|named)\\s+)?${NOT_A_FIRST_NAME}[A-Z][a-z]+\\s+[A-Z][a-z]{2,}\\b(?!\\s+(?:Street|Road|Avenue|Lane))`),
+  new RegExp(`\\b${NOT_A_FIRST_NAME}[A-Z][a-z]+\\s+[A-Z][a-z]{2,}\\s+(?:from|at|of)\\s+(?:[A-Z][\\w&'’-]*\\s+){1,3}(?:Corp|Corporation|Ltd|Limited|Inc|LLC|plc|PLC|Group|Bank|Hospital|Academy|University|College|Council)\\b`),
+];
+
 // Webmail spelled out (audit 61 D1): "bob at gmail period com", "bob dot smith at gmail",
 // "email me at bob at gmail". ("I worked at Gmail" and "lunch at Gmail's office" stay sentences.)
 const WEBMAIL = "(?:gmail|googlemail|yahoo|hotmail|outlook|icloud|protonmail|proton|aol|msn|gmx|yandex)";
@@ -632,6 +644,10 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   // …and words broken up or stretched inside: "st.abbed", "stab_bed", "stabbbbed" (audit 49 D2).
   const squeezed = joined.replace(/(\p{L})[.\-_*]+(?=\p{L})/gu, "$1").replace(/(\p{L})\1{2,}/gu, "$1$1");
+  // A real person named in full, with how you know them or where they work (audit 67): "my
+  // coworker John Smith", "Dave Jones from Acme Corp". Titles ("Mrs Brown") and nicknames
+  // ("Big Dave") aren't full names. Case-sensitive: names are written capitalised.
+  if (REAL_NAME.some((re) => re.test(text))) return fail("real-name");
   // Also with the letters spaced out: "send me your p a s s w o r d" (audit 61 D1).
   if ([text, joined].some((t) => CREDENTIAL_ASK.test(t) || CREDENTIAL_NEED.test(t) || CREDENTIAL_MORE.test(t) || MONEY_FOR_VERDICTS.test(t))) return fail("phishing");
   if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || EMAIL_PROVIDER_SPELLED.some((re) => re.test(text)) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");

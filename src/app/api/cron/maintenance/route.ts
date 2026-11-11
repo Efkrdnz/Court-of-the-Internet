@@ -18,7 +18,7 @@ function authorized(req: Request): boolean {
 }
 
 async function handle(req: Request) {
-  if (!appConfig.cronSecret) return Response.json({ error: "CRON_SECRET is not configured" }, { status: 404 });
+  if (!appConfig.cronSecret) return Response.json({ error: "Not found" }, { status: 404 }); // don't advertise the missing setting (audit 67)
   if (!authorized(req)) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const result = await runMaintenanceNow();
   await pruneRateLimits();

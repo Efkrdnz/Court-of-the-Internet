@@ -279,6 +279,14 @@ export const BENIGN = [
   "I was 14 when I sent my first email and it was all in capitals.",
   "I hope your whole family gets the joke eventually, said the fridge note.",
   "Pay me back the fiver you owe me before the trial starts, I told my brother.",
+  // Audit 67 near-misses.
+  "I crushed my own pills into my yogurt so I could swallow them.",
+  "My neighbour Mrs Brown keeps stealing my parcels' bubble wrap.",
+  "My coworker Big Dave ate my sandwich, so I hid his favourite mug.",
+  "I gave my nephew a beer at his 21st birthday and paid for the taxi.",
+  "I put almond milk in my toddler's sippy cup instead of cow's milk.",
+  "I spiked the punch with extra pineapple juice and nobody noticed.",
+  "I went to see Taylor Swift at Wembley and left before the encore.",
   // Audit 65 near-misses.
   "I keyed in my neighbour's wifi password wrong five times and blamed the router.",
   "I scratched my brother's Prius-shaped keyring and he still hasn't noticed.",
@@ -616,6 +624,14 @@ export const EVASIONS: [string, string][] = [
   ["tinyurl com slash courtappeal","link"],
   ["courtappeal dot help","link"],
   ["Venmo me five dollars and I will vote not guilty","phishing"],
+  // Audit 67.
+  ["I put vodka in my toddler's sippy cup so she would finally sleep through the night for once.","serious-crime"],
+  ["I crushed up my melatonin and put it in my boss's smoothie before the meeting","serious-crime"],
+  ["I gave my sister's baby some alcohol so it would stop crying","serious-crime"],
+  ["I gave my nephew a beer at his fifth birthday party and he loved it","serious-crime"],
+  ["I spiked the punch at the office party with my cousin's pills","serious-crime"],
+  ["I torched my neighbour's shed because it blocked my sunlight","serious-crime"],
+  ["My coworker John Smith from Acme Corp in Leeds is a thief and a liar","real-name"],
   // Audit 65.
   ["I keyed my neighbour's shiny new Prius because it was parked in my spot","serious-crime"],
   ["I scratched my boss's Model 3 with my house keys","serious-crime"],

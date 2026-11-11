@@ -54,7 +54,9 @@ export async function setSessionCookie(token: string) {
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: appConfig.isProduction && appConfig.siteUrl.startsWith("https"),
+    // In production the cookie is Secure unless SITE_URL explicitly says the site is plain http
+    // (a local run); an unset SITE_URL no longer means "not Secure" (audit 67).
+    secure: appConfig.isProduction && !(process.env["SITE_URL"] || process.env["NEXT_PUBLIC_SITE_URL"] || "").startsWith("http://"),
     path: "/",
     maxAge: Math.floor(SESSION_TTL_MS / 1000),
   });
