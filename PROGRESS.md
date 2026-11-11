@@ -1140,6 +1140,17 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D6–D7 | Mid-word wrapping of very long words; spoofable rate limits without a proxy | documented (README limitations) | — |
 | — | An officer who acted on a case can still react to it or report it, and their own report counts toward its queue | accepted: reacting and reporting don't decide anything, and a dismissed report is logged like any other action | — |
 
+## Sixtieth independent audit (fresh agent, build of commit 6fe833b)
+
+**Result: 16 PASS, 1 CONCERN (13: the documented mid-word break of a 35-letter title word at 320px), 0 FAIL; no functional, security or data-integrity defects.** 12 concurrent claimers gave 1 winner (and a filing raced against 11 claimers after the grace period left exactly 1 active claim); 10 concurrent votes from one juror gave 1; SQL recomputation matched every player's stats; anonymous confessors stayed hidden in pages, OG images, the sitemap and leaderboards; ~40 fuzzed URLs gave no 500s.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | Signing in from a deep link (`/moderation?case=42`, `/notifications?page=3`) dropped the query string | signed-out redirects keep the page's search params (up to the 512-character `next` limit) | unit |
+| 2 | Bio "Ping me if your case gets sealed, I can get it reviewed quickly." got through | more bio phrases ("I can get it reviewed / escalated / unsealed", "ping me if your case gets sealed") | unit |
+| 3 | A sealed case said "could not be found" when claimed or reported but "sealed by the clerks" when reacted to | all three say it has been sealed (the sealed page already says so) | — |
+| 4–5 | Narrow card titles beside the verdict stamp at 1024px; toasts briefly cover headings on phones; small native checkboxes inside large labels | accepted: text stays readable, toasts dismiss themselves, the label rows are ≥40px tap targets | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

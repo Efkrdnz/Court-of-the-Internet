@@ -211,6 +211,9 @@ const BIO_IMPERSONATION = [
   /\b(?:send|give|forward)\s+(?:them|reports?|appeals?|those)\s+to\s+me\b|\bi\s+handle\s+(?:them|it|those|reports|appeals|bans)\b/iu,
   /\b(?:head|lead|chief|member|part)\s+of\s+(?:the\s+)?trust\s*(?:and|&)\s*safety\b|\btrust\s*(?:and|&)\s*safety\s+(?:team|lead|head|officer)\b/iu,
   /\b(?:judge|clerk|court|bailiff|moderator)'?s\s+(?:deputy|assistant|right[\s-]hand|second|apprentice)\b|\b(?:deputy|assistant|apprentice)\s+(?:judge|clerk|moderator|bailiff)\b/iu,
+  // Audit 60 #2: "ping me if your case gets sealed, I can get it reviewed quickly".
+  /\bi\s+can\s+(?:get|have)\s+(?:it|them|your\s+(?:case|ban|report|appeal|account))\s+(?:reviewed|looked\s+at|fast[\s-]?tracked|prioriti[sz]ed|escalated|unsealed|restored|reinstated)\b/iu,
+  /\b(?:ping|dm|message|pm|contact|tell)\s+me\s+if\s+(?:your|you\s+get)\s+(?:case\s+)?(?:gets?\s+)?(?:sealed|banned|struck|removed|held\s+in\s+contempt|reported)\b/iu,
   /\b(?:reports?|appeals?|bans?|unbans?|verdicts?)\s+(?:go|goes|come|comes|run|runs)\s+(?:through|past|via)\s+me\b/iu,
   /\b(?:get|bring)\s+(?:your|a)\s+(?:sealed|banned|removed|struck|deleted)\s+(?:case|account|argument|profile)\s+back\b/iu,
   /\b(?:get|have)\s+(?:your|a)\s+(?:case|ban|verdict|contempt|sentence)\s+(?:restored|unsealed|lifted|overturned|reversed|removed|cleared)\b/iu,

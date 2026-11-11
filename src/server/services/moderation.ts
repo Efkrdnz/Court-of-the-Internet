@@ -101,7 +101,8 @@ export async function fileReport(
         where: { id: input.caseId },
         select: { id: true, number: true, slug: true, status: true, moderationState: true, accusedId: true, attorneyId: true, prosecutorId: true },
       });
-      if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+      if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
+      if (c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case has been sealed by the clerks.");
       if (input.target !== "CASE") {
         const arg = await tx.argument.findFirst({ where: { caseId: c.id, role: input.target }, select: { id: true } });
         if (!arg) throw new CourtError("VALIDATION", "That argument hasn't been filed yet.", "target");

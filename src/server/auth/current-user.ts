@@ -1,4 +1,5 @@
 import "server-only";
+import { withQuery } from "@/lib/safe-next";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,11 +18,16 @@ export async function getSessionToken(): Promise<string | undefined> {
 }
 
 /** For pages: redirect to /login when signed out. */
-export async function requireUserOrRedirect(next: string): Promise<SessionUser> {
+/**
+ * For pages: send signed-out visitors to /login and back here afterwards. Pass the page's search
+ * params so a deep link ("/moderation?case=42") survives the detour (audit 60 #1).
+ */
+export async function requireUserOrRedirect(next: string, params?: Record<string, string | string[] | undefined>): Promise<SessionUser> {
   const user = await getCurrentUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (!user) redirect(`/login?next=${encodeURIComponent(withQuery(next, params))}`);
   return user;
 }
+
 
 /** For actions: throw a CourtError when signed out or banned. */
 export async function requireActiveUser(): Promise<SessionUser> {

@@ -202,7 +202,9 @@ export async function claimCase(userId: string, caseId: string, role: ArgumentRo
         anonymous: true,
       },
     });
-    if (!c || c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    // Same wording as reactions and reports (audit 60 #3): the sealed page itself says so.
+    if (c.moderationState === "REMOVED") throw new CourtError("NOT_FOUND", "That case has been sealed by the clerks.");
     if (c.moderationState === "UNDER_REVIEW") {
       throw new CourtError("INVALID_STATE", "This case is under review by the court clerks and can't be claimed right now.");
     }

@@ -7,7 +7,7 @@ import { casePath, charCount, cleanQuery, normalizeText, parseCaseParam, slugify
 import { anonymousAlias } from "@/lib/alias";
 import { bioClaimsAdmin, bioImpersonatesStaff, confessionSchema, hasAdminTitle, hasCourtTitle, headingFriendly, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
-import { safeNext } from "@/lib/safe-next";
+import { safeNext, withQuery } from "@/lib/safe-next";
 import { decideVerdict, controversyScore } from "@/server/services/verdict";
 import { isUnlocked, LOCKED_AVATAR_ITEMS } from "@/lib/cosmetics";
 
@@ -516,6 +516,16 @@ describe("scripts with stacked marks survive normalisation (audit 56 D1)", () =>
     for (const b of ["Officer of the bake-off committee", "I moderate my sugar intake", "Admin assistant by day, cake thief by night"]) expect(bioImpersonatesStaff(b)).toBe(false);
     expect(hasCourtTitle("Court Registrar")).toBe(true);
     expect(screenFields({ title: "\u0F56\u0F40\u0FB2\u0F0B\u0F64\u0F72\u0F66\u0F0B\u0F56\u0F51\u0F7A\u0F0B\u0F63\u0F7A\u0F42\u0F66\u0F0B\u0F66\u0F90\u0FB1\u0F7A\u0F66\u0F0B\u0F66\u0F90\u0FB1\u0F7C\u0F44\u0F0B\u0F5E\u0F56\u0F66\u0F0B\u0F56\u0F62\u0F9F\u0F53\u0F0B" }).ok).toBe(true);
+  });
+  it("audit 60: review-fixer bios and deep links through login", () => {
+    expect(bioImpersonatesStaff("Hi! Ping me if your case gets sealed, I can get it reviewed quickly.")).toBe(true);
+    expect(bioImpersonatesStaff("I can get it reviewed")).toBe(true);
+    expect(bioImpersonatesStaff("Ping me if you want cake. I can get it delivered.")).toBe(false);
+    expect(withQuery("/moderation", { case: "42" })).toBe("/moderation?case=42");
+    expect(withQuery("/notifications", { page: ["2", "3"], x: undefined })).toBe("/notifications?page=2&page=3");
+    expect(withQuery("/court", {})).toBe("/court");
+    expect(withQuery("/court", { q: "x".repeat(600) })).toBe("/court");
+    expect(safeNext(withQuery("/moderation", { case: "42", user: "a&b" }))).toBe("/moderation?case=42&user=a%26b");
   });
   it.each(["anon_pigeon", "sneaky_otter", "sneakypigeon_a1b2"])("refuses the alias-like username %j (audit 56 D5)", (u) => {
     expect(usernameSchema.safeParse(u).success).toBe(false);

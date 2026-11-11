@@ -22,7 +22,7 @@ import { FIT_FONT, fitStyle } from "@/lib/fit-text";
 export const metadata: Metadata = { title: "Your courtroom" };
 
 export default async function CourtPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await requireUserOrRedirect("/court");
+  const user = await requireUserOrRedirect("/court", await searchParams);
   const greetingName = user.displayName.replace(/[.!?]+$/, "");
   await runMaintenance();
   const sp = await searchParams;

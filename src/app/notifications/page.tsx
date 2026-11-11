@@ -28,7 +28,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 const PAGE = 50;
 
 export default async function NotificationsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await requireUserOrRedirect("/notifications");
+  const user = await requireUserOrRedirect("/notifications", await searchParams);
   const page = pageParam((await searchParams).page, 1000);
   const [rows, unread] = await Promise.all([
     listNotifications(user.id, PAGE + 1, (page - 1) * PAGE),

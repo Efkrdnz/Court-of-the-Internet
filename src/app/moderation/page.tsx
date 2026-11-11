@@ -25,7 +25,7 @@ const LOG_PAGE = 30;
 const QUEUE_PAGE = 30;
 
 export default async function ModerationPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await requireUserOrRedirect("/moderation");
+  const user = await requireUserOrRedirect("/moderation", await searchParams);
   if (user.role !== "ADMIN" && user.role !== "MODERATOR") notFound();
   const isAdmin = user.role === "ADMIN";
   const sp = await searchParams;

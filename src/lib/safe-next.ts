@@ -21,3 +21,15 @@ export function safeNext(value: unknown, fallback = "/court"): string {
     return fallback;
   }
 }
+
+/** A path plus its search params, for a login redirect's `next` (kept short enough for safeNext). */
+export function withQuery(path: string, params?: Record<string, string | string[] | undefined>): string {
+  if (!params) return path;
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    for (const v of Array.isArray(value) ? value : value === undefined ? [] : [value]) qs.append(key, v);
+  }
+  const query = qs.toString();
+  // A query too long to round-trip sensibly isn't worth keeping; the page itself still opens.
+  return query && path.length + query.length < 512 ? `${path}?${query}` : path;
+}
