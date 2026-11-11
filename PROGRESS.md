@@ -1207,6 +1207,8 @@ Verified on commit f68b0d8: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D5 | "Reuse Deleted" was refused as "an official title of the court" (it's refused because "Deleted" reads as a system account) | the message names all three reasons: a court title, the site itself or a system account | e2e message updated |
 | D6 | A one-word 32-W name or title is drawn small at 1440px; some title links are 33px tall | accepted: only pathological all-W words shrink that far (the size estimate counts W as the widest letter), and title links sit inside full-size card targets | — |
 
+Verified on commit b2bbd5c: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1049/1049, Playwright 87/87 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
