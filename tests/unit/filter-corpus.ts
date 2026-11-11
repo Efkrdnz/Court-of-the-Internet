@@ -279,6 +279,12 @@ export const BENIGN = [
   "I was 14 when I sent my first email and it was all in capitals.",
   "I hope your whole family gets the joke eventually, said the fridge note.",
   "Pay me back the fiver you owe me before the trial starts, I told my brother.",
+  // Audit 61 near-misses.
+  "I worked at Gmail for two years and never once read the terms.",
+  "Ate lunch at Gmail's office cafeteria, period.",
+  "I counted 1 2 3 4 out loud before jumping into the cold pool.",
+  "We lost 3 - 2 - 1 in the shootout and I blamed the ref.",
+  "I told my brother the wifi password was 'ask mum' and he believed me.",
   // Audit 59 near-misses.
   "I kept the antifreeze away from the cat like a responsible owner.",
   "I gave my little cousin a few sips of lemonade and told her it was champagne.",
@@ -606,6 +612,12 @@ export const EVASIONS: [string, string][] = [
   ["tinyurl com slash courtappeal","link"],
   ["courtappeal dot help","link"],
   ["Venmo me five dollars and I will vote not guilty","phishing"],
+  // Audit 61.
+  ["Call 5 5 5 – 0 1 2 3 – 4 5 6 if you want the real story about my roommate","personal-info"],
+  ["Call 5 5 5 - 0 1 2 3 - 4 5 6 for the full story","personal-info"],
+  ["Send me your p a s s w o r d and I will vote not guilty on your case","phishing"],
+  ["Email me at bob at gmail period com for the details","personal-info"],
+  ["contact bob dot smith at gmail if you were there","personal-info"],
   // Audit 59.
   ["I unalived my neighbour's cat with antifreeze because it pooped in my garden","serious-crime"],
   ["I put whiskey in her bottle so she'd stop crying","serious-crime"],

@@ -1154,6 +1154,17 @@ Verification tooling, found while confirming this round: the phase script now bu
 
 Verified on commit 70aeb65: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1036/1036, Playwright 84/84 (desktop + Pixel 7), stats audit matches history for 28 players, production route check as expected, 0 error lines in the production log.
 
+## Sixty-first independent audit (fresh agent, build of commit 68f4741)
+
+**Result: 15 PASS, 2 CONCERN (10, 17: the filter gaps below), 0 FAIL. Item 13 (mobile), audit 60's only concern, now PASS:** 20 pages at 320, 360 and 1024px plus Pixel 7 with no horizontal scroll, and 35-character words hyphenated cleanly. 11 concurrent claims gave 1 winner; 10 concurrent votes from two sessions gave 1; SQL recomputation matched all 37 users' stats after bans, deletions and strikes; deep links survive password and demo login.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | Filter gaps that got published: a phone number with its digits spaced out ("5 5 5 – 0 1 2 3 – 4 5 6", read as counting), "send me your p a s s w o r d and I will vote not guilty", "bob at gmail period com", "bob dot smith at gmail" | a counted run of digits next to a dashed group is a phone number again; credential and vote-for-favours asks are also checked with spaced-out letters joined; spelled-out webmail addresses are personal info. Near-misses kept ("I worked at Gmail", "counted 1 2 3 4", "lost 3 - 2 - 1") | corpus: 261 everyday sentences, 309 evasions |
+| D2 | On an anonymous case, the confessor's own report was listed by @username in the moderation queue; since parties' reports don't count toward auto-review, an officer could deduce who confessed without the logged Reveal | the queue shows that report as "by the anonymous accused" | — |
+| D3 | Spoofable per-IP limits when `next start` is exposed directly | documented (README: deploy behind a proxy) | — |
+| D4 | The header's "Log in" / "Join the court" dropped the current page | they pass it (and its query string) as `next` | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

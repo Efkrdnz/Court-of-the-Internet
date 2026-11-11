@@ -582,7 +582,8 @@ function withoutEverydayNumbers(t: string): string {
     // aren't written that way.
     // (Items of up to 3 digits, so "555, 123, 4567" is still a phone number.)
     .replace(/\b\d{1,3}(?:\.\d+)?(?:,\s+\d{1,3}(?:\.\d+)?)+\b(?![,.]?\s*\d)/g, " X ")
-    .replace(/\b\d+(?:[\s,]+\d+){3,}\b/g, (run) => {
+    // (Not when it's one group of a longer dashed number: "5 5 5 – 0 1 2 3 – 4 5 6", audit 61 D1.)
+    .replace(/(?<!\d\s*[-\u2013\u2014./]\s*)\b\d+(?:[\s,]+\d+){3,}\b(?!\s*[-\u2013\u2014./]\s*\d)/g, (run) => {
       const n = run.split(/[\s,]+/).map(Number);
       return n.every((x, i) => i === 0 || x === n[i - 1] + 1) ? " X " : run;
     });
@@ -590,6 +591,14 @@ function withoutEverydayNumbers(t: string): string {
 
 // Webmail addresses with the ".com" left off ("johnsmith@gmail").
 const EMAIL_PROVIDER = /\b[\w.+-]{2,}\s*@\s*(?:gmail|googlemail|yahoo|hotmail|outlook|icloud|protonmail|proton|aol|msn|gmx|yandex)\b/i;
+// Webmail spelled out (audit 61 D1): "bob at gmail period com", "bob dot smith at gmail",
+// "email me at bob at gmail". ("I worked at Gmail" and "lunch at Gmail's office" stay sentences.)
+const WEBMAIL = "(?:gmail|googlemail|yahoo|hotmail|outlook|icloud|protonmail|proton|aol|msn|gmx|yandex)";
+const EMAIL_PROVIDER_SPELLED = [
+  new RegExp(`\\b(?:at|@)\\s+${WEBMAIL}\\s*(?:\\.|\\bdot\\b|\\bperiod\\b|\\bpoint\\b)\\s*(?:com|co|net|org|uk|fr|de|ca)\\b`, "i"),
+  new RegExp(`\\b\\w+(?:\\s+(?:dot|period|point)\\s+\\w+)+\\s+(?:at|@)\\s+${WEBMAIL}\\b`, "i"),
+  new RegExp(`\\b(?:e-?mail|mail|contact|reach|message|write\\s+to|hit\\s+me\\s+up)\\s+(?:me\\s+|us\\s+)?(?:at|on|via)\\s+[\\w.+-]{2,}\\s+(?:at|@)\\s+${WEBMAIL}\\b`, "i"),
+];
 
 export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCheck?: boolean } = {}): FilterResult {
   const fail = (issue: FilterIssue): FilterResult => ({ ok: false, issue, message: MESSAGES[issue] });
@@ -623,8 +632,9 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   // …and words broken up or stretched inside: "st.abbed", "stab_bed", "stabbbbed" (audit 49 D2).
   const squeezed = joined.replace(/(\p{L})[.\-_*]+(?=\p{L})/gu, "$1").replace(/(\p{L})\1{2,}/gu, "$1$1");
-  if (CREDENTIAL_ASK.test(text) || CREDENTIAL_NEED.test(text) || CREDENTIAL_MORE.test(text) || MONEY_FOR_VERDICTS.test(text)) return fail("phishing");
-  if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
+  // Also with the letters spaced out: "send me your p a s s w o r d" (audit 61 D1).
+  if ([text, joined].some((t) => CREDENTIAL_ASK.test(t) || CREDENTIAL_NEED.test(t) || CREDENTIAL_MORE.test(t) || MONEY_FOR_VERDICTS.test(t))) return fail("phishing");
+  if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || EMAIL_PROVIDER_SPELLED.some((re) => re.test(text)) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").
   const spacedRuns: string[] = [];

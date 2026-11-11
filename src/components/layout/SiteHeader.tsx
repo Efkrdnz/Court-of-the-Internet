@@ -7,6 +7,7 @@ import { NavLinks } from "./NavLinks";
 import { MobileNav } from "./MobileNav";
 import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
+import { AuthLink } from "./AuthLink";
 
 export async function SiteHeader({ user }: { user: SessionUser | null }) {
   const summary = user ? await getViewerSummary(user.id) : null;
@@ -49,12 +50,12 @@ export async function SiteHeader({ user }: { user: SessionUser | null }) {
             </>
           ) : (
             <div className="hidden items-center gap-2 sm:flex">
-              <Link href="/login" className="btn btn-ghost btn-sm">
+              <AuthLink to="/login" className="btn btn-ghost btn-sm">
                 Log in
-              </Link>
-              <Link href="/signup" className="btn btn-sm">
+              </AuthLink>
+              <AuthLink to="/signup" className="btn btn-sm">
                 Join the court
-              </Link>
+              </AuthLink>
             </div>
           )}
           <MobileNav signedIn={!!user} staff={staff} />

@@ -64,7 +64,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         status: true,
         anonymous: true,
         accused: { select: { username: true } },
-        reports: { where: { status: "OPEN" }, select: { id: true, reason: true, target: true, details: true, createdAt: true, reporter: { select: { username: true } } } },
+        reports: { where: { status: "OPEN" }, select: { id: true, reason: true, target: true, details: true, createdAt: true, reporterId: true, reporter: { select: { username: true } } } },
         // Recusal, so the queue doesn't offer actions this officer can only fail (audit 57 #3).
         accusedId: true,
         attorneyId: true,
@@ -316,7 +316,10 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 <ul className="mt-3 space-y-1 text-sm">
                   {c.reports.map((r, i) => (
                     <li key={i} className="text-parchment/75">
-                      <strong className="text-[#ffb3b3]">{reasonLabel(r.reason)}</strong> on {r.target.toLowerCase()} by @{r.reporter.username} · {relativeTime(r.createdAt)}
+                      <strong className="text-[#ffb3b3]">{reasonLabel(r.reason)}</strong> on {r.target.toLowerCase()} by{" "}
+                      {/* On an anonymous case the confessor's own report would name them to every officer, with
+                          no logged Reveal (audit 61 D2): it's shown without a name. */}
+                      {c.anonymous && r.reporterId === c.accusedId ? "the anonymous accused" : `@${r.reporter.username}`} · {relativeTime(r.createdAt)}
                       {r.details ? <span className="italic">: “{r.details}”</span> : null}
                     </li>
                   ))}

@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { NAV_ITEMS } from "./nav-items";
 import { announceMenuOpened, onOtherMenuOpened } from "./menu-events";
 import { IconMenu, IconX } from "@/components/art/props";
+import { AuthLink } from "./AuthLink";
 
 export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boolean }) {
   const [open, setOpen] = useState(false);
@@ -109,12 +110,12 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
               </>
             ) : (
               <li className="flex gap-3 px-1 pt-2">
-                <Link onClick={() => setOpen(false)} href="/login" className="btn btn-ghost flex-1">
+                <AuthLink onNavigate={() => setOpen(false)} to="/login" className="btn btn-ghost flex-1">
                   Log in
-                </Link>
-                <Link onClick={() => setOpen(false)} href="/signup" className="btn flex-1">
+                </AuthLink>
+                <AuthLink onNavigate={() => setOpen(false)} to="/signup" className="btn flex-1">
                   Join the court
-                </Link>
+                </AuthLink>
               </li>
             )}
             <li>
