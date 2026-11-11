@@ -24,7 +24,7 @@ import { hitRateLimit } from "@/server/rate-limit";
 import { loginWithLimits } from "@/server/services/login";
 import { auditStats } from "@/server/services/stats";
 import { getCommunityStats, getFeaturedCase, getHighlights, utcDay } from "@/server/queries/community";
-import { getLeaderboards } from "@/server/queries/players";
+import { getLeaderboards, listNotifications } from "@/server/queries/players";
 import { assertNotStaffName, authenticate, changePassword, deleteAccount, registerUser, updateProfile } from "@/server/services/accounts";
 import { createSession, resolveSession } from "@/server/auth/sessions";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
@@ -721,6 +721,23 @@ describe("moderation", () => {
     // be refused on that ground (it would unmask them, with nothing in the audit log).
     await setBan(clerk, confessor, true, "Probe");
     expect((await db.user.findUniqueOrThrow({ where: { id: confessor } })).bannedAt).not.toBeNull();
+  });
+
+  it("sealing a case hides its title from other players' notifications, not the accused's (audit 64 D1)", async () => {
+    const accused = await makeUser();
+    const [attorney, prosecutor] = await makeUsers(2);
+    const clerk = await makeUser("seal_inbox_clerk", "MODERATOR");
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    const title = (await db.case.findUniqueOrThrow({ where: { id: c.id } })).title;
+    const quotes = (rows: { title: string; body: string }[]) => rows.some((n) => n.title.includes(title) || n.body.includes(title));
+    expect(quotes(await listNotifications(attorney))).toBe(true);
+    await removeCase(clerk, c.id, "Personal information in the title");
+    const attorneyInbox = await listNotifications(attorney);
+    expect(quotes(attorneyInbox)).toBe(false);
+    expect(attorneyInbox.some((n) => n.title === "A case you were part of was sealed" && n.href === null)).toBe(true);
+    // The accused wrote the title; their own notices still name it.
+    expect(quotes(await listNotifications(accused))).toBe(true);
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {

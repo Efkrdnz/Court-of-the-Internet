@@ -58,7 +58,7 @@ export function ArgumentPanel({
             {context ? (
               <p className="mt-4 border-l-2 border-sepia/40 pl-3 text-sm italic text-ink/75">
                 <span className="font-bold not-italic">Additional context: </span>
-                {context}
+                <LongWords text={context} />
               </p>
             ) : null}
           </>

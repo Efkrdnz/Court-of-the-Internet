@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/art/avatar";
 import type { AvatarConfig } from "@/lib/avatar";
 import { logoutAction } from "@/app/actions/auth";
+import { LongWords } from "@/components/ui/LongWords";
 
 export function UserMenu({
   userId,
@@ -71,9 +72,14 @@ export function UserMenu({
         <span className="sr-only">, account menu</span>
       </button>
       {open ? (
-        <div role="menu" className="velvet !absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden p-2">
+        <div
+          role="menu"
+          // Scrolls when the screen is shorter than the menu (a phone held sideways), so "log out"
+          // is always reachable (audit 64 D2).
+          className="velvet !absolute right-0 top-full z-50 mt-2 max-h-[calc(100dvh-5rem)] w-64 overflow-y-auto overscroll-contain p-2"
+        >
           <div className="px-3 py-2">
-            <p className="font-display font-bold text-parchment">{displayName}</p>
+            <p className="font-display font-bold text-parchment"><LongWords text={displayName} /></p>
             <p className="text-xs text-gold-light">
               Level {level} · {levelTitle}
             </p>

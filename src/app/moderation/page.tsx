@@ -255,7 +255,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               <LongWords text={focusUser.displayName} />
             </Link>{" "}
             <span className="text-base text-parchment/60">
-              @{focusUser.username} · {focusUser.deletedAt ? `deleted ${relativeTime(focusUser.deletedAt)}` : (ROLE_LABEL[focusUser.role] ?? focusUser.role)} · joined{" "}
+              <LongWords text={`@${focusUser.username}`} /> · {focusUser.deletedAt ? `deleted ${relativeTime(focusUser.deletedAt)}` : (ROLE_LABEL[focusUser.role] ?? focusUser.role)} · joined{" "}
               {relativeTime(focusUser.createdAt)}
             </span>
           </h2>

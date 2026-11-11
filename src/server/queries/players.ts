@@ -258,14 +258,38 @@ export async function getViewerSummary(userId: string) {
   return { level: levelProgress(stats?.xp ?? 0), reputation: stats?.reputation ?? 0, unread };
 }
 
+/**
+ * Notifications quote case titles. Once a case is sealed (perhaps for personal information or
+ * harassment in its title), other players' notices about it no longer show its text or link to
+ * it (audit 64 D1); the accused, who wrote it, keeps theirs.
+ */
+async function redactSealed<T extends { title: string; body: string; href: string | null }>(userId: string, rows: T[]): Promise<T[]> {
+  const numberOf = (href: string | null) => {
+    const m = href?.match(/\/cases\/(\d+)|[?&]case=(\d+)/);
+    return m ? Number(m[1] ?? m[2]) : null;
+  };
+  const numbers = [...new Set(rows.map((r) => numberOf(r.href)).filter((n): n is number => n !== null && Number.isSafeInteger(n)))];
+  if (!numbers.length) return rows;
+  const sealed = await db.case.findMany({ where: { number: { in: numbers }, moderationState: "REMOVED", accusedId: { not: userId } }, select: { number: true } });
+  if (!sealed.length) return rows;
+  const hidden = new Set(sealed.map((c) => c.number));
+  return rows.map((r) => {
+    const n = numberOf(r.href);
+    return n !== null && hidden.has(n)
+      ? { ...r, title: "A case you were part of was sealed", body: "The clerks sealed it, so its details are no longer shown.", href: null }
+      : r;
+  });
+}
+
 export async function listNotifications(userId: string, take = 40, skip = 0) {
-  return db.notification.findMany({
+  const rows = await db.notification.findMany({
     where: { userId },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     skip,
     take,
     select: { id: true, type: true, title: true, body: true, href: true, readAt: true, createdAt: true, data: true },
   });
+  return redactSealed(userId, rows);
 }
 
 /** Notifications that should pop as toasts (achievements, level-ups, verdicts) and haven't yet. */
@@ -282,5 +306,5 @@ export async function pendingToasts(userId: string) {
   if (newest.length === 3) {
     await db.notification.updateMany({ where: { ...where, createdAt: { ...where.createdAt, lt: newest[2].createdAt } }, data: { toastedAt: clock.now() } });
   }
-  return newest.reverse().map((t) => ({ id: t.id, type: t.type, title: t.title, body: t.body, href: t.href, data: t.data }));
+  return (await redactSealed(userId, newest.reverse())).map((t) => ({ id: t.id, type: t.type, title: t.title, body: t.body, href: t.href, data: t.data }));
 }

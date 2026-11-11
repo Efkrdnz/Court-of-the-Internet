@@ -72,7 +72,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             <h1 className={`mt-2 pb-[0.2em] font-display font-black leading-snug [--fit-max:2.25rem] [--fit-min:0.75rem] sm:[--fit-max:3rem] ${FIT_FONT}`} style={fitStyle(user.displayName)}>
               <LongWords text={user.displayName} />
             </h1>
-            <p className="opacity-70">@{user.username} · sworn in on {formatDate(user.createdAt)}</p>
+            <p className="opacity-70"><LongWords text={`@${user.username}`} /> · sworn in on {formatDate(user.createdAt)}</p>
             {user.bio ? <p className="mt-3 max-w-xl text-lg italic opacity-90"><LongWords text={`“${user.bio}”`} /></p> : null}
             <div className="mx-auto mt-4 max-w-md md:mx-0">
               <div className="flex justify-between text-sm font-bold">

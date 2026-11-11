@@ -142,7 +142,7 @@ export async function registerUser(input: {
   // Staff titles anywhere in a player's name (officers are created with theirs).
   if ((input.role ?? "PLAYER") === "PLAYER") {
     if (hasCourtTitle(input.displayName)) throw new CourtError("VALIDATION", COURT_TITLE_MESSAGE, "displayName");
-    if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username uses an official title of the court. Pick your own.", "username");
+    if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username is reserved: it reads as a court title, the site itself or a system account. Pick your own.", "username");
   }
   const passwordHash = await hashPassword(input.password);
   try {

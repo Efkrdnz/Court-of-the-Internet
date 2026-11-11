@@ -869,6 +869,22 @@ test("§12 navigation: an expired claim's editor link explains itself (audit 62 
   await page.context().close();
 });
 
+test("§12 mobile: an officer can log out from a phone held sideways (audit 64 D2)", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 568, height: 320 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.locator('form:has(input[name="username"][value="judge_wigsworth"]) button').click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  await page.getByRole("button", { name: /account menu/i }).click();
+  const logout = page.getByRole("menuitem", { name: /log out/i });
+  await logout.scrollIntoViewIfNeeded();
+  const box = await logout.boundingBox();
+  expect(box && box.y >= 0 && box.y + box.height <= 320, `log out at ${JSON.stringify(box)} in a 320px-tall screen`).toBe(true);
+  await logout.click();
+  await expect(page.getByRole("button", { name: /account menu/i })).toHaveCount(0);
+  await context.close();
+});
+
 test("§12 forms: a confession draft survives a reload (audit 33 D5)", async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -977,5 +993,5 @@ test("§12 forms: signup reports every server-side problem at once (audit 54 D5)
   await page.getByRole("checkbox").first().check();
   await page.getByRole("button", { name: /Swear me in/ }).click();
   await expect(page.getByText("That username is already taken.").first()).toBeVisible();
-  await expect(page.getByText(/official title of the court/).first()).toBeVisible();
+  await expect(page.getByText(/reads as a court title/).first()).toBeVisible();
 });

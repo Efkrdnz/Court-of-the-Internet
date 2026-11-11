@@ -69,11 +69,11 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 
 ## GOAL.md §12 verification (final state), line by line
 
-GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits of the running production build (fresh agents told to ignore this repo's docs and tests).
+GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (62, 63, 64) of the running production build (fresh agents told to ignore this repo's docs and tests).
 
 Last full run: see the latest "Verified on commit …" line in the audit sections below (`scripts/verify-phases.sh` ×10 phases, `tsc`, ESLint, `next build`, all Vitest, all Playwright on desktop + Pixel 7, `npm run audit:stats`, production route check).
 
-| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 61 · 62 · 63 |
+| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 62 · 63 · 64 |
 | --- | --- | --- |
 | "The application starts successfully." | e2e `§12 the application starts successfully (production server)`; phase 10 `next start` route check (200 / 307 / 308 / 400 / 404) | PASS · PASS · PASS |
 | "The complete confession → defense → prosecution → jury → verdict → archive lifecycle works." | e2e `lifecycle › a full trial: confess → defend → prosecute → jury → verdict → archive` (desktop and Pixel 7, 5 browser contexts); integration `runs confession → defense → prosecution → jury → verdict → archive`, plus not-guilty, mistrial, below-quorum extension and dismissal cases | PASS · PASS · PASS |
@@ -83,15 +83,15 @@ Last full run: see the latest "Verified on commit …" line in the audit section
 | "Statistics are calculated correctly." | e2e `§12 statistics are calculated correctly (profile = database = full recomputation)`, `§12 stats: jury agreement uses decided cases only`; `npm run audit:stats` (every player vs. a full recomputation from history); integration `does not double-award when many closers race` | PASS · PASS · PASS |
 | "Profiles and leaderboards work." | e2e `leaderboards ›` (4 boards: thresholds, Wilson order, agreement with profiles); `tests/integration/leaderboards.test.ts` | PASS · PASS · PASS |
 | "Archives display real persisted data." | e2e `§12 archives display real persisted data` (counts, conviction rate, newest card and search vs. the DB); integration archive-search tests | PASS · PASS · PASS |
-| "Navigation is functional." | e2e `§12 navigation is functional (every header link, signed in)`, `mobile navigation menu opens and navigates`, the Escape/Back/resize menu tests, unknown-id 404s, Back-after-filing, the expired-editor explanation, post-login redirect safety | PASS · PASS · PASS |
-| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (261 everyday sentences accepted, 309 evasions refused) and validation tests | CONCERN (filter gaps, fixed) · PASS · PASS |
+| "Navigation is functional." | e2e `§12 navigation is functional (every header link, signed in)`, `mobile navigation menu opens and navigates`, the Escape/Back/resize menu tests, unknown-id 404s, Back-after-filing, the expired-editor explanation, post-login redirect safety | PASS · PASS · CONCERN (landscape log out, fixed) |
+| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (261 everyday sentences accepted, 309 evasions refused) and validation tests | PASS · PASS · PASS |
 | "Visual assets render correctly." | e2e `§12 visual assets render correctly` and `(rasterised pixels, all art)`: every illustration drawn to a canvas has visible multi-coloured pixels; fonts loaded; OG PNGs valid | PASS · PASS · PASS |
 | "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
-| "Mobile layouts are usable." | e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · PASS · CONCERN (notification text, fixed) |
+| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · CONCERN (notification text, fixed) · CONCERN (long words in context and usernames, fixed) |
 | "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
 | "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 86+ Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
 | "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
-| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (inaccurate filter claim, fixed) · PASS · CONCERN (wrong "mistrial" wording, fixed) |
+| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | PASS · CONCERN (wrong "mistrial" wording, fixed) · PASS |
 
 ## Verification history (honest account)
 
@@ -1193,6 +1193,19 @@ Verified on commit 6f449c3: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D4 | A crafted reaction type said "Please fix the highlighted fields" with nothing to highlight | "That isn't a reaction the court recognises." | — |
 
 Verified on commit f68b0d8: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1048/1048, Playwright 86/86 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
+## Sixty-fourth independent audit (fresh agent, build of commit bb28be6)
+
+**Result: 15 PASS, 2 CONCERN (9, 13: D2–D4 below), 0 FAIL; the game logic held against every race and state-machine attack tried.** 14 concurrent claimers gave 1 winner; 10 concurrent mixed votes gave 1; SQL matched UserStats for all 29 players and hand-computed profile and leaderboard percentages for 5; seal-vs-filing at 4 timings, report/dismiss/strike/reaction/vote races and 3 bans racing an adjourn kept counters equal to the rows; no anonymous-confessor or hidden-tally leak.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | After a case was sealed, its title stayed in other players' notification inboxes (and toasts), linking to it | notices about a sealed case show "A case you were part of was sealed" with no link to everyone but the accused (who wrote it) | integration |
+| D2 | Officers couldn't reach "log out" on a phone held sideways (568×320): the account menu ran off the screen and couldn't scroll | the menu scrolls within the screen | e2e (568×320, admin logs out) |
+| D3 | Long words in a confession's "Additional context" broke mid-word without a hyphen | same long-word handling as the confession body | — |
+| D4 | A 20-character @username broke mid-word on the profile and the console's user heading at 320px | same long-word handling | — |
+| D5 | "Reuse Deleted" was refused as "an official title of the court" (it's refused because "Deleted" reads as a system account) | the message names all three reasons: a court title, the site itself or a system account | e2e message updated |
+| D6 | A one-word 32-W name or title is drawn small at 1440px; some title links are 33px tall | accepted: only pathological all-W words shrink that far (the size estimate counts W as the widest letter), and title links sit inside full-size card targets | — |
 
 ## Per-phase evidence
 

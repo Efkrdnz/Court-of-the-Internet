@@ -274,7 +274,7 @@ export function posesAsSite(name: string): boolean {
   return letters.includes("internet") && /[ck]o?u?r+t/.test(letters.replace("internet", " "));
 }
 
-export const COURT_TITLE_MESSAGE = "That's an official title of the court. Pick your own name.";
+export const COURT_TITLE_MESSAGE = "That name is reserved: it reads as a court title, the site itself or a system account (like \"Deleted User\"). Pick your own name.";
 
 export const usernameSchema = z
   .string()

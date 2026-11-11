@@ -50,7 +50,7 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
     // Usernames show on profiles, case chips and leaderboards too: no "judge_wigsworth_" or
     // "court_moderator" (audit 45 D1).
     await check("username", () => {
-      if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username uses an official title of the court. Pick your own.", "username");
+      if (hasCourtTitle(input.username)) throw new CourtError("VALIDATION", "That username is reserved: it reads as a court title, the site itself or a system account. Pick your own.", "username");
     });
     await check("username", () => assertNotStaffName(input.username.replace(/_/g, " "), undefined, "username"));
     await check("username", async () => {
