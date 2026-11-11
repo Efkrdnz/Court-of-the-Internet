@@ -157,7 +157,10 @@ export async function reactAction(
 ): Promise<ActionResult<{ active: boolean; counts: Record<string, number> }>> {
   try {
     const user = await requireActiveUser();
-    const input = reactionSchema.parse({ caseId, type });
+    // Buttons only ever send a known reaction; there's no field to highlight (audit 63 D4).
+    const parsed = reactionSchema.safeParse({ caseId, type });
+    if (!parsed.success) throw new CourtError("VALIDATION", "That isn't a reaction the court recognises.");
+    const input = parsed.data;
     await enforceRateLimit(`react:${user.id}`, 120, 600);
     const result = await toggleReaction(user.id, input.caseId, input.type);
     return { ok: true, data: result };

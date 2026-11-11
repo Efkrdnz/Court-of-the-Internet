@@ -11,6 +11,7 @@ import { getAchievement } from "@/lib/achievements";
 import { AchievementBadge } from "@/components/art/badges";
 import { TumbleweedDocket } from "@/components/art/scenes";
 import { IconBell, IconGavel, IconClock, IconTrophy, IconFlag, IconBriefcase, IconScales } from "@/components/art/props";
+import { LongWords } from "@/components/ui/LongWords";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -73,8 +74,8 @@ export default async function NotificationsPage({ searchParams }: { searchParams
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-parchment">{n.title}</p>
-                  <p className="text-sm text-parchment/75">{n.body}</p>
+                  <p className="font-bold text-parchment"><LongWords text={n.title} /></p>
+                  <p className="text-sm text-parchment/75"><LongWords text={n.body} /></p>
                   <p className="mt-1 text-xs text-parchment/50">{relativeTime(n.createdAt)}</p>
                 </div>
                 {!n.readAt ? (

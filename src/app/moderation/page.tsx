@@ -215,13 +215,13 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               confirmText="Reveal the anonymous confessor? This is written to the audit log, and you won't be able to claim or vote on this case."
             />
           ) : null}
-          <p className="rounded-lg bg-night/40 p-3 font-type text-sm text-parchment/85">{focusCase.confession}</p>
+          <p className="rounded-lg bg-night/40 p-3 font-type text-sm text-parchment/85"><LongWords text={focusCase.confession} /></p>
           {focusCase.arguments.map((a) => (
             <div key={a.role} className="rounded-lg bg-night/40 p-3">
               <p className="text-xs font-bold uppercase tracking-widest text-gold-light">
                 {a.role === "DEFENSE" ? "Defense" : "Prosecution"} {a.stricken ? "(stricken)" : ""}
               </p>
-              <p className="font-type text-sm text-parchment/85">{a.body}</p>
+              <p className="font-type text-sm text-parchment/85"><LongWords text={a.body} /></p>
               <div className={recused ? "hidden" : "mt-2"}>
                 <ModForm
                   op={`${a.stricken ? "unstrike" : "strike"}-${a.role === "DEFENSE" ? "defense" : "prosecution"}`}
@@ -312,7 +312,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                     Review
                   </Link>
                 </div>
-                <p className="mt-2 line-clamp-2 font-type text-sm text-parchment/80">{c.confession}</p>
+                <p className="mt-2 line-clamp-2 font-type text-sm text-parchment/80"><LongWords text={c.confession} /></p>
                 <ul className="mt-3 space-y-1 text-sm">
                   {c.reports.map((r, i) => (
                     <li key={i} className="text-parchment/75">
@@ -320,7 +320,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                       {/* On an anonymous case the confessor's own report would name them to every officer, with
                           no logged Reveal (audit 61 D2): it's shown without a name. */}
                       {c.anonymous && r.reporterId === c.accusedId ? "the anonymous accused" : `@${r.reporter.username}`} · {relativeTime(r.createdAt)}
-                      {r.details ? <span className="italic">: “{r.details}”</span> : null}
+                      {r.details ? <span className="italic">: <LongWords text={`“${r.details}”`} /></span> : null}
                     </li>
                   ))}
                 </ul>

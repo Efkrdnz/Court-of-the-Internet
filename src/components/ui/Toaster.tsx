@@ -8,6 +8,7 @@ import { markToastedAction } from "@/app/actions/notifications";
 import { AchievementBadge } from "@/components/art/badges";
 import { getAchievement } from "@/lib/achievements";
 import { Confetti } from "./Confetti";
+import { LongWords } from "@/components/ui/LongWords";
 
 export interface ToastItem {
   id: string;
@@ -81,9 +82,9 @@ export function Toaster({ initial }: { initial: ToastItem[] }) {
                 <p className="eyebrow !text-burgundy">
                   {current.type === "ACHIEVEMENT" ? "Achievement unlocked" : current.type === "LEVEL_UP" ? "Promotion" : "Verdict"}
                 </p>
-                <p className="font-display text-base font-black leading-tight sm:text-lg">{achievement?.name ?? current.title}</p>
+                <p className="font-display text-base font-black leading-tight sm:text-lg"><LongWords text={achievement?.name ?? current.title} /></p>
                 {/* Phones keep the card short (it sits over the top of the page): two lines of body at most. */}
-                <p className="muted line-clamp-2 text-sm sm:line-clamp-none">{current.body}</p>
+                <p className="muted line-clamp-2 text-sm sm:line-clamp-none"><LongWords text={current.body} /></p>
                 <div className="flex flex-wrap gap-x-4">
                   {current.href ? (
                     <Link href={current.href} onClick={dismiss} className="inline-flex min-h-9 min-w-11 items-center text-sm font-bold text-burgundy underline underline-offset-2">

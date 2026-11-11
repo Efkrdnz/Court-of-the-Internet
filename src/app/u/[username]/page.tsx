@@ -73,7 +73,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               <LongWords text={user.displayName} />
             </h1>
             <p className="opacity-70">@{user.username} · sworn in on {formatDate(user.createdAt)}</p>
-            {user.bio ? <p className="mt-3 max-w-xl text-lg italic opacity-90">“{user.bio}”</p> : null}
+            {user.bio ? <p className="mt-3 max-w-xl text-lg italic opacity-90"><LongWords text={`“${user.bio}”`} /></p> : null}
             <div className="mx-auto mt-4 max-w-md md:mx-0">
               <div className="flex justify-between text-sm font-bold">
                 <span>

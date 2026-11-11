@@ -67,30 +67,31 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 - [x] README (setup, scripts, testing, deployment, external services, limitations), MONETIZATION.md
 - [x] Final verification against GOAL.md §12: app starts, full lifecycle e2e, role restrictions, single votes, atomic claims, stats audit, profiles/leaderboards, persisted archives, navigation, validation, art + animations, mobile, clean tsc/lint/build, automated tests, README, documented limitations
 
-## GOAL.md §12 verification (final state)
+## GOAL.md §12 verification (final state), line by line
 
-Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run (commit 6f449c3): **86/86 Playwright** (58 desktop, 28 Pixel 7) and **1048/1048 Vitest** passing; `tsc`, ESLint and `next build` clean; all 10 phases PASS; stats audit matches history for 28 players; 0 error lines in the production log. Each item has also been checked by 62 independent audits of the running production build (fresh agents that ignore the repo's own docs and tests); the last one (62nd) passed all 17 items with no correctness, security or data-integrity defects.
+GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits of the running production build (fresh agents told to ignore this repo's docs and tests).
 
-| §12 requirement | Evidence |
-| --- | --- |
-| Application starts successfully | `next start` serves every route with correct codes (200 / 307 auth redirects / 308 canonical / 404); `§12 the application starts successfully` |
-| Full confession → defense → prosecution → jury → verdict → archive lifecycle | `e2e/lifecycle.spec.ts` (5 browser contexts, real UI) + `tests/integration/lifecycle.test.ts` |
-| Role restrictions enforced | UI: disabled claim buttons and "can't vote" notices in `lifecycle.spec.ts`; server: `role restrictions` integration tests |
-| Users cannot vote multiple times | `§12 users cannot vote multiple times` (stale second tab rejected, exactly one DB row) + concurrent double-vote integration test |
-| Claims cannot be stolen through concurrent requests | 12-way claim race + per-user race integration tests; mutation-checked |
-| Statistics calculated correctly | `npm run audit:stats` (every player vs. full recomputation) runs inside `§12 statistics…` after all e2e games; profile numbers equal DB; randomised-season integration test |
-| Profiles and leaderboards work | `e2e/leaderboards.spec.ts`, `tests/integration/leaderboards.test.ts`, profile checks in `section12` / `lifecycle` |
-| Archives display real persisted data | `§12 archives display real persisted data` (counts, conviction rate, newest card and search compared to the DB) |
-| Navigation is functional | `§12 navigation is functional` (every header link, user menu, footer, logo, case cards) + mobile nav test |
-| Forms have appropriate validation | Empty-submit errors and duplicate/PII/limit rules in `lifecycle.spec.ts` and integration tests |
-| Visual assets render correctly | `§12 visual assets render correctly (rasterised pixels, all art)`: every illustration drawn to a canvas must have visible, multi-coloured pixels (all characters, 12 category icons, 20 badges, 4 stamps, seals, crest, scenes); plus `§12 visual assets render correctly` (every labelled SVG has drawing content and is laid out, 4 self-hosted fonts loaded, OG PNGs valid, no console errors) |
-| Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
-| Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips); `§12 mobile: very long title words and names stay whole or break at a hyphen` checks every in-word line break at 320px and 360px (audit 60's only concern, fixed) |
-| No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 1048 Vitest (unit + integration against Postgres, including concurrency races) + 86 Playwright tests (58 desktop project, 28 Pixel 7 project) |
-| README explains setup, development, deployment | `README.md` |
-| External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
+Last full run: see the latest "Verified on commit …" line in the audit sections below (`scripts/verify-phases.sh` ×10 phases, `tsc`, ESLint, `next build`, all Vitest, all Playwright on desktop + Pixel 7, `npm run audit:stats`, production route check).
+
+| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 61 · 62 · 63 |
+| --- | --- | --- |
+| "The application starts successfully." | e2e `§12 the application starts successfully (production server)`; phase 10 `next start` route check (200 / 307 / 308 / 400 / 404) | PASS · PASS · PASS |
+| "The complete confession → defense → prosecution → jury → verdict → archive lifecycle works." | e2e `lifecycle › a full trial: confess → defend → prosecute → jury → verdict → archive` (desktop and Pixel 7, 5 browser contexts); integration `runs confession → defense → prosecution → jury → verdict → archive`, plus not-guilty, mistrial, below-quorum extension and dismissal cases | PASS · PASS · PASS |
+| "Role restrictions are enforced." | integration `role restrictions › prevents the accused from defending or prosecuting their own case` (also: the attorney can't prosecute), `enforces the stage order`, `stops participants from voting…`, `blocks banned players`; officer recusal tests in `social-moderation.test.ts` | PASS · PASS · PASS |
+| "Users cannot vote multiple times." | e2e `§12 users cannot vote multiple times (stale second tab is rejected)`; integration `stops participants from voting and enforces one vote per account` (concurrent double vote: exactly 1 row) | PASS · PASS · PASS |
+| "Case claims cannot be stolen through concurrent requests." | integration `lets exactly one of many simultaneous claimers win`, `limits each player to one active claim per role, even when racing`, `sweeps expired claims back to the queue, honouring the grace period`, `a ban racing the player's own in-flight votes and claims always wins` | PASS · PASS · PASS |
+| "Statistics are calculated correctly." | e2e `§12 statistics are calculated correctly (profile = database = full recomputation)`, `§12 stats: jury agreement uses decided cases only`; `npm run audit:stats` (every player vs. a full recomputation from history); integration `does not double-award when many closers race` | PASS · PASS · PASS |
+| "Profiles and leaderboards work." | e2e `leaderboards ›` (4 boards: thresholds, Wilson order, agreement with profiles); `tests/integration/leaderboards.test.ts` | PASS · PASS · PASS |
+| "Archives display real persisted data." | e2e `§12 archives display real persisted data` (counts, conviction rate, newest card and search vs. the DB); integration archive-search tests | PASS · PASS · PASS |
+| "Navigation is functional." | e2e `§12 navigation is functional (every header link, signed in)`, `mobile navigation menu opens and navigates`, the Escape/Back/resize menu tests, unknown-id 404s, Back-after-filing, the expired-editor explanation, post-login redirect safety | PASS · PASS · PASS |
+| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (261 everyday sentences accepted, 309 evasions refused) and validation tests | CONCERN (filter gaps, fixed) · PASS · PASS |
+| "Visual assets render correctly." | e2e `§12 visual assets render correctly` and `(rasterised pixels, all art)`: every illustration drawn to a canvas has visible multi-coloured pixels; fonts loaded; OG PNGs valid | PASS · PASS · PASS |
+| "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
+| "Mobile layouts are usable." | e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · PASS · CONCERN (notification text, fixed) |
+| "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
+| "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 86+ Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
+| "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
+| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (inaccurate filter claim, fixed) · PASS · CONCERN (wrong "mistrial" wording, fixed) |
 
 ## Verification history (honest account)
 
@@ -1179,6 +1180,17 @@ Verified on commit 6b7e505: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D4 | A malformed stale-console guard on Adjourn (crafted, staff-only) was ignored | refused | — |
 
 Verified on commit 6f449c3: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1048/1048, Playwright 86/86 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
+## Sixty-third independent audit (fresh agent, build of commit 6004719)
+
+**Result: 15 PASS, 2 CONCERN (13, 17: D2 and D1 below), 0 FAIL.** 10 concurrent claimers gave 1 winner (including races against a holder inside and past the grace period); 3 users × 15 parallel votes gave exactly 1 each; SQL recomputation (W/L, win %, majority %, weekly votes, streaks, XP, a reputation replay) matched six players' profiles and leaderboards; 76 internal links had no 4xx/5xx; deep links survive login, including via the header link; anonymous confessors and hidden tallies don't leak.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | The restore / back-in-session notices said a below-quorum trial ends in "a mistrial"; it is dismissed (a mistrial is a tie) | "more time, or the case is dismissed" | — |
+| D2 | Long words in notification text broke mid-word without a hyphen on phones (headings were already fixed) | the same long-word handling for notification titles and bodies, toasts, confessions, arguments, bios and report details | e2e (notifications and a confession body at 320/360px) |
+| D3 | A defense attorney opening the prosecution editor was told their prosecution claim had "expired, was released or voided"; they never held one | the banner gives the real reason: already filed, a party to the case in another role, or not the claim holder | e2e |
+| D4 | A crafted reaction type said "Please fix the highlighted fields" with nothing to highlight | "That isn't a reaction the court recognises." | — |
 
 ## Per-phase evidence
 

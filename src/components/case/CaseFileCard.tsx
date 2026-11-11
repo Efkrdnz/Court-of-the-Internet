@@ -60,7 +60,7 @@ export function CaseFileCard({
           <VerdictStamp verdict={c.verdict} className="pointer-events-none -mr-2 -mt-1 hidden w-20 shrink-0 rotate-[-8deg] opacity-90 mix-blend-multiply min-[400px]:block" />
         ) : null}
       </div>
-      <div className="mt-3 line-clamp-3 font-type text-[0.95rem] leading-relaxed text-ink/85">“{c.confession}”</div>
+      <div className="mt-3 line-clamp-3 font-type text-[0.95rem] leading-relaxed text-ink/85"><LongWords text={`“${c.confession}”`} /></div>
       {excerpt}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-sepia/40 pt-3">
         <PersonChip person={c.accused} role="The accused" size="sm" className="relative z-10" />

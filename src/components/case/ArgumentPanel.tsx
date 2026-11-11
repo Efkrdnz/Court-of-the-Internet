@@ -4,6 +4,7 @@ import { WaxSeal } from "@/components/art/props";
 import type { PersonDTO } from "@/server/queries/cases";
 import { formatDateTime } from "@/lib/format";
 import { PersonChip } from "./PersonChip";
+import { LongWords } from "@/components/ui/LongWords";
 
 type Kind = "confession" | "defense" | "prosecution";
 
@@ -53,7 +54,7 @@ export function ArgumentPanel({
         </div>
         {body !== null ? (
           <>
-            <p className={clsx("typewritten text-ink", stricken && "line-through decoration-crimson/70")}>{body}</p>
+            <p className={clsx("typewritten text-ink", stricken && "line-through decoration-crimson/70")}><LongWords text={body} /></p>
             {context ? (
               <p className="mt-4 border-l-2 border-sepia/40 pl-3 text-sm italic text-ink/75">
                 <span className="font-bold not-italic">Additional context: </span>

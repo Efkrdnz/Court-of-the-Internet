@@ -180,9 +180,16 @@ export default async function CasePage({ params, searchParams }: Props) {
     typeof sp.filed === "string" && FILED_STAGE[sp.filed]?.includes(c.status) && viewerRole === FILED_BY[sp.filed] ? FILED_MESSAGES[sp.filed] : undefined;
 
   // Sent here from an editor this player no longer holds (audit 62 D2).
+  // Says the actual reason (audit 63 D3: a defense attorney opening the prosecution editor never held that claim).
+  const editorSide = sp.editor === "defense" || sp.editor === "prosecution" ? sp.editor : null;
+  const PARTY: Record<string, string> = { ACCUSED: "the accused", DEFENSE: "the defense attorney", PROSECUTION: "the prosecutor" };
   const editorClosed =
-    (sp.editor === "defense" || sp.editor === "prosecution") && !filedMessage && !c.viewer.holdsClaim
-      ? `The ${sp.editor} editor for this case is closed: you don't hold its ${sp.editor} claim any more (it expired, was released or voided, or the case has moved on).`
+    editorSide && !filedMessage && !c.viewer.holdsClaim
+      ? viewerRole && viewerRole === editorSide.toUpperCase()
+        ? `You've already filed the ${editorSide} for this case, so its editor is closed.`
+        : viewerRole
+          ? `You're ${PARTY[viewerRole]} on this case, so you can't take its ${editorSide} side.`
+          : `The ${editorSide} editor for this case is only open to the player holding its ${editorSide} claim, and you don't hold it (it may have expired or been released, or the case has moved on).`
       : undefined;
 
   return (

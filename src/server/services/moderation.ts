@@ -248,7 +248,7 @@ export async function restoreCase(moderatorId: string, caseId: string, sealSeen?
             title: `Case No. ${formatCaseNumber(exists.number)} is back in session`,
             body: timeLeftWhenPaused(exists) > 0
               ? "The seal was lifted and deliberation resumed with its remaining time."
-              : "The seal was lifted. Its time had already run out, so the court rules on it now: a verdict if enough jurors voted, otherwise the low-participation rule (more time, or a mistrial).",
+              : "The seal was lifted. Its time had already run out, so the court rules on it now: a verdict if enough jurors voted, otherwise the low-participation rule (more time, or the case is dismissed).",
             href: casePath(exists),
           });
         }
@@ -283,7 +283,7 @@ async function backInSession(tx: Tx, caseId: string) {
       body:
         t.deliberationEndsAt && t.deliberationEndsAt > clock.now()
           ? "The review is over and deliberation is running again with its remaining time."
-          : "The review is over. Its time had already run out, so the court rules on it now: a verdict if enough jurors voted, otherwise the low-participation rule (more time, or a mistrial).",
+          : "The review is over. Its time had already run out, so the court rules on it now: a verdict if enough jurors voted, otherwise the low-participation rule (more time, or the case is dismissed).",
       href: casePath(t),
     });
   }

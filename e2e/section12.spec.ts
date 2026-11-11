@@ -520,13 +520,44 @@ test("§12 mobile: buttons and case titles fit narrow phones without mid-word br
   }
 });
 
+/** Line breaks between two letters that don't fall at a soft hyphen (which shows "-"). */
+async function unmarkedBreaks(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const out: string[] = [];
+    const walker = document.createTreeWalker(document.querySelector("main") ?? document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const t = n.textContent ?? "";
+      const el = n.parentElement;
+      if (!el || t.trim().length < 2 || el.closest("svg,.sr-only,[aria-hidden=true],textarea,input")) continue;
+      const r = document.createRange();
+      let prevTop: number | null = null;
+      for (let i = 0; i < t.length; i++) {
+        if (/\s|\u00AD/.test(t[i])) {
+          prevTop = null;
+          continue;
+        }
+        r.setStart(n, i);
+        r.setEnd(n, i + 1);
+        const rect = r.getClientRects()[0];
+        if (!rect || rect.width === 0) continue;
+        const marked = t.slice(Math.max(0, i - 2), i).includes("\u00AD");
+        if (prevTop !== null && rect.top > prevTop + 4 && /[\p{L}\p{N}]/u.test(t[i - 1]) && /[\p{L}\p{N}]/u.test(t[i]) && !marked) {
+          out.push(`${t.slice(Math.max(0, i - 10), i)}|${t.slice(i, i + 10)}`);
+        }
+        prevTop = rect.top;
+      }
+    }
+    return out;
+  });
+}
+
 test("§12 mobile: very long title words and names stay whole or break at a hyphen (audit 60 #13)", async ({ browser }) => {
   // Two old closed cases get pathological titles for the duration of the test.
   const [a, b] = await prisma.case.findMany({
     where: { status: "CLOSED", moderationState: "VISIBLE", anonymous: false },
     orderBy: { number: "asc" },
     take: 2,
-    select: { id: true, number: true, slug: true, title: true },
+    select: { id: true, number: true, slug: true, title: true, confession: true },
   });
   const realWord = "Microwaved fish Supercalifragilisticexpialidociouss";
   const wideWord = `Fish ${"W".repeat(35)} again`;
@@ -539,34 +570,7 @@ test("§12 mobile: very long title words and names stay whole or break at a hyph
       for (const path of [`/cases/${a.number}-${a.slug}`, `/cases/${b.number}-${b.slug}`, "/archives?q=fish"]) {
         await page.goto(path);
         await expectNoHorizontalScroll(page);
-        // Every line break between two letters falls at a soft hyphen (shown as "-").
-        const unmarked = await page.evaluate(() => {
-          const out: string[] = [];
-          const walker = document.createTreeWalker(document.querySelector("main") ?? document.body, NodeFilter.SHOW_TEXT);
-          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-            const t = n.textContent ?? "";
-            const el = n.parentElement;
-            if (!el || t.trim().length < 2 || el.closest("svg,.sr-only,[aria-hidden=true],textarea,input")) continue;
-            const r = document.createRange();
-            let prevTop: number | null = null;
-            for (let i = 0; i < t.length; i++) {
-              if (/\s|\u00AD/.test(t[i])) {
-                prevTop = null;
-                continue;
-              }
-              r.setStart(n, i);
-              r.setEnd(n, i + 1);
-              const rect = r.getClientRects()[0];
-              if (!rect || rect.width === 0) continue;
-              const marked = t.slice(Math.max(0, i - 2), i).includes("\u00AD");
-              if (prevTop !== null && rect.top > prevTop + 4 && /[\p{L}\p{N}]/u.test(t[i - 1]) && /[\p{L}\p{N}]/u.test(t[i]) && !marked) {
-                out.push(`${t.slice(Math.max(0, i - 10), i)}|${t.slice(i, i + 10)}`);
-              }
-              prevTop = rect.top;
-            }
-          }
-          return out;
-        });
+        const unmarked = await unmarkedBreaks(page);
         expect(unmarked, `words broken without a hyphen on ${path} at ${width}px`).toEqual([]);
       }
       // A real 35-letter word fits the case heading whole: its letters share one line.
@@ -581,9 +585,32 @@ test("§12 mobile: very long title words and names stay whole or break at a hyph
       expect(tops.length, `"Supercalifragilisticexpialidociouss" on one line at ${width}px`).toBe(1);
       await context.close();
     }
+    // Free text too: notification titles and bodies, and a confession body (audit 63 D2).
+    const whiskers = await prisma.user.findUniqueOrThrow({ where: { username: "juror_whiskers" }, select: { id: true } });
+    const note = await prisma.notification.create({
+      data: { userId: whiskers.id, type: "VERDICT", title: `Verdict: ${"W".repeat(35)} ${"M".repeat(35)}`, body: `The jury ruled on “${"W".repeat(35)}”: GUILTY.` },
+    });
+    await prisma.case.update({ where: { id: b.id }, data: { confession: `I hid the ${"W".repeat(35)} remote and blamed the cat for it again.` } });
+    try {
+      for (const width of [320, 360]) {
+        const context = await browser.newContext({ viewport: { width, height: 740 }, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
+        const page = await context.newPage();
+        await page.goto("/login");
+        await page.locator('form:has(input[name="username"][value="juror_whiskers"]) button').click();
+        await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+        for (const path of ["/notifications", `/cases/${b.number}-${b.slug}`]) {
+          await page.goto(path);
+          await expectNoHorizontalScroll(page);
+          expect(await unmarkedBreaks(page), `words broken without a hyphen on ${path} at ${width}px`).toEqual([]);
+        }
+        await context.close();
+      }
+    } finally {
+      await prisma.notification.delete({ where: { id: note.id } });
+    }
   } finally {
     await prisma.case.update({ where: { id: a.id }, data: { title: a.title } });
-    await prisma.case.update({ where: { id: b.id }, data: { title: b.title } });
+    await prisma.case.update({ where: { id: b.id }, data: { title: b.title, confession: b.confession } });
   }
 });
 
@@ -838,7 +865,7 @@ test("§12 navigation: an expired claim's editor link explains itself (audit 62 
   const page = await demoPage(browser, "counselor_coo");
   await page.goto(`/defend/${c.id}`);
   await page.waitForURL(/\/cases\/.*\?editor=defense/);
-  await expect(page.getByRole("alert").or(page.getByRole("status")).filter({ hasText: "defense editor for this case is closed" })).toBeVisible();
+  await expect(page.getByRole("alert").or(page.getByRole("status")).filter({ hasText: "defense editor for this case is only open to the player holding its defense claim" })).toBeVisible();
   await page.context().close();
 });
 
