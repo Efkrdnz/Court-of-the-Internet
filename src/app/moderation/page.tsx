@@ -201,7 +201,12 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               </p>
               {focusCase.deliberationPausedAt ? (
                 <p className="mt-1 text-sm font-semibold text-gold-light">
-                  Deliberation clock paused since {formatDateTime(focusCase.deliberationPausedAt)}. It resumes with the remaining time when the case is restored or its reports are dismissed.
+                  {/* Says what will actually happen (audit 66 D2): a seal is lifted only by restoring, and a
+                      trial paused at or after its deadline has no time left to resume with. */}
+                  Deliberation clock paused since {formatDateTime(focusCase.deliberationPausedAt)}.{" "}
+                  {focusCase.deliberationEndsAt && focusCase.deliberationEndsAt > focusCase.deliberationPausedAt
+                    ? `It resumes with the remaining time when the case is ${focusCase.moderationState === "REMOVED" ? "restored" : "back on view (its reports are dismissed)"}.`
+                    : `Its time had already run out, so the court rules on it as soon as it is ${focusCase.moderationState === "REMOVED" ? "restored" : "back on view"} (a verdict, or the low-participation rule if it's below quorum).`}
                 </p>
               ) : null}
             </div>

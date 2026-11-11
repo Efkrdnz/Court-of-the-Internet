@@ -200,8 +200,10 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                 key={c.id}
                 c={c}
                 footer={
+                  // The profile owner's role, not the viewer's (audit 66 D1); an anonymous confession is
+                  // only in the owner's own history.
                   <p className="text-xs font-bold uppercase tracking-widest text-sepia">
-                    Role: {c.viewer.role === "ACCUSED" || (!c.anonymous && c.accused.username === user.username) ? "Accused" : c.attorney?.username === user.username ? "Defense" : "Prosecution"}
+                    Role: {(profile.isSelf && c.viewer.role === "ACCUSED") || (!c.anonymous && c.accused.username === user.username) ? "Accused" : c.attorney?.username === user.username ? "Defense" : "Prosecution"}
                   </p>
                 }
               />

@@ -205,7 +205,7 @@ export default async function CasePage({ params, searchParams }: Props) {
       {/* Only officers see a sealed case's page (audit 65 #1): say so, and offer nothing it would refuse. */}
       {sealed ? (
         <FormAlert kind="info" className="mb-6">
-          This case is sealed: only officers can see it, and its trial clock is stopped. Restore it from the{" "}
+          This case is sealed: only officers can see it{c.status === "DELIBERATION" ? ", and its trial clock is stopped" : ""}. Restore it from the{" "}
           <Link href={`/moderation?case=${c.number}`} className="underline">moderation console</Link> to put it back on the record.
         </FormAlert>
       ) : null}
