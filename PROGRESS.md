@@ -89,7 +89,7 @@ Last full run: see the latest "Verified on commit …" line in the audit section
 | "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
 | "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | CONCERN (notification text, fixed) · CONCERN (long words in context and usernames, fixed) · PASS |
 | "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
-| "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 86+ Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
+| "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 88 Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
 | "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
 | "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (wrong "mistrial" wording, fixed) · PASS · CONCERN (password policy undocumented, car models, fixed) |
 
@@ -1220,6 +1220,8 @@ Verified on commit b2bbd5c: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | 3 | Trivial passwords ("password", "12345678") were accepted | about 70 of the most common passwords, repeated characters or chunks and straight runs are refused; README documents that it isn't a breach-list check | unit |
 | 4 | "I keyed my neighbour's shiny new Prius" was accepted (models weren't recognised, only makes) | common models added ("Prius", "Civic", "Model 3"…), near-misses kept ("keyed in my neighbour's wifi password", a "Prius-shaped keyring") | corpus: 264 everyday sentences, 312 evasions |
 | 5 | A second simultaneous Restore said "That case isn't sealed"; `/prosecute/<id>` before the defense was filed blamed an expired claim | "isn't sealed any more (another officer may have just restored it)"; "the prosecution can't start yet: this case is still waiting for its defense" | — |
+
+Verified on commit 35141eb: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1056/1056, Playwright 88/88 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
 
 ## Per-phase evidence
 
