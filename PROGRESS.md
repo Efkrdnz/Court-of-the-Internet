@@ -89,7 +89,7 @@ Last full run: see the latest "Verified on commit …" line in the audit section
 | "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
 | "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · CONCERN (320px leaderboard names, fixed) · CONCERN (account menu at 320px, fixed) |
 | "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
-| "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 88 Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
+| "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 89 Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
 | "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
 | "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | PASS · CONCERN (README hyphen claim, made true) · CONCERN (README long-word claim, corrected) |
 
@@ -1292,6 +1292,8 @@ Verified on commit eb4fa2f: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D7 | An editor link for a case nobody had claimed blamed an expired or released claim | "Nobody holds this case's … claim right now (if you held it, it expired or was released): take the case below" | e2e message updated |
 
 First full run on commit 1608b20: the full-trial e2e test (desktop and Pixel 7) failed. Its signup used "objection-123", which the new weak-password rule correctly refuses (the site's theme word plus a decoration). The test now signs up with "objection-overruled-7"; the lifecycle suite passes 6/6 on both projects.
+
+Verified on commit 57d288b: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1071/1071, Playwright 89/89 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
 
 ## Per-phase evidence
 
