@@ -1263,6 +1263,8 @@ Verified on commit 9818a22: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | 5 | The under-review "your report was received" note showed for an already-dismissed report; officers' visits to a sealed case counted as views | only an open report shows the note; sealed cases don't count views | — |
 | 6 | No Strict-Transport-Security header | sent in production (browsers honour it only over https); README notes it | — |
 
+Verified on commit 94c59bb: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1070/1070, Playwright 88/88 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
