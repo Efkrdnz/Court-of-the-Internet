@@ -1275,6 +1275,8 @@ Verified on commit 94c59bb: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | C1 | Spoofable per-IP limits without a proxy | documented (README) | — |
 | C2 | `/defend/<id>` after the defense was filed (or `/prosecute/<id>` in deliberation) gave the generic "only open to the claim holder" notice | says the side has already been filed | — |
 
+Verified on commit eb4fa2f: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1070/1070, Playwright 88/88 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
