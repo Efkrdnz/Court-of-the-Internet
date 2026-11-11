@@ -8,6 +8,7 @@ import type { CaseCardDTO } from "@/server/queries/cases";
 import { PersonChip } from "./PersonChip";
 import { StatusPill } from "./StatusPill";
 import { FIT_FONT, fitStyle } from "@/lib/fit-text";
+import { LongWords } from "@/components/ui/LongWords";
 
 /**
  * A manila case folder. Used in every listing; the footer slot carries
@@ -47,7 +48,7 @@ export function CaseFileCard({
           >
             {linkTitle ? (
               <Link href={href} className="after:absolute after:inset-0 after:content-[''] focus-visible:underline">
-                {c.title}
+                <LongWords text={c.title} />
               </Link>
             ) : (
               c.title

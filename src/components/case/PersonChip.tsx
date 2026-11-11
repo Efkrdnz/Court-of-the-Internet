@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { longestWordEm } from "@/lib/fit-text";
 import { Avatar } from "@/components/art/avatar";
 import type { PersonDTO } from "@/server/queries/cases";
+import { LongWords } from "@/components/ui/LongWords";
 
 export function AnonymousMugshot({ className, critter }: { className?: string; critter?: string }) {
   return (
@@ -65,7 +66,7 @@ export function PersonChip({
           )}
           title={person.displayName}
         >
-          {person.displayName}
+          <LongWords text={person.displayName} />
         </span>
         {person.username ? <span className={clsx("block truncate text-xs", dark ? "text-parchment/50" : "text-sepia")}>@{person.username}</span> : null}
       </span>

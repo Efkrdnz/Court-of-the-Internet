@@ -11,6 +11,7 @@ import { Avatar } from "@/components/art/avatar";
 import { AchievementBadge } from "@/components/art/badges";
 import { BailiffBulldog } from "@/components/art/characters";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
+import { LongWords } from "@/components/ui/LongWords";
 
 export const metadata: Metadata = { title: "Leaderboards", description: "The most feared attorneys, prosecutors, defendants and jurors of the Court of the Internet." };
 
@@ -73,7 +74,7 @@ function Board<T extends Person>({
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <span className="min-w-0 font-bold leading-tight text-parchment">
-                        {r.displayName} <span className="hidden text-xs font-normal text-parchment/45 min-[400px]:inline">@{r.username}</span>
+                        <LongWords text={r.displayName} /> <span className="hidden text-xs font-normal text-parchment/45 min-[400px]:inline">@{r.username}</span>
                       </span>
                       {badge ? <AchievementBadge icon={badge.icon} tier={badge.tier} className="h-5 w-4 shrink-0" title={badge.name} /> : null}
                     </span>

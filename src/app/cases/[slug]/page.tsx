@@ -24,6 +24,7 @@ import { ClaimCountdown } from "@/components/ui/Countdown";
 import { CategoryIcon, OrnateCorner } from "@/components/art/props";
 import { SealedCase, SleepingBailiff } from "@/components/art/scenes";
 import { BailiffBulldog } from "@/components/art/characters";
+import { LongWords } from "@/components/ui/LongWords";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -198,16 +199,16 @@ export default async function CasePage({ params, searchParams }: Props) {
         {/* Both shrink to fit their longest word at the column's width, rather than breaking it mid-word. */}
         <div className="@container">
           <p className={`mt-1 font-display italic text-sepia [--fit-max:1.125rem] [--fit-min:0.75rem] ${FIT_FONT}`} style={fitStyle(`v. ${accusedName}`)}>
-            The People v. {accusedName}
+            The People v. <LongWords text={accusedName} />
           </p>
           {/* Its own container at the heading's width (max-w-3xl), so the font is fitted to the
               768px the title really has, not the wider card (audit 53 #1). */}
           <div className="@container mx-auto mt-3 max-w-3xl">
             <h1
-              className={`text-balance font-display font-black leading-tight text-ink [--fit-max:1.5rem] min-[400px]:[--fit-max:1.875rem] sm:[--fit-max:3rem] ${FIT_FONT}`}
+              className={`text-balance font-display font-black leading-tight text-ink [--fit-max:1.5rem] [--fit-min:0.75rem] min-[400px]:[--fit-max:1.875rem] sm:[--fit-max:3rem] ${FIT_FONT}`}
               style={fitStyle(c.title)}
             >
-              {c.title}
+              <LongWords text={c.title} />
             </h1>
           </div>
         </div>

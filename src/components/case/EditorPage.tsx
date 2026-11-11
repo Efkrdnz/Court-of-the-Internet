@@ -9,6 +9,7 @@ import { getCategory } from "@/lib/categories";
 import { ArgumentPanel } from "./ArgumentPanel";
 import { ArgumentEditor } from "./ArgumentEditor";
 import { CategoryIcon } from "@/components/art/props";
+import { LongWords } from "@/components/ui/LongWords";
 
 export async function EditorPage({ role, caseId }: { role: "DEFENSE" | "PROSECUTION"; caseId: string }) {
   const base = role === "DEFENSE" ? "/defend" : "/prosecute";
@@ -35,7 +36,7 @@ export async function EditorPage({ role, caseId }: { role: "DEFENSE" | "PROSECUT
           <p className="eyebrow">
             Case No. {formatCaseNumber(c.number)} · {cat.label}
           </p>
-          <h1 className="font-display text-2xl font-black leading-tight text-parchment min-[400px]:text-3xl sm:text-4xl">{c.title}</h1>
+          <h1 className="font-display text-2xl font-black leading-tight text-parchment min-[400px]:text-3xl sm:text-4xl"><LongWords text={c.title} /></h1>
         </div>
       </header>
       <div className="mt-8 space-y-6">

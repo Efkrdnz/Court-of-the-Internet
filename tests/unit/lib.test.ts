@@ -3,7 +3,7 @@ import { screenFields, screenText, similarity } from "@/lib/content-filter";
 import { shareCardStatus } from "@/lib/share-card";
 import { levelForXp, levelProgress, wilsonLowerBound, xpForLevel } from "@/lib/progression";
 import { ogDrawable, ogText, ogTextOr } from "@/lib/og-text";
-import { casePath, charCount, cleanQuery, normalizeText, parseCaseParam, slugify, truncate } from "@/lib/text";
+import { casePath, charCount, cleanQuery, hyphenateLong, normalizeText, parseCaseParam, slugify, truncate } from "@/lib/text";
 import { anonymousAlias } from "@/lib/alias";
 import { bioClaimsAdmin, bioImpersonatesStaff, confessionSchema, hasAdminTitle, hasCourtTitle, headingFriendly, signupSchema, usernameSchema } from "@/lib/validation";
 import { randomAvatar } from "@/lib/avatar";
@@ -526,6 +526,14 @@ describe("scripts with stacked marks survive normalisation (audit 56 D1)", () =>
     expect(withQuery("/court", {})).toBe("/court");
     expect(withQuery("/court", { q: "x".repeat(600) })).toBe("/court");
     expect(safeNext(withQuery("/moderation", { case: "42", user: "a&b" }))).toBe("/moderation?case=42&user=a%26b");
+  });
+  it("hyphenateLong: soft hyphens only inside very long words, never near the ends", () => {
+    const shy = (t: string) => hyphenateLong(t).replace(/\u00AD/g, "·");
+    expect(shy("Microwaved fish Supercalifragilisticexpialidociouss")).toBe("Microwaved fish Superc·alifra·gilist·icexpi·alidoc·iouss");
+    expect(shy("ordinary title with short words")).toBe("ordinary title with short words");
+    expect(shy("W".repeat(35)).split("·").every((p) => p.length >= 3 && p.length <= 6)).toBe(true);
+    expect(hyphenateLong("鸡".repeat(40))).toBe("鸡".repeat(40));
+    expect(hyphenateLong("Supercalifragilisticexpialidocious").replace(/\u00AD/g, "")).toBe("Supercalifragilisticexpialidocious");
   });
   it.each(["anon_pigeon", "sneaky_otter", "sneakypigeon_a1b2"])("refuses the alias-like username %j (audit 56 D5)", (u) => {
     expect(usernameSchema.safeParse(u).success).toBe(false);

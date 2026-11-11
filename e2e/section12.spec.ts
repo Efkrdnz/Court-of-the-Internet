@@ -520,6 +520,73 @@ test("§12 mobile: buttons and case titles fit narrow phones without mid-word br
   }
 });
 
+test("§12 mobile: very long title words and names stay whole or break at a hyphen (audit 60 #13)", async ({ browser }) => {
+  // Two old closed cases get pathological titles for the duration of the test.
+  const [a, b] = await prisma.case.findMany({
+    where: { status: "CLOSED", moderationState: "VISIBLE", anonymous: false },
+    orderBy: { number: "asc" },
+    take: 2,
+    select: { id: true, number: true, slug: true, title: true },
+  });
+  const realWord = "Microwaved fish Supercalifragilisticexpialidociouss";
+  const wideWord = `Fish ${"W".repeat(35)} again`;
+  await prisma.case.update({ where: { id: a.id }, data: { title: realWord } });
+  await prisma.case.update({ where: { id: b.id }, data: { title: wideWord } });
+  try {
+    for (const width of [320, 360]) {
+      const context = await browser.newContext({ viewport: { width, height: 740 }, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
+      const page = await context.newPage();
+      for (const path of [`/cases/${a.number}-${a.slug}`, `/cases/${b.number}-${b.slug}`, "/archives?q=fish"]) {
+        await page.goto(path);
+        await expectNoHorizontalScroll(page);
+        // Every line break between two letters falls at a soft hyphen (shown as "-").
+        const unmarked = await page.evaluate(() => {
+          const out: string[] = [];
+          const walker = document.createTreeWalker(document.querySelector("main") ?? document.body, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            const t = n.textContent ?? "";
+            const el = n.parentElement;
+            if (!el || t.trim().length < 2 || el.closest("svg,.sr-only,[aria-hidden=true],textarea,input")) continue;
+            const r = document.createRange();
+            let prevTop: number | null = null;
+            for (let i = 0; i < t.length; i++) {
+              if (/\s|\u00AD/.test(t[i])) {
+                prevTop = null;
+                continue;
+              }
+              r.setStart(n, i);
+              r.setEnd(n, i + 1);
+              const rect = r.getClientRects()[0];
+              if (!rect || rect.width === 0) continue;
+              const marked = t.slice(Math.max(0, i - 2), i).includes("\u00AD");
+              if (prevTop !== null && rect.top > prevTop + 4 && /[\p{L}\p{N}]/u.test(t[i - 1]) && /[\p{L}\p{N}]/u.test(t[i]) && !marked) {
+                out.push(`${t.slice(Math.max(0, i - 10), i)}|${t.slice(i, i + 10)}`);
+              }
+              prevTop = rect.top;
+            }
+          }
+          return out;
+        });
+        expect(unmarked, `words broken without a hyphen on ${path} at ${width}px`).toEqual([]);
+      }
+      // A real 35-letter word fits the case heading whole: its letters share one line.
+      await page.goto(`/cases/${a.number}-${a.slug}`);
+      const tops = await page.getByRole("heading", { level: 1 }).evaluate((h) => {
+        const block = Array.from(h.querySelectorAll("span")).find((s) => s.textContent?.includes("Super"));
+        if (!block) return [];
+        const r = document.createRange();
+        r.selectNodeContents(block);
+        return [...new Set(Array.from(r.getClientRects(), (x) => Math.round(x.top)))];
+      });
+      expect(tops.length, `"Supercalifragilisticexpialidociouss" on one line at ${width}px`).toBe(1);
+      await context.close();
+    }
+  } finally {
+    await prisma.case.update({ where: { id: a.id }, data: { title: a.title } });
+    await prisma.case.update({ where: { id: b.id }, data: { title: b.title } });
+  }
+});
+
 test("§12 forms: a filed report shows a confirmation and can't be resubmitted (audit 5 #5)", async ({ browser }) => {
   const c = await prisma.case.findFirstOrThrow({
     where: { status: "CLOSED", moderationState: "VISIBLE", verdict: "GUILTY", reports: { none: {} }, accused: { username: { not: "clerk_pemberton" } } },

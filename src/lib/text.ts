@@ -77,6 +77,37 @@ export function truncate(s: string, max: number, ellipsis = ""): string {
   return out + ellipsis;
 }
 
+const SOFT_HYPHEN = "\u00AD";
+const WORDISH = /^[\p{L}\p{N}]/u;
+const BREAKS_ANYWAY = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Extended_Pictographic}]/u;
+
+/**
+ * Display only: soft hyphens inside words of `minLength`+ characters, every `step` letters (never
+ * within 3 of either end). Long words are shrunk to fit where they're headings; when one still
+ * can't fit (a narrow phone, a card), it then wraps at a soft hyphen and shows "-" at the break,
+ * like hyphenated print, instead of being cut at an arbitrary letter with no mark.
+ */
+export function hyphenateLong(text: string, minLength = 20, step = 6): string {
+  if (text.length < minLength) return text;
+  return text.replace(/\S+/gu, (word) => {
+    const g = graphemes ? Array.from(graphemes.segment(word), (x) => x.segment) : Array.from(word);
+    if (g.length < minLength) return word;
+    let out = "";
+    let run = 0;
+    for (let i = 0; i < g.length; i++) {
+      const wordish = WORDISH.test(g[i]) && !BREAKS_ANYWAY.test(g[i]);
+      if (wordish && run >= step && i >= 3 && g.length - i >= 3 && WORDISH.test(g[i - 1]) && !BREAKS_ANYWAY.test(g[i - 1])) {
+        out += SOFT_HYPHEN;
+        run = 0;
+      }
+      out += g[i];
+      // Hyphens, dashes, slashes and CJK/emoji are already break points.
+      run = /^[-/\u2010-\u2014]/u.test(g[i]) || BREAKS_ANYWAY.test(g[i]) ? 0 : run + 1;
+    }
+    return out;
+  });
+}
+
 export function slugify(input: string, maxLength = 60): string {
   const slug = input
     .normalize("NFKD")

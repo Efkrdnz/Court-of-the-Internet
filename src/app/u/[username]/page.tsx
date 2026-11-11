@@ -14,6 +14,7 @@ import { AchievementBadge } from "@/components/art/badges";
 import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { Laurel } from "@/components/art/props";
 import { FIT_FONT, fitStyle } from "@/lib/fit-text";
+import { LongWords } from "@/components/ui/LongWords";
 
 type Props = { params: Promise<{ username: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
@@ -69,7 +70,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               {user.banned ? <span className="pill bg-crimson text-ivory">Held in contempt</span> : null}
             </div>
             <h1 className={`mt-2 pb-[0.2em] font-display font-black leading-snug [--fit-max:2.25rem] [--fit-min:0.75rem] sm:[--fit-max:3rem] ${FIT_FONT}`} style={fitStyle(user.displayName)}>
-              {user.displayName}
+              <LongWords text={user.displayName} />
             </h1>
             <p className="opacity-70">@{user.username} · sworn in on {formatDate(user.createdAt)}</p>
             {user.bio ? <p className="mt-3 max-w-xl text-lg italic opacity-90">“{user.bio}”</p> : null}

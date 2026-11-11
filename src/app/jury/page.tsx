@@ -17,6 +17,7 @@ import { CatJury } from "@/components/art/characters";
 import { CategoryIcon } from "@/components/art/props";
 import { SleepingBailiff } from "@/components/art/scenes";
 import { FIT_FONT, fitStyle } from "@/lib/fit-text";
+import { LongWords } from "@/components/ui/LongWords";
 
 export const metadata: Metadata = {
   title: "Jury duty",
@@ -91,9 +92,9 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
               <p className="eyebrow">
                 Now judging · Case No. {formatCaseNumber(focusCase.number)} · {getCategory(focusCase.category).label}
               </p>
-              <h2 id="focus-heading" className={`font-display font-black leading-tight text-parchment [--fit-max:1.875rem] [--fit-min:0.875rem] ${FIT_FONT}`} style={fitStyle(focusCase.title)}>
+              <h2 id="focus-heading" className={`font-display font-black leading-tight text-parchment [--fit-max:1.875rem] [--fit-min:0.75rem] ${FIT_FONT}`} style={fitStyle(focusCase.title)}>
                 <Link href={casePath(focusCase)} className="hover:underline">
-                  {focusCase.title}
+                  <LongWords text={focusCase.title} />
                 </Link>
               </h2>
             </div>

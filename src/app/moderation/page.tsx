@@ -15,6 +15,7 @@ import { ModFlashProvider } from "@/components/forms/ModFlash";
 import { ModForm } from "@/components/forms/ModForm";
 import { JudgeOwl } from "@/components/art/characters";
 import { FormAlert } from "@/components/ui/FormAlert";
+import { LongWords } from "@/components/ui/LongWords";
 
 // Neutral title: non-staff get a 404 here, and the tab shouldn't reveal what the page is.
 export const metadata: Metadata = { title: "Officers only", robots: { index: false } };
@@ -187,7 +188,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               </p>
               <h2 id="focus-case" className="font-display text-2xl font-bold text-parchment">
                 <Link href={casePath(focusCase)} className="hover:underline">
-                  {focusCase.title}
+                  <LongWords text={focusCase.title} />
                 </Link>
               </h2>
               <p className="text-sm text-parchment/60">
@@ -251,7 +252,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         <section aria-labelledby="focus-user" className="velvet mt-6 space-y-4 p-6">
           <h2 id="focus-user" className="font-display text-2xl font-bold text-parchment">
             <Link href={`/u/${focusUser.username}`} className="hover:underline">
-              {focusUser.displayName}
+              <LongWords text={focusUser.displayName} />
             </Link>{" "}
             <span className="text-base text-parchment/60">
               @{focusUser.username} · {focusUser.deletedAt ? `deleted ${relativeTime(focusUser.deletedAt)}` : (ROLE_LABEL[focusUser.role] ?? focusUser.role)} · joined{" "}
@@ -304,7 +305,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                     <p className="eyebrow">
                       No. {formatCaseNumber(c.number)} · {MODERATION_STATE_LABEL[c.moderationState]} · {pluralize(c.openReports, "reporter")}
                     </p>
-                    <p className="font-display text-lg font-bold text-parchment">{c.title}</p>
+                    <p className="font-display text-lg font-bold text-parchment"><LongWords text={c.title} /></p>
                     <p className="text-sm text-parchment/60">{c.anonymous ? "by an anonymous confessor" : `by @${c.accused.username}`}</p>
                   </div>
                   <Link href={`/moderation?case=${c.number}`} className="btn btn-sm">

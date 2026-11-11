@@ -18,6 +18,7 @@ import { CaseFileCard } from "@/components/case/CaseFileCard";
 import { ClaimCountdown, Countdown } from "@/components/ui/Countdown";
 import { FormAlert } from "@/components/ui/FormAlert";
 import { FIT_FONT, fitStyle } from "@/lib/fit-text";
+import { LongWords } from "@/components/ui/LongWords";
 
 export const metadata: Metadata = { title: "Your courtroom" };
 
@@ -42,7 +43,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       {sp.welcome ? (
         <FormAlert kind="success" className="mb-6">
-          Welcome to the bar, {user.displayName}! You&apos;ve been sworn in. Start by serving on a jury, or confess something deliciously petty.
+          Welcome to the bar, <LongWords text={`${user.displayName}!`} /> You&apos;ve been sworn in. Start by serving on a jury, or confess something deliciously petty.
         </FormAlert>
       ) : null}
 
@@ -56,7 +57,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
             className={`font-display font-black leading-tight text-parchment [--fit-max:1.875rem] [--fit-min:0.75rem] sm:[--fit-max:2.25rem] ${FIT_FONT}`}
             style={fitStyle(`${greetingName}.`)}
           >
-            Good day, {greetingName}.
+            Good day, <LongWords text={`${greetingName}.`} />
           </h1>
           <p className="text-parchment/70">
             {/* Each separator stays with the item after it, so a wrap never leaves a dangling "·". */}
@@ -99,7 +100,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                     <CategoryIcon category={c.category} className="h-10 w-10" />
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-parchment">
-                        Finish your {c.status === "DEFENSE_CLAIMED" ? "defense" : "prosecution"}: “{c.title}”
+                        Finish your {c.status === "DEFENSE_CLAIMED" ? "defense" : "prosecution"}: <LongWords text={`“${c.title}”`} />
                       </p>
                       <p className="text-sm text-parchment/70">
                         <ClaimCountdown to={c.claimExpiresAt!} prefix="Claim expires in" />
@@ -114,7 +115,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                   <li key={c.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-gold/20 bg-night/40 p-4">
                     <CategoryIcon category={c.category} className="h-10 w-10" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-parchment">The jury needs you: “{c.title}”</p>
+                      <p className="font-bold text-parchment">The jury needs you: <LongWords text={`“${c.title}”`} /></p>
                       <p className="text-sm text-parchment/70">
                         {c.votesCast >= d.quorum ? `${c.votesCast} votes (quorum reached)` : `${c.votesCast}/${d.quorum} votes`} · closes in <Countdown to={c.deliberationEndsAt!} className="text-gold-light" />
                       </p>
@@ -175,7 +176,7 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
                       <CategoryIcon category={c.category} className="h-9 w-9" />
                       {/* Basis 11rem: on narrow phones the status pill wraps below instead of squeezing the title. */}
                       <div className="min-w-0 flex-[1_1_11rem]">
-                        <p className="line-clamp-2 font-bold text-parchment">{c.title}</p>
+                        <p className="line-clamp-2 font-bold text-parchment"><LongWords text={c.title} /></p>
                         <p className="text-xs text-parchment/60">
                           No. {formatCaseNumber(c.number)} · You: <span className="text-gold-light">{roleOf(c)}</span>
                           {c.anonymous && c.viewer.role === "ACCUSED" ? " (anonymous)" : ""} · {relativeTime(c.createdAt)}
