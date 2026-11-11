@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run (commit 6b7e505): **85/85 Playwright** (57 desktop, 28 Pixel 7) and **1047/1047 Vitest** passing; `tsc`, ESLint and `next build` clean; all 10 phases PASS; stats audit matches history for 28 players; 0 error lines in the production log. Each item has also been checked by 62 independent audits of the running production build (fresh agents that ignore the repo's own docs and tests); the last one (62nd) passed all 17 items with no correctness, security or data-integrity defects.
+Last full run (commit 6f449c3): **86/86 Playwright** (58 desktop, 28 Pixel 7) and **1048/1048 Vitest** passing; `tsc`, ESLint and `next build` clean; all 10 phases PASS; stats audit matches history for 28 players; 0 error lines in the production log. Each item has also been checked by 62 independent audits of the running production build (fresh agents that ignore the repo's own docs and tests); the last one (62nd) passed all 17 items with no correctness, security or data-integrity defects.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -88,7 +88,7 @@ Last full run (commit 6b7e505): **85/85 Playwright** (57 desktop, 28 Pixel 7) an
 | Animations work without breaking interactions | `§12 animations…` e2e, plus a frame-by-frame review of all 15 animations in `docs/ANIMATION_REVIEW.md` (2 issues found and fixed) |
 | Mobile layouts usable | Full multi-player trial on the Pixel 7 project; `e2e/mobile.spec.ts`: 13 pages fit the device width; touch flows (confess, claim + defend, vote, react, settings, menu); tap targets ≥36px. Manual phone screenshots reviewed (found and fixed overflow on `/court` and `/confess`, a truncated wordmark, and small prompt chips); `§12 mobile: very long title words and names stay whole or break at a hyphen` checks every in-word line break at 320px and 360px (audit 60's only concern, fixed) |
 | No obvious runtime/build/TS errors | `tsc --noEmit`, ESLint, `next build`; e2e asserts zero page/console errors on key flows |
-| Important gameplay flows have automated tests | 1047 Vitest (unit + integration against Postgres, including concurrency races) + 85 Playwright tests (57 desktop project, 28 Pixel 7 project) |
+| Important gameplay flows have automated tests | 1048 Vitest (unit + integration against Postgres, including concurrency races) + 86 Playwright tests (58 desktop project, 28 Pixel 7 project) |
 | README explains setup, development, deployment | `README.md` |
 | External dependencies and limitations documented | `README.md` → Known limitations, `docs/MONETIZATION.md` |
 
@@ -1177,6 +1177,8 @@ Verified on commit 6b7e505: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D2 | Opening an editor after the claim expired silently redirected to the case page | the case page says the editor is closed and why | e2e |
 | D3 | A lone UTF-16 surrogate in a crafted request was stored as "�" | lone surrogates and "�" are dropped by text normalisation | unit |
 | D4 | A malformed stale-console guard on Adjourn (crafted, staff-only) was ignored | refused | — |
+
+Verified on commit 6f449c3: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1048/1048, Playwright 86/86 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
 
 ## Per-phase evidence
 
