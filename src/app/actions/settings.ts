@@ -74,8 +74,12 @@ export async function changePasswordAction(_prev: ActionResult | null, formData:
     if (!user) throw new CourtError("UNAUTHENTICATED", "Please sign in again.");
     const input = changePasswordSchema.parse(Object.fromEntries(formData.entries()));
     // After validation (a mistyped confirmation shouldn't count), before the password check.
-    await enforceRateLimit(`password:${user.id}`, 5, 900);
+    // Only wrong current passwords count, and the message says how long the pause is (audit 68 #3).
+    const refund = await reserveAttempt([
+      { key: `password:${user.id}`, limit: 5, windowSeconds: 900, message: "Too many wrong current passwords. For your account's safety, password changes are paused for 15 minutes." },
+    ]);
     await changePassword(user.id, input.currentPassword, input.newPassword, await getSessionToken());
+    await refund();
     return { ok: true, message: "Password changed. Other devices have been signed out." };
   } catch (e) {
     return toFailure(e);

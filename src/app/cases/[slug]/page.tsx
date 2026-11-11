@@ -95,7 +95,7 @@ export default async function CasePage({ params, searchParams }: Props) {
         <SleepingBailiff className="mx-auto w-full max-w-sm" />
         <h1 className="mt-6 font-display text-4xl font-black text-parchment">This case is under review</h1>
         <p className="mt-3 text-parchment/75">The clerks are looking into a report. Check back later.</p>
-        {user && (await db.report.count({ where: { reporterId: user.id, case: { number: detail.number } } })) > 0 ? (
+        {user && (await db.report.count({ where: { reporterId: user.id, status: "OPEN", case: { number: detail.number } } })) > 0 ? (
           <p role="status" className="mt-4 rounded-lg border border-[#8fe3cc]/40 bg-[#0f2a26] px-4 py-3 text-sm font-semibold text-[#c9f5e8]">
             Thank you. Your report was received, and the case is paused while the clerks review it.
           </p>
@@ -112,7 +112,8 @@ export default async function CasePage({ params, searchParams }: Props) {
     !!(await db.case.findUnique({ where: { id: c.id }, select: { accused: { select: { bannedAt: true } } } }))?.accused.bannedAt;
   // Logged-out views count once per IP; without a known IP they aren't counted at all.
   const viewer = user ? `u:${user.id}` : await clientIp().then((ip) => (ip ? `ip:${ip}` : null));
-  if (viewer) void bumpViewCount(c.id, viewer);
+  // Officers looking at a sealed case aren't audience (audit 68 #5).
+  if (viewer && detail.moderationState !== "REMOVED") void bumpViewCount(c.id, viewer);
   const cat = getCategory(c.category);
   const accusedName = c.accused.displayName.replace(/^You \(as (.*)\)$/, "$1");
   const viewerRole = c.viewer.role;
@@ -278,6 +279,7 @@ export default async function CasePage({ params, searchParams }: Props) {
               signedIn={!!user}
               loginHref={loginHref}
               onHold={onHold}
+              sealed={sealed}
               blockedReason={user && !viewerRole ? (await claimBlockReasons(user.id, [c.id], c.status.includes("DEFENSE") ? "DEFENSE" : "PROSECUTION")).get(c.id) : undefined}
             />
           ) : null}
@@ -402,6 +404,7 @@ function StageCallout({
   signedIn,
   loginHref,
   onHold = false,
+  sealed = false,
   blockedReason,
 }: {
   role: "DEFENSE" | "PROSECUTION";
@@ -411,10 +414,20 @@ function StageCallout({
   loginHref: string;
   /** The (public) accused is banned, so nobody can take the case right now. */
   onHold?: boolean;
+  /** Sealed: only officers see the page, and nobody can take it until it's restored (audit 68 #2). */
+  sealed?: boolean;
   /** This viewer can't take it: recused as an officer, or out of claims on it for today. */
   blockedReason?: string;
 }) {
   const isDefense = role === "DEFENSE";
+  if (sealed) {
+    return (
+      <div className="velvet p-6">
+        <p className="eyebrow">Sealed</p>
+        <p className="mt-1 font-display text-xl font-bold text-parchment">Nobody can take this case while it&apos;s sealed. Restore it from the moderation console to put it back on the docket.</p>
+      </div>
+    );
+  }
   if (onHold) {
     return (
       <div className="velvet p-6">

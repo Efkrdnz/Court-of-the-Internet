@@ -499,7 +499,18 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
       where: { id: caseId, status: "DELIBERATION", moderationState: "VISIBLE", deliberationEndsAt: { gt: now } },
       data: choice === "GUILTY" ? { guiltyVotes: { increment: 1 } } : { notGuiltyVotes: { increment: 1 } },
     });
-    if (counted.count === 0) throw new CourtError("INVALID_STATE", "This case stopped taking votes a moment ago (closed or paused for review).");
+    if (counted.count === 0) {
+      // Name the actual reason (audit 68 #4).
+      const now2 = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, moderationState: true } });
+      throw new CourtError(
+        "INVALID_STATE",
+        now2?.moderationState === "REMOVED"
+          ? "That case has just been sealed by the clerks, so its jury is dismissed."
+          : now2?.moderationState === "UNDER_REVIEW"
+            ? "This case was just put under review, so voting is paused until the clerks are done."
+            : "Deliberation has just closed, so this vote can't be counted.",
+      );
+    }
     try {
       await tx.vote.create({ data: { caseId, userId, choice, createdAt: now } });
     } catch (e) {

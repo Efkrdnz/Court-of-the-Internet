@@ -6,6 +6,8 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  // Browsers ignore HSTS on plain-http responses, so it only takes effect once served over https (audit 68).
+  ...(process.env.NODE_ENV === "production" ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }] : []),
   // Inline styles/scripts are emitted by Next/React; everything else is same-origin.
   {
     key: "Content-Security-Policy",

@@ -902,6 +902,16 @@ test("§12 moderation: officers see a sealed trial as sealed, with nothing it wo
     // The jury room doesn't seat anyone on it.
     await page.goto(`/jury?case=${c.number}`);
     await expect(page.locator(`#vote-${c.id}`)).toHaveCount(0);
+    // A sealed case waiting for counsel offers no "take this case" button that would fail (audit 68 #2).
+    const waiting = await prisma.case.findFirstOrThrow({ where: { status: "AWAITING_DEFENSE", moderationState: "VISIBLE" }, select: { id: true, number: true, slug: true } });
+    await prisma.case.update({ where: { id: waiting.id }, data: { moderationState: "REMOVED" } });
+    try {
+      await page.goto(`/cases/${waiting.number}-${waiting.slug}`);
+      await expect(page.getByText("Nobody can take this case while it's sealed")).toBeVisible();
+      await expect(page.getByRole("button", { name: /take (this|the) case|claim/i })).toHaveCount(0);
+    } finally {
+      await prisma.case.update({ where: { id: waiting.id }, data: { moderationState: "VISIBLE" } });
+    }
     await page.context().close();
   } finally {
     await prisma.case.update({ where: { id: c.id }, data: { moderationState: "VISIBLE", deliberationPausedAt: c.deliberationPausedAt } });

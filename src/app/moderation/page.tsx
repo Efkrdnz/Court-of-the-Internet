@@ -196,7 +196,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 {focusCase.status === "CLOSED"
                   ? `Votes: ${focusCase.guiltyVotes} guilty · ${focusCase.notGuiltyVotes} not guilty`
                   : `Votes: ${focusCase.guiltyVotes + focusCase.notGuiltyVotes} cast (split hidden until the verdict)`}{" "}
-                · Accused: {focusCase.anonymous && !revealed ? "anonymous" : `@${focusCase.accused.username}`}
+                · Accused: {focusCase.anonymous && !revealed ? "anonymous" : <LongWords text={`@${focusCase.accused.username}`} />}
                 {focusCase.anonymous && revealed ? " (anonymous publicly; you revealed it)" : ""}
               </p>
               {focusCase.deliberationPausedAt ? (

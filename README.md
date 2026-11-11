@@ -175,7 +175,7 @@ The app is a standard Node.js Next.js server and needs one PostgreSQL database.
 2. Set environment variables (see `.env.example`):
    - `DATABASE_URL`: production database
    - `SESSION_SECRET`: **required**, ≥ 32 random characters. The production server refuses to start without one, or with the `.env.example` placeholder
-   - `SITE_URL`: e.g. `https://court.example.com` (share links, OG URLs, sitemap). Read at runtime, so no rebuild is needed to change it. `NEXT_PUBLIC_SITE_URL` still works as a build-time fallback. The session cookie is marked Secure in production unless `SITE_URL` starts with `http://`, so set it to your real https address (leaving it unset keeps cookies Secure but makes share links point at localhost).
+   - `SITE_URL`: e.g. `https://court.example.com` (share links, OG URLs, sitemap). Read at runtime, so no rebuild is needed to change it. `NEXT_PUBLIC_SITE_URL` still works as a build-time fallback. Production responses also carry `Strict-Transport-Security` (browsers only honour it over https). The session cookie is marked Secure in production unless `SITE_URL` starts with `http://`, so set it to your real https address (leaving it unset keeps cookies Secure but makes share links point at localhost).
    - `TRUST_PROXY_HOPS`: the number of reverse proxies in front of the app (default `1`). Rate limits use the client IP that your own proxy appended to `X-Forwarded-For` (counted from the right), so spoofed left-most entries are ignored.
    - `CRON_SECRET`: enables the maintenance endpoint
    - Leave `ENABLE_DEMO_LOGIN` unset (it defaults to **off** in production) and never run the seed against production. The seed refuses non-local databases unless `ALLOW_PRODUCTION_SEED=1` is set, because the demo admin's password is public
