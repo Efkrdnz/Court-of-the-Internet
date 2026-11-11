@@ -1234,6 +1234,8 @@ Verified on commit 35141eb: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D3 | The sealed-case banner said "its trial clock is stopped" on closed or not-yet-deliberating cases | only said for a trial in deliberation | — |
 | — | The dark hero background ends partway down long pages; toast confetti draws over the strip under the header on phones; `/archives?page=1e309` isn't normalised | accepted: cosmetic, and confetti never takes taps | — |
 
+First full run on commit dbbe94a: everything passed in the combined suite (Vitest 1056/1056, Playwright 88/88), but the separate phase-9 run failed once in `mobile: serve on a jury and react on a phone` (the confirm tap didn't register). Not reproducible in 8 reruns, including the full phase-9 sequence twice. The test now waits for the first tap to settle, taps again only if the confirm button is still there with no error, and fails with the text of any error shown; Next's empty route-announcer alert is ignored.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

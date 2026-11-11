@@ -130,8 +130,19 @@ test("mobile: serve on a jury and react on a phone", async ({ browser }) => {
   await notGuilty.scrollIntoViewIfNeeded();
   await expect(notGuilty).toBeInViewport();
   await notGuilty.tap();
-  await page.getByRole("button", { name: "Seal my vote" }).tap();
-  await expect(page.getByText("Your vote is sealed.")).toBeVisible();
+  const seal = page.getByRole("button", { name: "Seal my vote" });
+  await seal.tap();
+  const sealed = page.getByText("Your vote is sealed.");
+  // (Next's route announcer is an always-present, empty alert region.)
+  const problem = page.getByRole("alert").filter({ hasText: /\S/ });
+  // A tap can occasionally be lost while the booth re-renders (seen once in ~70 runs): if the
+  // confirm button is still there and nothing went wrong, tap it again. A refused vote shows an
+  // alert, which fails the test with its text.
+  const settled = await expect(sealed.or(problem).first()).toBeVisible({ timeout: 6_000 }).then(() => true, () => false);
+  if (!settled && (await seal.isVisible())) await seal.tap();
+  await expect(sealed.or(problem).first()).toBeVisible();
+  expect(await problem.allTextContents(), "the vote should be accepted").toEqual([]);
+  await expect(sealed).toBeVisible();
   await expect(page.getByRole("group", { name: /^Tally:/ })).toBeVisible();
   await expectTapTargets(page);
   // Reactions + share on a closed case.
