@@ -520,6 +520,9 @@ test("§12 mobile: buttons and case titles fit narrow phones without mid-word br
   }
 });
 
+/** Any of the loading screen's rotating lines (src/components/ui/LoadingLine.tsx). */
+const LOADING_LINE = /Powdering the wigs|Waking the jury cats|Locating the missing fry|Reading the confession aloud|Bribing the bailiff|Polishing the gavel/;
+
 /** Line breaks between two letters that don't fall at a soft hyphen (which shows "-"). */
 async function unmarkedBreaks(page: Page): Promise<string[]> {
   return page.evaluate(() => {
@@ -569,6 +572,7 @@ test("§12 mobile: very long title words and names stay whole or break at a hyph
       const page = await context.newPage();
       for (const path of [`/cases/${a.number}-${a.slug}`, `/cases/${b.number}-${b.slug}`, "/archives?q=fish"]) {
         await page.goto(path);
+        await expect(page.getByText(LOADING_LINE)).toHaveCount(0, { timeout: 15_000 }); // wait out the loading screen
         await expectNoHorizontalScroll(page);
         const unmarked = await unmarkedBreaks(page);
         expect(unmarked, `words broken without a hyphen on ${path} at ${width}px`).toEqual([]);
@@ -576,7 +580,7 @@ test("§12 mobile: very long title words and names stay whole or break at a hyph
       // A real 35-letter word fits the case heading whole: its letters share one line.
       await page.goto(`/cases/${a.number}-${a.slug}`);
       const tops = await page.getByRole("heading", { level: 1 }).evaluate((h) => {
-        const block = Array.from(h.querySelectorAll("span")).find((s) => s.textContent?.includes("Super"));
+        const block = Array.from(h.querySelectorAll("span")).find((s) => s.textContent?.replace(/\u00AD/g, "").includes("Super"));
         if (!block) return [];
         const r = document.createRange();
         r.selectNodeContents(block);
@@ -591,6 +595,9 @@ test("§12 mobile: very long title words and names stay whole or break at a hyph
       data: { userId: whiskers.id, type: "VERDICT", title: `Verdict: ${"W".repeat(35)} ${"M".repeat(35)}`, body: `The jury ruled on “${"W".repeat(35)}”: GUILTY.` },
     });
     await prisma.case.update({ where: { id: b.id }, data: { confession: `I hid the ${"W".repeat(35)} remote and blamed the cat for it again.` } });
+    // A 32-letter one-word name on the leaderboards' narrow 320px rows (audit 69 D1).
+    const rascal = await prisma.user.findUniqueOrThrow({ where: { username: "da_rascal" }, select: { id: true, displayName: true } });
+    await prisma.user.update({ where: { id: rascal.id }, data: { displayName: "M".repeat(32) } });
     try {
       for (const width of [320, 360]) {
         const context = await browser.newContext({ viewport: { width, height: 740 }, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
@@ -598,8 +605,17 @@ test("§12 mobile: very long title words and names stay whole or break at a hyph
         await page.goto("/login");
         await page.locator('form:has(input[name="username"][value="juror_whiskers"]) button').click();
         await page.waitForURL((u) => !u.pathname.startsWith("/login"));
-        for (const path of ["/notifications", `/cases/${b.number}-${b.slug}`]) {
+        for (const path of ["/notifications", `/cases/${b.number}-${b.slug}`, "/leaderboards"]) {
           await page.goto(path);
+          await expect(page.getByText(LOADING_LINE)).toHaveCount(0, { timeout: 15_000 }); // wait out the loading screen
+        await expect(page.getByText(LOADING_LINE)).toHaveCount(0, { timeout: 15_000 }); // wait out the loading screen
+          if (path === "/leaderboards") {
+            // The long name really is on the boards (so the check below isn't vacuous).
+            // Streams in behind a loading screen: wait for the boards, with the long name on them.
+            await expect
+              .poll(() => page.evaluate(() => document.body.innerText.replace(/\u00AD/g, "").includes("M".repeat(32))), { message: "the 32-letter name is on the boards", timeout: 15_000 })
+              .toBe(true);
+          }
           await expectNoHorizontalScroll(page);
           expect(await unmarkedBreaks(page), `words broken without a hyphen on ${path} at ${width}px`).toEqual([]);
         }
@@ -607,6 +623,7 @@ test("§12 mobile: very long title words and names stay whole or break at a hyph
       }
     } finally {
       await prisma.notification.delete({ where: { id: note.id } });
+      await prisma.user.update({ where: { id: rascal.id }, data: { displayName: rascal.displayName } });
     }
   } finally {
     await prisma.case.update({ where: { id: a.id }, data: { title: a.title } });

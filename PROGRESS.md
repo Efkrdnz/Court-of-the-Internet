@@ -69,11 +69,11 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 
 ## GOAL.md §12 verification (final state), line by line
 
-GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (66, 67, 68) of the running production build (fresh agents told to ignore this repo's docs and tests).
+GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (67, 68, 69) of the running production build (fresh agents told to ignore this repo's docs and tests).
 
 Last full run: see the latest "Verified on commit …" line in the audit sections below (`scripts/verify-phases.sh` ×10 phases, `tsc`, ESLint, `next build`, all Vitest, all Playwright on desktop + Pixel 7, `npm run audit:stats`, production route check).
 
-| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 66 · 67 · 68 |
+| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 67 · 68 · 69 |
 | --- | --- | --- |
 | "The application starts successfully." | e2e `§12 the application starts successfully (production server)`; phase 10 `next start` route check (200 / 307 / 308 / 400 / 404) | PASS · PASS · PASS |
 | "The complete confession → defense → prosecution → jury → verdict → archive lifecycle works." | e2e `lifecycle › a full trial: confess → defend → prosecute → jury → verdict → archive` (desktop and Pixel 7, 5 browser contexts); integration `runs confession → defense → prosecution → jury → verdict → archive`, plus not-guilty, mistrial, below-quorum extension and dismissal cases | PASS · PASS · PASS |
@@ -81,17 +81,17 @@ Last full run: see the latest "Verified on commit …" line in the audit section
 | "Users cannot vote multiple times." | e2e `§12 users cannot vote multiple times (stale second tab is rejected)`; integration `stops participants from voting and enforces one vote per account` (concurrent double vote: exactly 1 row) | PASS · PASS · PASS |
 | "Case claims cannot be stolen through concurrent requests." | integration `lets exactly one of many simultaneous claimers win`, `limits each player to one active claim per role, even when racing`, `sweeps expired claims back to the queue, honouring the grace period`, `a ban racing the player's own in-flight votes and claims always wins` | PASS · PASS · PASS |
 | "Statistics are calculated correctly." | e2e `§12 statistics are calculated correctly (profile = database = full recomputation)`, `§12 stats: jury agreement uses decided cases only`; `npm run audit:stats` (every player vs. a full recomputation from history); integration `does not double-award when many closers race` | PASS · PASS · PASS |
-| "Profiles and leaderboards work." | e2e `leaderboards ›` (4 boards: thresholds, Wilson order, agreement with profiles); `tests/integration/leaderboards.test.ts` | CONCERN (history role label, fixed) · PASS · PASS |
+| "Profiles and leaderboards work." | e2e `leaderboards ›` (4 boards: thresholds, Wilson order, agreement with profiles); `tests/integration/leaderboards.test.ts` | PASS · PASS · PASS |
 | "Archives display real persisted data." | e2e `§12 archives display real persisted data` (counts, conviction rate, newest card and search vs. the DB); integration archive-search tests | PASS · PASS · PASS |
 | "Navigation is functional." | e2e `§12 moderation: officers see a sealed trial as sealed`, `§12 navigation is functional (every header link, signed in)`, `mobile navigation menu opens and navigates`, the Escape/Back/resize menu tests, unknown-id 404s, Back-after-filing, the expired-editor explanation, post-login redirect safety | PASS · PASS · PASS |
-| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (271 everyday sentences accepted, 319 evasions refused) and validation tests (including weak passwords) | PASS · CONCERN (filter wording gaps, fixed) · PASS |
+| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (271 everyday sentences accepted, 319 evasions refused) and validation tests (including weak passwords) | CONCERN (filter wording gaps, fixed) · PASS · PASS |
 | "Visual assets render correctly." | e2e `§12 visual assets render correctly` and `(rasterised pixels, all art)`: every illustration drawn to a canvas has visible multi-coloured pixels; fonts loaded; OG PNGs valid | PASS · PASS · PASS |
 | "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
-| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · PASS · PASS |
+| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · PASS · CONCERN (320px leaderboard names, fixed) |
 | "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
 | "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 88 Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
 | "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
-| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | PASS · CONCERN (filter claims overstated, fixed) · PASS |
+| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (filter claims overstated, fixed) · PASS · CONCERN (README hyphen claim, made true) |
 
 ## Verification history (honest account)
 
@@ -1264,6 +1264,16 @@ Verified on commit 9818a22: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | 6 | No Strict-Transport-Security header | sent in production (browsers honour it only over https); README notes it | — |
 
 Verified on commit 94c59bb: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1070/1070, Playwright 88/88 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
+## Sixty-ninth independent audit (fresh agent, build of commit b79b874)
+
+**Result: 15 PASS, 2 CONCERN (13, 17: D1 below), 0 FAIL; one real defect, low severity; every race tried held.** 10 users claiming one case at once gave 1 winner; 12 concurrent mixed votes from one user gave 1 Vote row; 13 stat fields recomputed for all 40 users from Cases, Votes, Arguments and XpEvents had 0 mismatches; 24 routes × 3 roles gave the right statuses; headers include CSP, HSTS and frame denial; no leak of anonymous confessors or hidden tallies.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | A 32-letter one-word name on the 320px leaderboards still broke at unmarked letters (the column was narrower than a 6-letter chunk between soft hyphens), contradicting the README | soft hyphens every 2 letters inside long words (browsers fill lines greedily, so this adds no extra breaks; it only guarantees a hyphenated break fits a very narrow column) | e2e: the long-word test now checks `/leaderboards` at 320/360px with a 32-letter name. It fails with the old 6-letter step (unmarked breaks found) and passes now. The test also waits out the loading screen, which it previously could check instead of the page |
+| C1 | Spoofable per-IP limits without a proxy | documented (README) | — |
+| C2 | `/defend/<id>` after the defense was filed (or `/prosecute/<id>` in deliberation) gave the generic "only open to the claim holder" notice | says the side has already been filed | — |
 
 ## Per-phase evidence
 
