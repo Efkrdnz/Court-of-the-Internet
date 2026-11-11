@@ -13,6 +13,7 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
   // Any navigation (a link, Back/Forward) closes the menu.
   const [openedOn, setOpenedOn] = useState(pathname);
   if (openedOn !== pathname) {
@@ -24,7 +25,12 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    // Escape closes the panel and hands focus back to the toggle (WCAG 2.4.3, audit 57 #4).
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
     const close = () => setOpen(false);
     // Rotating or resizing to the desktop layout hides the toggle, so the panel must go too.
     const wide = window.matchMedia("(min-width: 1024px)");
@@ -45,6 +51,7 @@ export function MobileNav({ signedIn, staff }: { signedIn: boolean; staff: boole
   return (
     <div className="lg:hidden">
       <button
+        ref={toggleRef}
         type="button"
         onClick={() => {
           if (!open) announceMenuOpened("nav");

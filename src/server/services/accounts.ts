@@ -14,7 +14,7 @@ import {
   type UnlockContext,
 } from "@/lib/cosmetics";
 import { levelForXp } from "@/lib/progression";
-import { bioClaimsAdmin, bioImpersonatesStaff, COURT_TITLE_MESSAGE, hasAdminTitle, hasCourtTitle } from "@/lib/validation";
+import { bioClaimsAdmin, bioImpersonatesStaff, COURT_TITLE_MESSAGE, hasAdminTitle, hasCourtTitle, posesAsSite } from "@/lib/validation";
 import { getAchievement } from "@/lib/achievements";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { clock } from "../clock";
@@ -255,6 +255,8 @@ export async function updateProfile(
     }
     if (me.role === "PLAYER") await assertBioDoesNotSpeakForOfficers(input.bio, userId, tx);
     // A moderator may wear clerk titles, but not the presiding judge's (audit 47 D2).
+    // Nobody, officers and the judge included, poses as the site, the system or a deleted account (audit 57 #2).
+    if (posesAsSite(input.displayName)) throw new CourtError("VALIDATION", "That name belongs to the site itself. Pick your own.", "displayName");
     if (me.role === "MODERATOR" && hasAdminTitle(input.displayName)) {
       throw new CourtError("VALIDATION", "That title belongs to the presiding judge. Pick your own.", "displayName");
     }

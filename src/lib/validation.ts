@@ -226,6 +226,10 @@ export function hasAdminTitle(name: string): boolean {
 
 /** A bio claiming the presiding judge's role ("I am the presiding judge and site administrator"). */
 const BIO_ADMIN_CLAIM = [
+  // Audit 57 #2: "Admin", "Admin of this site, I can unban you", "owner of this site", "official account".
+  /^\s*(?:the\s+)?admin(?:istrator)?\s*[.!]?\s*$/iu,
+  /\b(?:admin(?:istrator)?|owner|official\s+account)\s+(?:of|for)\s+(?:this|the)\s+(?:site|court|app|game|website)\b/iu,
+  /\bofficial\s+(?:court\s+)?account\b|\bi\s*(?:'m|am)\s+the\s+owner\b/iu,
   /\bpresiding\s+judge\b|\bchief\s+justice\b|\byour\s+hono(?:u)?r\b/iu,
   /\b(?:site|head|chief|the|an?|main)\s+admin(?:istrator)?\b/iu,
   /\b(?:i\s*(?:'m|am)|we\s*(?:'re|are))\s+(?:the\s+|an?\s+)?admin(?:istrator)?s?\b/iu,
@@ -234,6 +238,22 @@ const BIO_ADMIN_CLAIM = [
 export function bioClaimsAdmin(bio: string): boolean {
   const text = skeleton(foldFullWidth(bio)).normalize("NFKD").replace(/\p{M}/gu, "");
   return BIO_ADMIN_CLAIM.some((re) => re.test(text));
+}
+
+/**
+ * Names posing as the site itself, the system or a deleted account: refused for everyone,
+ * officers and the presiding judge included (audit 57 #2). Officers may carry court titles, but
+ * not "Court of the Internet", "System", "Trust and Safety", "Deleted User" or a verification tick.
+ */
+const SITE_TITLES = ["court of the internet", "coti", "trust and safety", "trust safety", "site owner", "site official", "official support", "official account", "support team", "helpdesk", "help desk", "deleted user", "deleted", "verified"].map(foldTitle);
+const SITE_STEMS = ["courtoftheinternet", "courtinternet", "internetcourt", "internetscourt", "cotiteam", "cotiofficial", "cotistaff", "cotisupport", "cotiadmin", "trustandsafety", "siteowner"].map((t) => foldTitle(t).replace(/[^\p{L}]+/gu, ""));
+export function posesAsSite(name: string): boolean {
+  const folded = foldTitle(name);
+  if (SYSTEM_NAMES.has(folded) || SITE_TITLES.some((t) => folded.includes(t))) return true;
+  if (/[\u2713\u2714\u2611\u2705\u{1F5F8}]/u.test(name)) return true;
+  const letters = folded.replace(/[^\p{L}]+/gu, "");
+  if (SITE_STEMS.some((t) => letters.includes(t))) return true;
+  return letters.includes("internet") && /[ck]o?u?r+t/.test(letters.replace("internet", " "));
 }
 
 export const COURT_TITLE_MESSAGE = "That's an official title of the court. Pick your own name.";

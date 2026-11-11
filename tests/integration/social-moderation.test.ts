@@ -15,6 +15,7 @@ import {
   pinFeaturedCase,
   removeCase,
   restoreCase,
+  revealConfessor,
   setBan,
   setUserRole,
   strikeArgument,
@@ -689,6 +690,25 @@ describe("moderation", () => {
     await db.user.update({ where: { id: other }, data: { displayName: "Model Citizen" } });
     await db.user.update({ where: { id: clerk }, data: { displayName: "Citizen 6944" } });
     await setUserRole(admin, clerk, "MODERATOR");
+  });
+
+  it("revealing an anonymous confessor is logged and recuses the officer; nobody poses as the site (audit 57 #1, #2)", async () => {
+    const accused = await makeUser();
+    const clerk = await makeUser("reveal_clerk", "MODERATOR");
+    const c = await makeCase(accused, { anonymous: true });
+    expect(await revealConfessor(clerk, c.id)).toBe((await db.user.findUniqueOrThrow({ where: { id: accused } })).username);
+    expect(await db.moderationAction.count({ where: { action: "REVEAL_CONFESSOR", caseId: c.id, moderatorId: clerk } })).toBe(1);
+    await expect(claimCase(clerk, c.id, "DEFENSE")).rejects.toMatchObject({ code: "INELIGIBLE" });
+    const plain = await makeCase(accused);
+    await expect(revealConfessor(clerk, plain.id)).rejects.toMatchObject({ code: "INVALID_STATE" });
+    // Officers (and the judge) can't take the site's or the system's names.
+    const judge = await makeUser("site_judge", "ADMIN");
+    for (const [who, name] of [[clerk, "Court of the Internet"], [clerk, "Verified \u2713"], [judge, "System"], [judge, "Deleted User"]] as const) {
+      await expect(updateProfile(who, { displayName: name, bio: "", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null })).rejects.toMatchObject({ code: "VALIDATION" });
+    }
+    await expect(
+      updateProfile(clerk, { displayName: "Clerk Revealer", bio: "Admin of this site, I can unban you.", avatar: DEFAULT_AVATAR, profileTheme: "mahogany", featuredBadge: null }),
+    ).rejects.toMatchObject({ code: "VALIDATION", field: "bio" });
   });
 
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {

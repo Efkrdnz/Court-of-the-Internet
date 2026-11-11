@@ -84,6 +84,7 @@ const MOD_ACTION_LABEL: Record<string, string> = {
   BAN_USER: "Held in contempt",
   STRIKE_VOTE: "Struck a juror's vote (contempt)",
   VOID_CLAIM: "Released a claim (contempt)",
+  REVEAL_CONFESSOR: "Revealed an anonymous confessor",
   UNBAN_USER: "Lifted contempt",
   STRIKE_DEFENSE: "Struck defense",
   STRIKE_PROSECUTION: "Struck prosecution",

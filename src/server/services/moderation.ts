@@ -460,7 +460,7 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
 export async function adjournNow(moderatorId: string, caseId: string, seen?: { endsAt: Date; extensionsUsed: number }) {
   // What this press found: it adjourned (or the trial was already due), the trial had changed
   // since the officer's console loaded, or it had already closed.
-  const found = await db.$transaction(async (tx): Promise<"adjourn" | "changed" | "closed-before"> => {
+  const found = await db.$transaction(async (tx): Promise<"adjourn" | "adjourned" | "changed" | "closed-before"> => {
     await assertStaff(tx, moderatorId);
     await lockCase(tx, caseId, moderatorId);
     const current = await tx.case.findUnique({ where: { id: caseId }, select: { status: true, deliberationEndsAt: true, extensionsUsed: true } });
@@ -484,7 +484,7 @@ export async function adjournNow(moderatorId: string, caseId: string, seen?: { e
       );
     }
     await log(tx, moderatorId, "ADJOURN_NOW", { caseId });
-    return "adjourn";
+    return "adjourned";
   });
 
   const reread = () =>
@@ -510,14 +510,16 @@ export async function adjournNow(moderatorId: string, caseId: string, seen?: { e
   }
   const outcome = await closeDeliberation(caseId);
   if (outcome.kind !== "not-due") return outcome;
-  // Someone else's close may have won the race: report what actually happened.
+  // Someone else's close may have won the race: report what actually happened. If it was this
+  // press that adjourned the trial (and a page view or vote finished closing it first), the officer
+  // did close it, so say so (audit 57 #5).
   const now = await reread();
   if (now?.status === "CLOSED" && now.verdict) {
-    return { kind: "already-closed" as const, verdict: now.verdict, guilty: now.guiltyVotes, notGuilty: now.notGuiltyVotes };
+    return { kind: found === "adjourned" ? ("closed" as const) : ("already-closed" as const), verdict: now.verdict, guilty: now.guiltyVotes, notGuilty: now.notGuiltyVotes };
   }
   // …or extended it for low participation a moment ago (still visible, deadline back in the future).
   if (now?.status === "DELIBERATION" && now.moderationState === "VISIBLE" && now.deliberationEndsAt && now.deliberationEndsAt > clock.now()) {
-    return { kind: "extended" as const, endsAt: now.deliberationEndsAt, byOther: true };
+    return { kind: "extended" as const, endsAt: now.deliberationEndsAt, byOther: found !== "adjourned" };
   }
   return outcome;
 }
@@ -548,6 +550,24 @@ export async function grantEntitlement(moderatorId: string, targetUserId: string
       href: "/settings#appearance",
     });
     await log(tx, moderatorId, "GRANT_COSMETIC", { targetUserId, note: itemKey });
+  });
+}
+
+/**
+ * Shows an officer who filed an anonymous case. Deliberately a logged step (audit 57 #1): the log
+ * entry records who looked, and, like any action on the case, recuses the officer from claiming or
+ * voting on it. Officers who are part of the case can't do it (lockCase).
+ */
+export async function revealConfessor(moderatorId: string, caseId: string) {
+  return db.$transaction(async (tx) => {
+    await assertStaff(tx, moderatorId);
+    await lockCase(tx, caseId, moderatorId);
+    const c = await tx.case.findUnique({ where: { id: caseId }, select: { anonymous: true, accused: { select: { username: true } } } });
+    if (!c) throw new CourtError("NOT_FOUND", "That case could not be found.");
+    if (!c.anonymous) throw new CourtError("INVALID_STATE", "That case isn't anonymous.");
+    const seen = await tx.moderationAction.findFirst({ where: { moderatorId, caseId, action: "REVEAL_CONFESSOR" }, select: { id: true } });
+    if (!seen) await log(tx, moderatorId, "REVEAL_CONFESSOR", { caseId });
+    return c.accused.username;
   });
 }
 

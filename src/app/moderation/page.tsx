@@ -64,6 +64,12 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
         anonymous: true,
         accused: { select: { username: true } },
         reports: { where: { status: "OPEN" }, select: { id: true, reason: true, target: true, details: true, createdAt: true, reporter: { select: { username: true } } } },
+        // Recusal, so the queue doesn't offer actions this officer can only fail (audit 57 #3).
+        accusedId: true,
+        attorneyId: true,
+        prosecutorId: true,
+        claimedById: true,
+        votes: { where: { userId: user.id }, select: { id: true }, take: 1 },
       },
     }),
     db.moderationAction.findMany({
@@ -115,8 +121,14 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
     db.featuredCase.findUnique({ where: { day: utcDay() }, select: { caseId: true } }),
   ]);
   // The seal this console shows, so a stale "Restore" can't lift a newer seal.
-  const recused =
-    !!focusCase && ([focusCase.accusedId, focusCase.attorneyId, focusCase.prosecutorId, focusCase.claimedById].includes(user.id) || focusCase.votes.length > 0);
+  const isRecused = (c: { accusedId: string; attorneyId: string | null; prosecutorId: string | null; claimedById: string | null; votes: unknown[] }) =>
+    [c.accusedId, c.attorneyId, c.prosecutorId, c.claimedById].includes(user.id) || c.votes.length > 0;
+  const recused = !!focusCase && isRecused(focusCase);
+  // An anonymous confessor is shown only once this officer has revealed it (a logged action that
+  // recuses them from taking part), audit 57 #1.
+  const revealed =
+    !!focusCase?.anonymous &&
+    !!(await db.moderationAction.findFirst({ where: { moderatorId: user.id, caseId: focusCase.id, action: "REVEAL_CONFESSOR" }, select: { id: true } }));
   const sealSeen =
     focusCase?.moderationState === "REMOVED"
       ? ((await db.moderationAction.findFirst({ where: { caseId: focusCase.id, action: "REMOVE_CASE" }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true } }))?.id ?? "")
@@ -183,8 +195,8 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                 {focusCase.status === "CLOSED"
                   ? `Votes: ${focusCase.guiltyVotes} guilty · ${focusCase.notGuiltyVotes} not guilty`
                   : `Votes: ${focusCase.guiltyVotes + focusCase.notGuiltyVotes} cast (split hidden until the verdict)`}{" "}
-                · Accused: @{focusCase.accused.username}
-                {focusCase.anonymous ? " (anonymous publicly)" : ""}
+                · Accused: {focusCase.anonymous && !revealed ? "anonymous" : `@${focusCase.accused.username}`}
+                {focusCase.anonymous && revealed ? " (anonymous publicly; you revealed it)" : ""}
               </p>
               {focusCase.deliberationPausedAt ? (
                 <p className="mt-1 text-sm font-semibold text-gold-light">
@@ -193,6 +205,15 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               ) : null}
             </div>
           </div>
+          {focusCase.anonymous && !revealed && !recused ? (
+            <ModForm
+              op="reveal"
+              label="Reveal who filed it"
+              caseId={focusCase.id}
+              tone="ghost"
+              confirmText="Reveal the anonymous confessor? This is written to the audit log, and you won't be able to claim or vote on this case."
+            />
+          ) : null}
           <p className="rounded-lg bg-night/40 p-3 font-type text-sm text-parchment/85">{focusCase.confession}</p>
           {focusCase.arguments.map((a) => (
             <div key={a.role} className="rounded-lg bg-night/40 p-3">
@@ -280,7 +301,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                       No. {formatCaseNumber(c.number)} · {MODERATION_STATE_LABEL[c.moderationState]} · {pluralize(c.openReports, "reporter")}
                     </p>
                     <p className="font-display text-lg font-bold text-parchment">{c.title}</p>
-                    <p className="text-sm text-parchment/60">by @{c.accused.username}</p>
+                    <p className="text-sm text-parchment/60">{c.anonymous ? "by an anonymous confessor" : `by @${c.accused.username}`}</p>
                   </div>
                   <Link href={`/moderation?case=${c.number}`} className="btn btn-sm">
                     Review
@@ -295,10 +316,14 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
                     </li>
                   ))}
                 </ul>
-                <div className="mt-3 flex flex-wrap gap-3">
-                  <ModForm op="dismiss" label="Dismiss reports" caseId={c.id} tone="teal" hidden={{ reportsSeen: c.reports.map((r) => r.id).join(",") }} />
-                  <ModForm op="remove" label="Remove" caseId={c.id} tone="crimson" withReason reasonPlaceholder="Reason" confirmText="Seal this case? It disappears from all public pages." />
-                </div>
+                {isRecused(c) ? (
+                  <p className="mt-3 text-sm text-gold-light">You&apos;re part of this case, so another officer has to handle these reports.</p>
+                ) : (
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <ModForm op="dismiss" label="Dismiss reports" caseId={c.id} tone="teal" hidden={{ reportsSeen: c.reports.map((r) => r.id).join(",") }} />
+                    <ModForm op="remove" label="Remove" caseId={c.id} tone="crimson" withReason reasonPlaceholder="Reason" confirmText="Seal this case? It disappears from all public pages." />
+                  </div>
+                )}
               </li>
             ))}
           </ul>

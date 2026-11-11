@@ -1099,6 +1099,18 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D4 | After a lost "File the defense" answer, retrying left a dead-end editor; a confession retry named the case without a link | an argument retry that is already on file goes to the case, like a successful filing; a duplicate confession keeps the form and its refusal links to the case on file (a deliberate duplicate looks the same, so it isn't redirected) | e2e (duplicates still refused) |
 | D5 | Usernames like `anon_pigeon` and `sneaky_otter` passed the anonymous-alias check | usernames get the same check as display names | unit |
 
+## Fifty-seventh independent audit (fresh agent, build of commit 248da07)
+
+**Result: 13 PASS, 4 CONCERN (9, 13 minor, 17), 0 FAIL.** Every user's stats and every counter recomputed from rows after each adversarial step matched; 8 simultaneous claimers gave 1 winner and 10 concurrent votes 1; drafts in Burmese, Tibetan, Hebrew and emoji survived aborted requests and lost answers; 27 filter evasions tried, only one documented kind got through; axe (WCAG 2.2 AA) clean.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | **The console showed every officer who filed an anonymous case, unlogged, and the officer could then claim it** | anonymous confessors show as "anonymous" in the console and queue; "Reveal who filed it" is a logged action (`REVEAL_CONFESSOR`) that recuses the officer from claiming or voting; parties can't reveal; README describes it | integration |
+| 2 | **Officers (and the judge) could take names posing as the site or system** ("Court of the Internet", "System", "Trust and Safety", "Deleted User", "Verified ✓"); moderators' bios could claim the site ("Admin of this site, I can unban you", "owner of this site", "official account") | site, system and deleted-account names are refused for every role; moderators' bios can't claim the judge's or the site's role | integration |
+| 3 | The report queue offered "Dismiss"/"Remove" to an officer recused from that case | recused queue entries say another officer has to handle them | — |
+| 4 | Escape closed the mobile menu but left focus on `<body>` | focus returns to the menu toggle | e2e |
+| 5 | An officer whose own press adjourned a trial (closed first by a concurrent page view) was told it "had already closed" | the press that logged the adjournment is told the trial closed (or that it extended below quorum) | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

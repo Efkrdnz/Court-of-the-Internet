@@ -27,6 +27,15 @@ test("mobile navigation menu opens and navigates", async ({ page }) => {
   await expect(page.locator("#mobile-nav")).toHaveCount(0);
 });
 
+test("mobile menu: Escape closes it and returns focus to the toggle (audit 57 #4)", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.locator("#mobile-nav")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#mobile-nav")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
+});
+
 test("mobile menu closes on Back and on resize to desktop (audit 25 D3, D4)", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Open menu" }).click();

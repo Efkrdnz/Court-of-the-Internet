@@ -10,6 +10,7 @@ import {
   pinFeaturedCase,
   removeCase,
   restoreCase,
+  revealConfessor,
   setBan,
   setUserRole,
   strikeArgument,
@@ -32,6 +33,11 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
     const userId = str(formData, "userId");
     let message = "Done.";
     switch (op) {
+      case "reveal": {
+        const username = await revealConfessor(mod.id, caseId);
+        message = `Filed by @${username}. This look is in the audit log, and you're now recused from claiming or voting on this case.`;
+        break;
+      }
       case "remove": {
         const reason = str(formData, "reason");
         if (reason.length < 3) throw new CourtError("VALIDATION", "Give a reason for the removal (it's shown to the author).", "reason");
