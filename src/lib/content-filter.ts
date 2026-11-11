@@ -304,6 +304,21 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 71.
+  // Arson phrased as "lit … on fire / alight" (someone's property, not candles or the grill).
+  /\b(?:lit|lighting|light)\s+(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:shed|house|home|car|truck|van|garage|fence|barn|caravan|boat|bins?|office|shop|flat|apartment|tent|hut|cabin)\s+(?:on\s+fire|alight|ablaze)\b/i,
+  // Swatting and doxxing a person.
+  /\b(?:swatted|swatting)\s+(?:a|an|the|my|his|her|their|some|this|that)?\s*(?:\w+\s+)?(?:streamer|gamer|youtuber|tiktoker|twitch\s+\w+)\b|\b(?:called|sent|sicced)\s+(?:a\s+)?swat(?:\s+team)?\s+(?:on|to|at)\b/i,
+  /\b(?:doxx?ed|doxx?ing|doxx?)\s+(?:a|an|the|my|his|her|their|some|this|that)?\s*(?:\w+\s+)?(?:streamer|gamer|youtuber|tiktoker|player|neighbou?r|ex|guy|girl|man|woman|person|kid|teacher|boss|coworker|co-worker|rival|classmate|someone|somebody|him|her|them)\b/i,
+  // Stealing money from an employer, a wallet, or someone's pet.
+  /\b(?:stole|steal|stealing|took|nicked|pocketed)\s+(?:about\s+|over\s+|nearly\s+)?(?:[$£€]\s?\d[\d,]*|\d[\d,]*\s?(?:dollars|quid|pounds|euros|bucks|k))\b.{0,30}\bfrom\s+(?:my|our|the)\s+(?:employer|company|work|job|boss|office|business|charity|church|school)\b/i,
+  /\b(?:stole|steal|stealing|nicked|pinched|swiped|took)\s+(?:(?:my|his|her|their|our|a|the)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:wallet|purse|handbag|bank\s+card|debit\s+card|credit\s+card)\b(?!\s+(?:chain|charm|photo|picture|pic|statements?|bills?|reader|holder|machine|limit|sleeve|case))/i,
+  /\b(?:stole|steal|stealing|nicked|took|kidnapped|dognapped|catnapped)\s+(?:a|an|the|my|his|her|their|our)\s+(?:\w+\s+)?(?:puppy|dog|kitten|cat|pet|parrot|horse|pony|rabbit|hamster)\s+(?:from|out\s+of)\s+(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|someone'?s|somebody'?s|the\s+\w+)\b/i,
+  // Forgery and ticket fraud.
+  /\b(?:forged|forging|faked|faking)\s+(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:signature|cheque|check|prescription|id|passport|will|note)\b/i,
+  /\b(?:sold|selling|sell|scalped)\s+(?:\w+\s+){0,2}(?:fake|counterfeit|forged|bogus|knock-?off)\s+(?:\w+\s+)?(?:tickets?|passes|id|ids|designer\s+\w+|watches|money|notes)\b/i,
+  // Tripping or shoving a person down the stairs (not tripping over something yourself).
+  /\b(?:tripped|shoved|kicked|elbowed|knocked)\s+(?:an?\s+|the\s+|my\s+|his\s+|her\s+|some\s+)?(?:\w+\s+)?(?:old|elderly|little|small|young)?\s*(?:man|woman|lady|guy|person|kid|child|boy|girl|grandma|grandpa|pensioner|stranger|coworker|neighbou?r|him|her|them)\s+(?:down|off|onto|into)\s+(?:the\s+)?(?:stairs|steps|escalator|platform|tracks|road)\b/i,
   // Audit 67: alcohol for a small child, sedating someone's food or drink.
   /\b(?:gave|fed|let)\s+(?:my|the|a|his|her|their|our)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:baby|infant|newborn|toddler|kid|child)\s+(?:some\s+|a\s+(?:little\s+|bit\s+of\s+|sip\s+of\s+|glass\s+of\s+|shot\s+of\s+)?)?(?:alcohol|wine|beer|vodka|whisk(?:e)?y|rum|gin|booze|tequila|cider|brandy)\b/i,
   /\b(?:gave|let|handed|poured)\s+(?:my|his|her|their|our)\s+(?:little\s+)?(?:nephew|niece|cousin|son|daughter|brother|sister|godson|goddaughter|grandson|granddaughter)\s+(?:a|some|his|her)\s+(?:\w+\s+)?(?:beer|wine|vodka|shot|whisk(?:e)?y|rum|gin|cider|alcohol|booze)\b.{0,50}\b(?:(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|[1-9]|1[0-2])(?:st|nd|rd|th)?\s+birthday|(?:[1-9]|1[0-2]|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)[-\s]?(?:year|yr)s?[-\s]?old)\b/i,

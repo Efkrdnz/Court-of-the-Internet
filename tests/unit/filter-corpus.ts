@@ -279,6 +279,16 @@ export const BENIGN = [
   "I was 14 when I sent my first email and it was all in capitals.",
   "I hope your whole family gets the joke eventually, said the fridge note.",
   "Pay me back the fiver you owe me before the trial starts, I told my brother.",
+  // Audit 71 near-misses.
+  "I lit the birthday candles and set the smoke alarm off.",
+  "I swatted a fly during the wedding vows.",
+  "I swatted my coworker with a rolled-up newspaper for spoiling the finale.",
+  "I stole the last cookie from my employer's break room.",
+  "I stole my brother's phone charger and blamed the cat.",
+  "I stole a glance at the neighbour's puppy during the meeting.",
+  "I forged ahead with my terrible karaoke plan.",
+  "I sold my old concert tickets to a friend at face value.",
+  "I tripped over the dog on the stairs at home.",
   // Audit 67 near-misses.
   "I crushed my own pills into my yogurt so I could swallow them.",
   "My neighbour Mrs Brown keeps stealing my parcels' bubble wrap.",
@@ -624,6 +634,16 @@ export const EVASIONS: [string, string][] = [
   ["tinyurl com slash courtappeal","link"],
   ["courtappeal dot help","link"],
   ["Venmo me five dollars and I will vote not guilty","phishing"],
+  // Audit 71.
+  ["I lit my neighbour's shed on fire because his leaf blower woke me up at 7am every Sunday.","serious-crime"],
+  ["I swatted a streamer I didn't like after he banned me from chat","serious-crime"],
+  ["I stole $5000 from my employer","serious-crime"],
+  ["I stole my coworker's wallet from her desk","serious-crime"],
+  ["I stole a puppy from the neighbour's yard","serious-crime"],
+  ["I doxxed a streamer who beat me in a tournament","serious-crime"],
+  ["I forged my boss's signature on a $20,000 check","serious-crime"],
+  ["I sold fake concert tickets online to strangers","serious-crime"],
+  ["I tripped an old man down the stairs at the station","serious-crime"],
   // Audit 67.
   ["I put vodka in my toddler's sippy cup so she would finally sleep through the night for once.","serious-crime"],
   ["I crushed up my melatonin and put it in my boss's smoothie before the meeting","serious-crime"],

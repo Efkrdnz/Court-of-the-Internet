@@ -15,7 +15,8 @@ const STEP = 2;
  */
 export function LongWords({ text }: { text: string }): ReactNode {
   if (text.length < MIN_LONG) return text;
-  const parts = text.split(/(\s+)/u);
+  // Split at ordinary whitespace only: a no-break space keeps a separator with its word ("@name\u00A0·").
+  const parts = text.split(/([^\S\u00A0]+)/u);
   if (!parts.some((p) => hyphenateLong(p, MIN_LONG, STEP) !== p)) return text;
   return parts.map((p, i) => {
     const soft = hyphenateLong(p, MIN_LONG, STEP);

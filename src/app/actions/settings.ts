@@ -76,7 +76,7 @@ export async function changePasswordAction(_prev: ActionResult | null, formData:
     // After validation (a mistyped confirmation shouldn't count), before the password check.
     // Only wrong current passwords count, and the message says how long the pause is (audit 68 #3).
     const refund = await reserveAttempt([
-      { key: `password:${user.id}`, limit: 5, windowSeconds: 900, message: "Too many wrong current passwords. For your account's safety, password changes are paused for 15 minutes." },
+      { key: `password:${user.id}`, limit: 5, windowSeconds: 900, message: "Too many wrong current passwords. For your account's safety, password changes are paused for up to 15 minutes." },
     ]);
     await changePassword(user.id, input.currentPassword, input.newPassword, await getSessionToken());
     await refund();

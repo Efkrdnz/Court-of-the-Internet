@@ -69,11 +69,11 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 
 ## GOAL.md §12 verification (final state), line by line
 
-GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (68, 69, 70) of the running production build (fresh agents told to ignore this repo's docs and tests).
+GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (69, 70, 71) of the running production build (fresh agents told to ignore this repo's docs and tests).
 
 Last full run: see the latest "Verified on commit …" line in the audit sections below (`scripts/verify-phases.sh` ×10 phases, `tsc`, ESLint, `next build`, all Vitest, all Playwright on desktop + Pixel 7, `npm run audit:stats`, production route check).
 
-| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 68 · 69 · 70 |
+| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 69 · 70 · 71 |
 | --- | --- | --- |
 | "The application starts successfully." | e2e `§12 the application starts successfully (production server)`; phase 10 `next start` route check (200 / 307 / 308 / 400 / 404) | PASS · PASS · PASS |
 | "The complete confession → defense → prosecution → jury → verdict → archive lifecycle works." | e2e `lifecycle › a full trial: confess → defend → prosecute → jury → verdict → archive` (desktop and Pixel 7, 5 browser contexts); integration `runs confession → defense → prosecution → jury → verdict → archive`, plus not-guilty, mistrial, below-quorum extension and dismissal cases | PASS · PASS · PASS |
@@ -84,14 +84,14 @@ Last full run: see the latest "Verified on commit …" line in the audit section
 | "Profiles and leaderboards work." | e2e `leaderboards ›` (4 boards: thresholds, Wilson order, agreement with profiles); `tests/integration/leaderboards.test.ts` | PASS · PASS · PASS |
 | "Archives display real persisted data." | e2e `§12 archives display real persisted data` (counts, conviction rate, newest card and search vs. the DB); integration archive-search tests | PASS · PASS · PASS |
 | "Navigation is functional." | e2e `§12 moderation: officers see a sealed trial as sealed`, `§12 navigation is functional (every header link, signed in)`, `mobile navigation menu opens and navigates`, the Escape/Back/resize menu tests, unknown-id 404s, Back-after-filing, the expired-editor explanation, post-login redirect safety | PASS · PASS · PASS |
-| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (271 everyday sentences accepted, 319 evasions refused) and validation tests (including weak passwords) | PASS · PASS · PASS |
+| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (280 everyday sentences accepted, 328 evasions refused) and validation tests (including weak passwords) | PASS · PASS · CONCERN (filter gaps, fixed) |
 | "Visual assets render correctly." | e2e `§12 visual assets render correctly` and `(rasterised pixels, all art)`: every illustration drawn to a canvas has visible multi-coloured pixels; fonts loaded; OG PNGs valid | PASS · PASS · PASS |
 | "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
-| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · CONCERN (320px leaderboard names, fixed) · CONCERN (account menu at 320px, fixed) |
+| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | CONCERN (320px leaderboard names, fixed) · CONCERN (account menu at 320px, fixed) · CONCERN (toast over header, accepted; profile separator, fixed) |
 | "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
 | "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 89 Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
 | "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
-| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | PASS · CONCERN (README hyphen claim, made true) · CONCERN (README long-word claim, corrected) |
+| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (README hyphen claim, made true) · CONCERN (README long-word claim, corrected) · CONCERN (proxy warning buried, made prominent) |
 
 ## Verification history (honest account)
 
@@ -1294,6 +1294,18 @@ Verified on commit eb4fa2f: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 First full run on commit 1608b20: the full-trial e2e test (desktop and Pixel 7) failed. Its signup used "objection-123", which the new weak-password rule correctly refuses (the site's theme word plus a decoration). The test now signs up with "objection-overruled-7"; the lifecycle suite passes 6/6 on both projects.
 
 Verified on commit 57d288b: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1071/1071, Playwright 89/89 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
+## Seventy-first independent audit (fresh agent, build of commit c3d6fe5)
+
+**Result: 14 PASS, 3 CONCERN (10, 13, 17), 0 FAIL; no gameplay, race or security defect beyond what the README already states.** 12 concurrent votes per user (two users) gave 1 row each; 8 players racing one claim gave 1 winner and the grace boundary held; SQL recomputation matched 6 players and the home/archive totals; 180 concurrent reaction toggles stayed consistent; a sealed case vanished from archive, profiles, sitemap, leaderboards and its share image; 40 ordinary petty confessions (including "killed it at karaoke", "stabbed the last pickle") were accepted; `Passw0rd!` refused and `Summer2024!` accepted.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| 1 | The filter accepted "lit my neighbour's shed on fire", swatting a streamer, doxxing, "$5000 from my employer", a coworker's wallet, a puppy from a neighbour's yard, a forged signature on a cheque, fake concert tickets, tripping an old man down the stairs | a pattern for each; near-misses kept (birthday candles, swatting a fly or a coworker with a newspaper, a cookie from the employer's break room, a phone charger, a glance at a puppy, "forged ahead", tickets sold at face value, tripping over the dog, a credit card statement) | corpus: 280 everyday sentences, 328 evasions |
+| 2 | Spoofable per-IP limits with `next start` exposed directly, documented but buried in a long section | a prominent callout at the top of README → Deployment (the app can't detect a missing proxy) | — |
+| 3 | The login lockout said "Try again in 15 minutes", though the window counts from the first failure | "within 15 minutes (the pause counts from the first failed attempt)"; "up to 15 minutes" elsewhere | — |
+| 4 | The achievement toast covers the case header on phones for a few seconds | accepted (documented; it never covers the vote or share controls) | — |
+| 5 | A long @username on a 320px profile left "· sworn in on…" starting the next line | the separator stays with the username (no-break space) | — |
 
 ## Per-phase evidence
 

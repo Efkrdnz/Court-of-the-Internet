@@ -18,11 +18,11 @@ export async function loginWithLimits(username: string, password: string, ip: st
   // Most specific first: a burst against one account is stopped (and refunded) at its own
   // per-IP limit before it can briefly use up the shared per-IP allowance of other people
   // behind the same address.
-  const accountMessage = "Too many failed attempts for that account. Try again in 15 minutes.";
+  const accountMessage = "Too many failed attempts for that account. Try again within 15 minutes (the pause counts from the first failed attempt).";
   const limits: LimitSpec[] = [
     ...(ip ? [{ key: `login-user-ip:${username}:${ip}`, limit: 8, windowSeconds: WINDOW, message: accountMessage }] : []),
     { key: `login-user:${username}`, limit: 100, windowSeconds: WINDOW, message: accountMessage },
-    ...(ip ? [{ key: `login:${ip}`, limit: 20, windowSeconds: WINDOW, message: "Too many failed attempts. The court is in recess for 15 minutes." }] : []),
+    ...(ip ? [{ key: `login:${ip}`, limit: 20, windowSeconds: WINDOW, message: "Too many failed attempts. The court is in recess for up to 15 minutes." }] : []),
   ];
   const refund = await reserveAttempt(limits);
   const user = await authenticate(username, password); // a failure keeps the attempt counted
