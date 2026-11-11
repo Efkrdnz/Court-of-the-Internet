@@ -46,7 +46,8 @@ export default async function JuryPage({ searchParams }: { searchParams: Promise
   }
   // Only trials (or just-closed ones, for the post-vote reveal) belong here; a case still waiting
   // for counsel isn't "closed".
-  const focusCase = focus?.kind === "ok" && (focus.case.status === "DELIBERATION" || focus.case.status === "CLOSED") ? focus.case : null;
+  // (Officers can open a sealed case's page, but it isn't a trial anyone can sit on: audit 65 #1.)
+  const focusCase = focus?.kind === "ok" && focus.moderationState !== "REMOVED" && (focus.case.status === "DELIBERATION" || focus.case.status === "CLOSED") ? focus.case : null;
   // An unknown, sealed or under-review pin falls through to the next case that needs a juror.
   if (!focusCase && queue.cards[0] && queue.cards[0].number !== pinned) redirect(`/jury?case=${queue.cards[0].number}`);
   const others = queue.cards.filter((c) => c.number !== pinned).slice(0, 6);

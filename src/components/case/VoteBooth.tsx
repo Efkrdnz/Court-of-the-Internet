@@ -19,6 +19,7 @@ export function VoteBooth({
   caseId,
   endsAt,
   paused = false,
+  pausedLabel = "clock paused while the clerks review this case",
   votesCast,
   quorum,
   initialTallies,
@@ -34,6 +35,8 @@ export function VoteBooth({
   endsAt: string;
   /** The trial's clock is stopped (under review or sealed): no countdown, it would be wrong. */
   paused?: boolean;
+  /** What the paused clock says (a sealed case isn't "under review"). */
+  pausedLabel?: string;
   votesCast: number;
   quorum: number;
   initialTallies: { guilty: number; notGuilty: number } | null;
@@ -96,7 +99,7 @@ export function VoteBooth({
           <p className="mt-1 text-sm text-parchment/70">
             {total >= quorum ? `${total} votes · quorum reached` : `${total} vote${total === 1 ? "" : "s"} so far · ${quorum} needed for a verdict`} ·{" "}
             {paused ? (
-              <strong className="text-gold-light">clock paused while the clerks review this case</strong>
+              <strong className="text-gold-light">{pausedLabel}</strong>
             ) : (
               <>
                 closes in <Countdown to={endsAt} className="font-bold text-gold-light" expiredLabel="moments" />

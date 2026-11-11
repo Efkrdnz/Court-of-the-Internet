@@ -194,7 +194,7 @@ export function ConfessionForm({
               value={confession}
               onChange={(e) => setConfession(e.target.value)}
               rows={6}
-              maxLength={LIMITS.confession.max + 50}
+              maxLength={LIMITS.confession.max * 4}
               className="textarea textarea-lined"
               placeholder="Tell the court exactly what you did. Details make juries laugh."
               aria-invalid={!!fe?.confession}
@@ -214,7 +214,7 @@ export function ConfessionForm({
               value={context}
               onChange={(e) => setContext(e.target.value)}
               rows={2}
-              maxLength={LIMITS.context.max + 20}
+              maxLength={LIMITS.context.max * 4}
               className="textarea !min-h-0"
               placeholder="Mitigating circumstances, aggravating snacks…"
               aria-describedby="cf-context-count"

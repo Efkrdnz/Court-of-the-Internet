@@ -232,7 +232,7 @@ export async function restoreCase(moderatorId: string, caseId: string, sealSeen?
     });
     if (!exists) throw new CourtError("NOT_FOUND", "That case could not be found.");
     // Only a sealed case can be restored (a stale console must not silently dismiss open reports).
-    if (exists.moderationState !== "REMOVED") throw new CourtError("INVALID_STATE", "That case isn't sealed, so there's nothing to restore.");
+    if (exists.moderationState !== "REMOVED") throw new CourtError("INVALID_STATE", "That case isn't sealed any more (another officer may have just restored it), so there's nothing to restore.");
     if (exists.moderationState === "REMOVED") {
       await notify(tx, exists.accusedId, {
         type: "MODERATION",

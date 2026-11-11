@@ -116,6 +116,7 @@ export default async function CasePage({ params, searchParams }: Props) {
   const cat = getCategory(c.category);
   const accusedName = c.accused.displayName.replace(/^You \(as (.*)\)$/, "$1");
   const viewerRole = c.viewer.role;
+  const sealed = detail.moderationState === "REMOVED";
   const url = `${appConfig.siteUrl}${casePath(c)}`;
   const loginHref = `/login?next=${encodeURIComponent(casePath(c))}`;
   const related = c.status === "CLOSED" ? await relatedCases(c.id, c.category, user) : [];
@@ -154,7 +155,9 @@ export default async function CasePage({ params, searchParams }: Props) {
           ? "You're the defense attorney, so you can't vote. Bite your nails like a professional."
           : viewerRole === "PROSECUTION"
             ? "You're the prosecutor, so you can't vote. Glare at the jury meaningfully instead."
-            : detail.moderationState !== "VISIBLE"
+            : detail.moderationState === "REMOVED"
+              ? "Voting is closed: this case is sealed."
+              : detail.moderationState !== "VISIBLE"
               ? "Voting is paused while the clerks review this case."
               : c.status === "DELIBERATION" && !c.viewer.vote && (await voteStruck(user.id, c.id))
                 ? VOTE_STRUCK_REASON
@@ -189,7 +192,9 @@ export default async function CasePage({ params, searchParams }: Props) {
         ? `You've already filed the ${editorSide} for this case, so its editor is closed.`
         : viewerRole
           ? `You're ${PARTY[viewerRole]} on this case, so you can't take its ${editorSide} side.`
-          : `The ${editorSide} editor for this case is only open to the player holding its ${editorSide} claim, and you don't hold it (it may have expired or been released, or the case has moved on).`
+          : editorSide === "prosecution" && (c.status === "AWAITING_DEFENSE" || c.status === "DEFENSE_CLAIMED")
+            ? "The prosecution can't start yet: this case is still waiting for its defense."
+            : `The ${editorSide} editor for this case is only open to the player holding its ${editorSide} claim, and you don't hold it (it may have expired or been released, or the case has moved on).`
       : undefined;
 
   return (
@@ -197,6 +202,13 @@ export default async function CasePage({ params, searchParams }: Props) {
       {editorClosed ? <FormAlert kind="info" className="mb-6">{editorClosed}</FormAlert> : null}
       {filedMessage ? <FormAlert kind="success" className="mb-6 animate-in">{filedMessage}</FormAlert> : null}
       {detail.underReview ? <FormAlert kind="info" className="mb-6">This case is under review by the clerks and hidden from public listings.</FormAlert> : null}
+      {/* Only officers see a sealed case's page (audit 65 #1): say so, and offer nothing it would refuse. */}
+      {sealed ? (
+        <FormAlert kind="info" className="mb-6">
+          This case is sealed: only officers can see it, and its trial clock is stopped. Restore it from the{" "}
+          <Link href={`/moderation?case=${c.number}`} className="underline">moderation console</Link> to put it back on the record.
+        </FormAlert>
+      ) : null}
 
       {/* Caption */}
       {/* Phones: extra bottom room so the category line clears the bottom corner ornaments. */}
@@ -208,6 +220,7 @@ export default async function CasePage({ params, searchParams }: Props) {
         <div className="flex flex-wrap items-center justify-center gap-2">
           <span className="plaque text-sm">Case No. {formatCaseNumber(c.number)}</span>
           <StatusPill status={c.status} verdict={c.verdict} light />
+          {sealed ? <span className="pill bg-ink text-parchment">Sealed</span> : null}
         </div>
         <p className="mt-4 font-display text-sm font-bold uppercase tracking-[0.35em] text-burgundy">In the Court of the Internet</p>
         {/* Both shrink to fit their longest word at the column's width, rather than breaking it mid-word. */}
@@ -297,6 +310,7 @@ export default async function CasePage({ params, searchParams }: Props) {
               caseId={c.id}
               endsAt={c.deliberationEndsAt!}
               paused={detail.moderationState !== "VISIBLE"}
+              pausedLabel={sealed ? "clock stopped: the case is sealed" : undefined}
               votesCast={c.votesCast}
               quorum={detail.quorum}
               initialTallies={c.tallies}
@@ -310,7 +324,7 @@ export default async function CasePage({ params, searchParams }: Props) {
             <VerdictReveal caseNumber={c.number} verdict={c.verdict} guilty={c.tallies?.guilty ?? 0} notGuilty={c.tallies?.notGuilty ?? 0} outcome={outcome} />
           ) : null}
 
-          {c.status === "DELIBERATION" || c.status === "CLOSED" ? (
+          {(c.status === "DELIBERATION" || c.status === "CLOSED") && !sealed ? (
             <section aria-labelledby="react-heading" className="space-y-6">
               <div>
                 <h2 id="react-heading" className="mb-3 font-display text-xl font-bold text-parchment">
@@ -347,7 +361,7 @@ export default async function CasePage({ params, searchParams }: Props) {
                 <span className="text-parchment/50">Final tally:</span> {c.tallies.guilty} guilty · {c.tallies.notGuilty} not guilty
               </p>
             ) : null}
-            {user && !user.bannedAt ? (
+            {user && !user.bannedAt && !sealed ? (
               <div className="border-t border-gold/20 pt-3">
                 <ReportDialog
                   caseId={c.id}

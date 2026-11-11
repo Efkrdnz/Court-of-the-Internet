@@ -1,5 +1,6 @@
 "use client";
 
+import { LIMITS } from "@/lib/limits";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { reportAction } from "@/app/actions/cases";
 import { useFormAction } from "@/components/ui/useFormAction";
@@ -112,7 +113,7 @@ function ReportForm({ caseId, available: current, close }: { caseId: string; ava
       <label className="field-label mt-4" htmlFor="report-details">
         Details (optional)
       </label>
-      <textarea id="report-details" name="details" rows={3} maxLength={500} className="textarea !min-h-0" />
+      <textarea id="report-details" name="details" rows={3} maxLength={LIMITS.reportDetails.max * 4} className="textarea !min-h-0" />
       {state && !state.ok ? <FormAlert className="mt-3">{state.error}</FormAlert> : null}
       <div className="mt-5 flex justify-end gap-2">
         <button type="button" className="btn btn-ink btn-sm" onClick={close}>

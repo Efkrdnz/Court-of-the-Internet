@@ -885,6 +885,29 @@ test("§12 mobile: an officer can log out from a phone held sideways (audit 64 D
   await context.close();
 });
 
+test("§12 moderation: officers see a sealed trial as sealed, with nothing it would refuse (audit 65 #1)", async ({ browser }) => {
+  const c = await prisma.case.findFirstOrThrow({
+    where: { status: "DELIBERATION", moderationState: "VISIBLE", accused: { username: { not: "judge_wigsworth" } } },
+    select: { id: true, number: true, slug: true, deliberationPausedAt: true },
+  });
+  await prisma.case.update({ where: { id: c.id }, data: { moderationState: "REMOVED", deliberationPausedAt: new Date() } });
+  try {
+    const page = await demoPage(browser, "judge_wigsworth");
+    await page.goto(`/cases/${c.number}-${c.slug}`);
+    await expect(page.getByText("This case is sealed: only officers can see it")).toBeVisible();
+    await expect(page.getByText("clock stopped: the case is sealed")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "How did the gallery react?" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /report/i })).toHaveCount(0);
+    await expect(page.getByText(/while the clerks review/)).toHaveCount(0);
+    // The jury room doesn't seat anyone on it.
+    await page.goto(`/jury?case=${c.number}`);
+    await expect(page.locator(`#vote-${c.id}`)).toHaveCount(0);
+    await page.context().close();
+  } finally {
+    await prisma.case.update({ where: { id: c.id }, data: { moderationState: "VISIBLE", deliberationPausedAt: c.deliberationPausedAt } });
+  }
+});
+
 test("§12 forms: a confession draft survives a reload (audit 33 D5)", async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();

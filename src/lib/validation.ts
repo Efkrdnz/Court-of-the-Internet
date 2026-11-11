@@ -297,10 +297,35 @@ export const usernameSchema = z
     { message: "That's what anonymous confessors are called. Pick something else." },
   );
 
+// The most common passwords (and their obvious shapes) are refused outright: with a public site,
+// they're the first ones any guesser tries (audit 65 #3). Not a full breach list, which would need
+// a large download or an external service; see README → Known limitations.
+const COMMON_PASSWORDS = new Set([
+  "password", "password1", "password12", "password123", "password1234", "passw0rd", "p@ssword", "p@ssw0rd", "letmein1", "letmein123",
+  "12345678", "123456789", "1234567890", "12345678910", "123123123", "11111111", "00000000", "87654321", "11223344", "12341234",
+  "qwertyui", "qwertyuiop", "qwerty123", "qwerty12", "1q2w3e4r", "1q2w3e4r5t", "asdfghjk", "asdfghjkl", "zxcvbnm1", "abcd1234",
+  "abc12345", "abcdefgh", "iloveyou", "iloveyou1", "sunshine", "sunshine1", "princess", "football", "football1", "baseball",
+  "welcome1", "welcome123", "monkey123", "dragon123", "superman", "trustno1", "whatever", "starwars", "computer", "michelle",
+  "jennifer", "shadow12", "master12", "admin123", "administrator", "changeme", "changeme1", "default1", "secret123", "loveyou1",
+  "court123", "internet", "courtoftheinternet", "objection", "guilty123", "notguilty",
+]);
+export function isWeakPassword(password: string): boolean {
+  const p = password.toLowerCase();
+  if (COMMON_PASSWORDS.has(p)) return true;
+  if (/^(.)\1+$/.test(p)) return true; // "aaaaaaaa"
+  // One short chunk repeated ("abcabcabc", "12121212").
+  if (/^(.{1,4})\1{2,}$/.test(p)) return true;
+  // A straight run up or down the alphabet or digits ("abcdefgh", "98765432").
+  const codes = [...p].map((c) => c.charCodeAt(0));
+  const step = codes[1] - codes[0];
+  return Math.abs(step) === 1 && codes.every((c, k) => k === 0 || c - codes[k - 1] === step);
+}
+
 export const passwordSchema = z
   .string()
   .min(LIMITS.password.min, `Password must be at least ${LIMITS.password.min} characters.`)
-  .max(LIMITS.password.max, "Password is too long.");
+  .max(LIMITS.password.max, "Password is too long.")
+  .refine((p) => !isWeakPassword(p), "That password is one of the first any guesser tries. Pick something less common (a short phrase works well).");
 
 export const signupSchema = z
   .object({

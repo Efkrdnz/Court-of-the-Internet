@@ -279,6 +279,10 @@ export const BENIGN = [
   "I was 14 when I sent my first email and it was all in capitals.",
   "I hope your whole family gets the joke eventually, said the fridge note.",
   "Pay me back the fiver you owe me before the trial starts, I told my brother.",
+  // Audit 65 near-misses.
+  "I keyed in my neighbour's wifi password wrong five times and blamed the router.",
+  "I scratched my brother's Prius-shaped keyring and he still hasn't noticed.",
+  "I smashed my dad's high score on the old Civic racing game.",
   // Audit 61 near-misses.
   "I worked at Gmail for two years and never once read the terms.",
   "Ate lunch at Gmail's office cafeteria, period.",
@@ -612,6 +616,10 @@ export const EVASIONS: [string, string][] = [
   ["tinyurl com slash courtappeal","link"],
   ["courtappeal dot help","link"],
   ["Venmo me five dollars and I will vote not guilty","phishing"],
+  // Audit 65.
+  ["I keyed my neighbour's shiny new Prius because it was parked in my spot","serious-crime"],
+  ["I scratched my boss's Model 3 with my house keys","serious-crime"],
+  ["I keyed his brand new Civic after the party","serious-crime"],
   // Audit 61.
   ["Call 5 5 5 – 0 1 2 3 – 4 5 6 if you want the real story about my roommate","personal-info"],
   ["Call 5 5 5 - 0 1 2 3 - 4 5 6 for the full story","personal-info"],

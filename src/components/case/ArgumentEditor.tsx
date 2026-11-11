@@ -150,7 +150,7 @@ export function ArgumentEditor({ caseId, role, expiresAt, draftOwner }: { caseId
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={8}
-          maxLength={LIMITS.argument.max + 50}
+          maxLength={LIMITS.argument.max * 4}
           className="textarea textarea-lined"
           placeholder={isDefense ? "Your Honour, my client is innocent because…" : "Members of the jury, the defense would have you believe…"}
           aria-invalid={!!state && !state.ok && !!state.fieldErrors?.body}
