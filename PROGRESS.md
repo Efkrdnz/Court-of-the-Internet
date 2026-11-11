@@ -1307,6 +1307,8 @@ Verified on commit 57d288b: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | 4 | The achievement toast covers the case header on phones for a few seconds | accepted (documented; it never covers the vote or share controls) | — |
 | 5 | A long @username on a 320px profile left "· sworn in on…" starting the next line | the separator stays with the username (no-break space) | — |
 
+Verified on the code committed as 2722f6a (run started on the identical working tree): phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1089/1089, Playwright 89/89 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
