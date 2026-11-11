@@ -1151,6 +1151,8 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 3 | A sealed case said "could not be found" when claimed or reported but "sealed by the clerks" when reacted to | all three say it has been sealed (the sealed page already says so) | — |
 | 4–5 | Narrow card titles beside the verdict stamp at 1024px; toasts briefly cover headings on phones; small native checkboxes inside large labels | accepted: text stays readable, toasts dismiss themselves, the label rows are ≥40px tap targets | — |
 
+Verified on commit 70aeb65: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1036/1036, Playwright 84/84 (desktop + Pixel 7), stats audit matches history for 28 players, production route check as expected, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
