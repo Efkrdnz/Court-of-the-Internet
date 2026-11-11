@@ -133,6 +133,10 @@ const PLATFORM_INVITE = new RegExp(
   `\\b(?:dm|message|add|follow|find|hit\\s+up|contact|text)\\s+(?:me|us|him|her|them)\\s+(?:up\\s+)?on\\s+${PLATFORMS}\\s+(?:at\\s+|as\\s+|under\\s+|:\\s*|@)?@?(?!(?:at|as|and|or|but|for|if|to|the|today|tomorrow|tonight|now|please|later|sometime|instead|too|again|anytime|whenever)\\b)[a-z0-9._]{4,}`,
   "i",
 );
+/** Spaced-out words joined back ("g y p s i e s" → "gypsies") for the hate checks (audit 59 D2). */
+function joinedForHate(text: string): string {
+  return text.replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
+}
 const NUMBER_WORDS: Record<string, string> = { zero: "0", oh: "0", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6", seven: "7", eight: "8", nine: "9" };
 /** A phone number spelled out ("five five five, eight six seven…"): 7+ digit words in a row. */
 function spelledPhone(text: string): boolean {
@@ -190,10 +194,14 @@ const NOT_THEIR_THING = "(?!['’]s\\s+(?!(?:\\w+\\s+)?(?:cat|dog|puppy|kitten|p
 const NOT_A_GESTURE = "(?!\\s+(?:a|an|the|some|another)\\s+(?:[\\w-]+\\s+){0,3}(?:look|looks|glance|text|message|email|e-mail|smile|wink|grin|stare|dm|photo|pic|picture|video|selfie|reply|question|warning|eyebrow|thumbs)\\b)";
 
 const GROUPS =
-  "(?:gay|lesbian|bi|trans|transgender|queer|black|white|brown|asian|jewish|muslim|christian|hindu|sikh|mexican|arab|african|chinese|indian|disabled|autistic|immigrant|refugee)\\s+(?:people|folks|men|women|kids|guys|ones)|(?:gays|lesbians|trans\\s+people|blacks|whites|asians|jews|muslims|christians|hindus|sikhs|mexicans|arabs|africans|immigrants|refugees|migrants|foreigners|women|men)";
+  "(?:gay|lesbian|bi|trans|transgender|queer|black|white|brown|asian|jewish|muslim|christian|hindu|sikh|mexican|arab|african|chinese|indian|disabled|autistic|immigrant|refugee)\\s+(?:people|folks|men|women|kids|guys|ones)|(?:gays|lesbians|trans\\s+people|blacks|whites|asians|jews|muslims|christians|hindus|sikhs|mexicans|arabs|africans|immigrants|refugees|migrants|foreigners|women|men|gypsies|gipsies|roma|travellers|travelers|romani|pakis|jewish\\s+people)";
 const HATE_STATEMENTS = [
-  new RegExp(`\\b(?:all\\s+)?(?:${GROUPS})\\s+(?:are|r)\\s+(?:all\\s+|just\\s+|nothing\\s+but\\s+)?(?:disgusting|vermin|animals|subhuman|scum|parasites|rats|cockroaches|filth|trash|garbage|evil|inferior|a\\s+disease|a\\s+plague|a\\s+cancer|savages|degenerates|criminals|terrorists|abominations?)\\b`, "i"),
+  new RegExp(`\\b(?:all\\s+)?(?:${GROUPS})\\s+(?:are|r)\\s+(?:all\\s+|just\\s+|nothing\\s+but\\s+)?(?:disgusting|vermin|animals|subhuman|scum|parasites|rats|cockroaches|filth|trash|garbage|evil|inferior|a\\s+disease|a\\s+plague|a\\s+cancer|savages|degenerates|criminals|terrorists|abominations?|thieves|liars|scammers|rapists|beggars)\\b`, "i"),
   /\bjews\s+(?:control|run|own)\s+(?:the|all|every)\b/i,
+  // "Those [group] down the road are all thieves": a few words between the group and the slur (audit 59 D2).
+  new RegExp(`\\b(?:the|those|these|all\\s+the|all)\\s+(?!(?:wo)?men\\b)(?:${GROUPS})\\b[^.!?]{0,30}?\\b(?:are|r)\\s+(?:all\\s+|just\\s+)?(?:thieves|vermin|subhuman|cockroaches|parasites|criminals|scum|rapists|terrorists|filth|animals|savages|rats)\\b`, "i"),
+  // "go back to their own country" (audit 59 D2).
+  /\b(?:go|send\s+(?:them|him|her|you))\s+back\s+to\s+(?:their|your|ur|his|her|where\s+(?:they|you)\s+came\s+from)(?:\s+own)?(?:\s+(?:country|countries))?\b(?<!where\s+(?:they|you)\s+came\s+from)|\bgo\s+back\s+to\s+where\s+(?:they|you)\s+came\s+from\b/i,
   // Saying or using the n-word (audit 56 D2; the "f-bomb" is just swearing).
   /\b(?:said|say|saying|used|use|using|shouted|yelled|dropped|typed|wrote|called\s+(?:him|her|them|someone|my\s+\w+|a\s+\w+))\s+(?:the\s+)?n[-\s]?(?:word|bomb)\b/i,
   // Audit 54 D1: hating or harming a group, Nazi slogans and Holocaust denial, "women belong in the kitchen".
@@ -210,6 +218,8 @@ const HATE_STATEMENTS = [
 ];
 
 const VIOLENCE = [
+  // "make my roommate regret … he will never see it coming" (audit 59 D2).
+  new RegExp(`\\b(?:make|making|gonna\\s+make|going\\s+to\\s+make)\\s+${TARGET}\\s+regret\\b.{0,60}\\bnever\\s+see\\s+it\\s+coming\\b`, "i"),
   // "I will find where you live" (audit 56 D2).
   /\b(?:i(?:'ll|\s+will|\s*'m\s+going\s+to|\s+am\s+going\s+to)|gonna|going\s+to)\s+find\s+(?:out\s+)?where\s+(?:you|u|he|she|they|you\s+all)\s+(?:all\s+)?lives?\b/i,
   // "Kill all [group]" (audit 50 D2), with or without "lol jk".
@@ -292,6 +302,14 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 59 D2: a pet killed with poison, alcohol in a baby's bottle or for a little cousin, a
+  // small child without a car seat, selling someone's medicine, scamming the elderly.
+  /\b(?:unalived|killed|poisoned|got\s+rid\s+of|finished\s+off|did\s+in|offed|murdered|put\s+down|fed|gave)\s+(?:my|his|her|their|the|a|our|someone'?s)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:\w+\s+)?(?:dog|cat|puppy|kitten|hamster|rabbit|bird|parrot|pet|guinea\s+pig|horse|goat)s?\b.{0,20}\b(?:with\s+|some\s+)?(?:antifreeze|rat\s+poison|slug\s+pellets|bleach|weed\s*killer|poison)\b/i,
+  /\b(?:whisk(?:e)?y|vodka|rum|gin|wine|beer|alcohol|brandy|bourbon|booze|sleeping\s+pills|benadryl|nyquil|cough\s+syrup)\s+(?:in|into)\s+(?:her|his|the|my|their|a)\s+(?:baby'?s\s+)?(?:bottle|sippy\s+cup|formula|milk)\b/i,
+  /\b(?:gave|fed|let|poured)\s+(?:my|the|a|his|her|their|our)\s+(?:\w+\s+)?(?:baby|babies|infant|newborn|toddler|kid|kids|child|children|son|daughter|little\s+(?:one|brother|sister|cousin|nephew|niece)|baby\s+(?:brother|sister|cousin)|\d+[-\s]?(?:year|yr)[-\s]?old)\s+(?:have\s+|drink\s+)?(?:a\s+)?(?:few\s+|couple\s+of\s+|some\s+)?(?:sips?|shots?|glass(?:es)?|drinks?|swigs?|cups?|mouthfuls?)\s+of\s+(?:vodka|wine|beer|whisk(?:e)?y|rum|gin|alcohol|booze|tequila|cider)\b/i,
+  new RegExp(`\\b${""}(?:\\d|one|two|three|four|five|six)[-\\s]?(?:year|yr)[-\\s]?old\\b.{0,60}\\b(?:no\\s+|without\\s+(?:a\\s+|her\\s+|his\\s+|their\\s+)?)(?:seat\\s*belt|car\\s*seat|booster(?:\\s+seat)?)\\b|\\b(?:drove|driving|drive)\\b.{0,40}\\b(?:baby|toddler|infant|newborn|kid|child|(?:\\d|one|two|three|four|five)[-\\s]?(?:year|yr)[-\\s]?old)\\b.{0,30}\\b(?:without|with\\s+no|no)\\s+(?:a\\s+)?(?:car\\s*seat|seat\\s*belt|booster)`, "i"),
+  /\bsold\s+(?:my|his|her|their|our|someone'?s)\s+(?:[\w-]+(?:'s|’s|s')\s+)?(?:inhaler|epipen|epi-pen|insulin|medication|medicine|meds|pills|prescription)\b/i,
+  /\b(?:phished|scammed|conned|swindled|tricked|catfished)\s+(?:my|an?|the|his|her|their|some|this)\s+(?:\w+\s+)?(?:grandma|grandmother|gran|nan|nana|granny|grandad|granddad|grandpa|grandfather|old\s+(?:lady|man|woman|person|people|couple)|pensioners?|elderly\s+\w+)\b/i,
   // Audit 58 D2: shaking a baby, alcohol or sedatives given to a child, a small child left home
   // alone, a pet left without food or water for days, someone recorded in the shower, a minor
   // sending pictures to an adult.
@@ -332,7 +350,7 @@ const SERIOUS = [
   // Selling someone's things behind their back.
   /\bsold\s+(?:(?:my|his|her|their|our|the|a)\s+(?:\w+\s+)?[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:playstation|ps[45]|xbox|switch|console|laptop|phone|iphone|ipad|bike|car|guitar|tv|television|camera|jewel\w*|watch|rings?|necklace|stuff|things|belongings|clothes|furniture|sofa|games)\b(?=.{0,60}\b(?:without|behind\s+(?:his|her|their)\s+back|kept\s+the\s+(?:money|cash)|while\s+(?:he|she|they)\s+(?:was|were)\s+(?:away|out|asleep|at\s+work)|on\s+(?:ebay|facebook|vinted|gumtree|craigslist|depop)))/i,
   // A child or pet shut in a hot car.
-  /\b(?:locked|left|shut)\s+(?:my|his|her|their|our|the|a)\s+(?:\w+\s+)?(?:toddler|baby|kid|kids|child|children|son|daughter|dog|puppy|cat|kitten|pet)\s+(?:alone\s+)?in\s+(?:the|a|my|his|her|their)\s+(?:hot\s+)?car\b(?=.{0,40}\b(?:hot|heat|heatwave|summer|sun|sweltering|boiling|windows?\s+(?:up|shut|closed)|for\s+hours)\b)/i,
+  /\b(?:locked|left|shut)\s+(?:my|his|her|their|our|the|a)\s+(?:\w+\s+)?(?:toddler|baby|kid|kids|child|children|son|daughter|dog|puppy|cat|kitten|pet)\s+(?:alone\s+)?in\s+(?:the|a|my|his|her|their)\s+(?:(?:hot|boiling|baking|sweltering)\s+car\b|car\b(?=.{0,40}\b(?:hot|heat|heatwave|summer|sun|sweltering|boiling|windows?\s+(?:up|shut|closed)|for\s+(?:\w+\s+)?hours?)\b))/i,
   // Audit 45: arson of someone's property ("set fire to my neighbours shed": apostrophes optional).
   /\bset\s+fire\s+to\s+(?:(?:my|his|her|their|our|the|a)\s+[\w-]+(?:'s|’s|s')|(?:my|his|her|their|our)\s+(?:neighbou?rs|bosses|parents|flatmates|roommates|coworkers|colleagues|friends)|his|her|their|someone'?s|somebody'?s)\s+(?:\w+\s+)?(?:shed|house|home|car|garage|flat|apartment|fence|bins?|office|shop|barn|van|truck|caravan|bike|hair|dog|cat|garden|door|hedge|letterbox)\b/i,
   // A line keyed or scratched into someone's car ("down the side of my bosses Tesla").
@@ -510,7 +528,7 @@ const SERIOUS = [
 // Underscores, dots and commas between letters don't break a line either, so they count
 // ("the_cat_ate_my_homework_and_then…" slipped through when only letters counted, audit 44 #3);
 // punctuation at either end of a word doesn't ("…volca!" is a 35-letter word and a "!").
-const UNBREAKABLE_RUN = /(?:(?![\s\-‐-―\/­​\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Extended_Pictographic}\p{Emoji_Modifier}‍️\u{1F1E6}-\u{1F1FF}]).){36,}/gu;
+const UNBREAKABLE_RUN = /(?:(?![\s\-‐-―\/­​་༌།༎\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Extended_Pictographic}\p{Emoji_Modifier}‍️\u{1F1E6}-\u{1F1FF}]).){36,}/gu;
 const LONG_WORD = {
   test(text: string): boolean {
     for (const run of text.match(UNBREAKABLE_RUN) ?? []) {
@@ -675,7 +693,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
   // Hate without slurs: a protected group called vermin, disgusting, subhuman… or a stock
   // conspiracy line ("Jews control the banks").
   // Also the leetspeak-decoded copy ("j3ws control the banks"), audit 56 D2.
-  if (HATE_STATEMENTS.some((re) => re.test(text) || re.test(text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c)))) return fail("hate");
+  if (HATE_STATEMENTS.some((re) => re.test(text) || re.test(text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c)) || re.test(joinedForHate(text)))) return fail("hate");
   // Also check a leetspeak-decoded copy ("k1ll" → "kill") for threats and serious crime.
   const decoded = text.replace(/[01345679@$!]/g, (c) => LEET[c] ?? c);
   if (VIOLENCE.some((re) => re.test(text) || re.test(decoded) || re.test(joined) || re.test(squeezed))) return fail("violence");

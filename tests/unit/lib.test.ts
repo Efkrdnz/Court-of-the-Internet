@@ -509,6 +509,14 @@ describe("scripts with stacked marks survive normalisation (audit 56 D1)", () =>
     expect(bioImpersonatesStaff("I sit next to the judge and I can get your sealed case back")).toBe(true);
     expect(bioImpersonatesStaff("Part of the pub quiz crew")).toBe(false);
   });
+  it("audit 59: staff bios, registrar names, Tibetan words", () => {
+    for (const b of ["Mod. DM for appeals", "Moderator since 2019", "I moderate this court", "Clerk of this court", "Reports? Send them to me, I handle them", "head of trust and safety", "I am the judge's deputy"]) {
+      expect(bioImpersonatesStaff(b)).toBe(true);
+    }
+    for (const b of ["Officer of the bake-off committee", "I moderate my sugar intake", "Admin assistant by day, cake thief by night"]) expect(bioImpersonatesStaff(b)).toBe(false);
+    expect(hasCourtTitle("Court Registrar")).toBe(true);
+    expect(screenFields({ title: "\u0F56\u0F40\u0FB2\u0F0B\u0F64\u0F72\u0F66\u0F0B\u0F56\u0F51\u0F7A\u0F0B\u0F63\u0F7A\u0F42\u0F66\u0F0B\u0F66\u0F90\u0FB1\u0F7A\u0F66\u0F0B\u0F66\u0F90\u0FB1\u0F7C\u0F44\u0F0B\u0F5E\u0F56\u0F66\u0F0B\u0F56\u0F62\u0F9F\u0F53\u0F0B" }).ok).toBe(true);
+  });
   it.each(["anon_pigeon", "sneaky_otter", "sneakypigeon_a1b2"])("refuses the alias-like username %j (audit 56 D5)", (u) => {
     expect(usernameSchema.safeParse(u).success).toBe(false);
   });

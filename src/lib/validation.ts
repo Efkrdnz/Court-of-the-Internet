@@ -134,7 +134,7 @@ const COURT_TITLES = [
   // Audit 47 D4.
   "supreme court", "high court", "magistrate", "magistrates", "your worship", "his worship", "her worship", "the bench", "official judge",
   // Audit 51 #3: names posing as the site itself or its staff.
-  "court of the internet", "coti", "official court", "presiding", "verified", "official", "deleted", "official account", "court account", "court team", "trust and safety", "trust safety", "site owner", "site official", "support", "helpdesk", "help desk",
+  "court of the internet", "coti", "official court", "presiding", "verified", "official", "deleted", "registrar", "court system", "official account", "court account", "court team", "trust and safety", "trust safety", "site owner", "site official", "support", "helpdesk", "help desk",
 ].map(foldTitle);
 
 // Distinctive stems also caught inside joined, numbered or split-up names ("ModeratorBob",
@@ -200,6 +200,17 @@ const BIO_IMPERSONATION = [
   /\b(?:dms?|messages?|inbox|pms?)\s+(?:are\s+|is\s+)?open\s+for\s+(?:appeals|unbans|bans|reports|pardons)\b/iu,
   // Audit 58 D4: "part of the moderation crew", "reports go through me", "I can get your sealed case back".
   /\b(?:part\s+of|on|in|with)\s+the\s+(?:moderation|mod|admin|clerks?'?|court)\s+(?:crew|squad|team|staff|desk|office)\b/iu,
+  // Audit 59 D3: a bare staff title up front ("Mod. DM for appeals", "Moderator since 2019"),
+  // "I moderate this court", "clerk of this court", "I handle them", "head of trust and safety",
+  // "the judge's deputy".
+  /^\W*(?:mod|mods|moderator|admin|administrator|clerk|bailiff)\b(?=\s*(?:[.,!:;|\-–—]|$|here\b|on\s+duty\b))/iu,
+  /\b(?:mod|moderator|admin|clerk|bailiff|staff|officer)\s+(?:since|for)\s+(?:\d{4}|\w+\s+years?)\b/iu,
+  /\bi\s+(?:moderate|run|police|manage|oversee)\s+(?:this|the)\s+(?:court|site|app|game|website|place)\b/iu,
+  /\b(?:clerk|moderator|mod|admin|bailiff|officer|staff)\s+(?:of|for|at)\s+(?:this|the)\s+(?:court|site|app|game|website)\b/iu,
+  /\b(?:dms?|message|pm)\s+(?:me\s+)?(?:for|about|with)\s+(?:appeals|unbans|bans|reports|pardons)\b/iu,
+  /\b(?:send|give|forward)\s+(?:them|reports?|appeals?|those)\s+to\s+me\b|\bi\s+handle\s+(?:them|it|those|reports|appeals|bans)\b/iu,
+  /\b(?:head|lead|chief|member|part)\s+of\s+(?:the\s+)?trust\s*(?:and|&)\s*safety\b|\btrust\s*(?:and|&)\s*safety\s+(?:team|lead|head|officer)\b/iu,
+  /\b(?:judge|clerk|court|bailiff|moderator)'?s\s+(?:deputy|assistant|right[\s-]hand|second|apprentice)\b|\b(?:deputy|assistant|apprentice)\s+(?:judge|clerk|moderator|bailiff)\b/iu,
   /\b(?:reports?|appeals?|bans?|unbans?|verdicts?)\s+(?:go|goes|come|comes|run|runs)\s+(?:through|past|via)\s+me\b/iu,
   /\b(?:get|bring)\s+(?:your|a)\s+(?:sealed|banned|removed|struck|deleted)\s+(?:case|account|argument|profile)\s+back\b/iu,
   /\b(?:get|have)\s+(?:your|a)\s+(?:case|ban|verdict|contempt|sentence)\s+(?:restored|unsealed|lifted|overturned|reversed|removed|cleared)\b/iu,

@@ -711,6 +711,17 @@ describe("moderation", () => {
     ).rejects.toMatchObject({ code: "VALIDATION", field: "bio" });
   });
 
+  it("a refused ban never confirms who filed an anonymous case (audit 59 D1)", async () => {
+    const confessor = await makeUser();
+    const clerk = await makeUser("anon_probe_clerk", "MODERATOR");
+    const c = await makeCase(confessor, { anonymous: true });
+    await claimCase(clerk, c.id, "DEFENSE");
+    // The only other party to the clerk's open trial is its anonymous confessor: the ban must not
+    // be refused on that ground (it would unmask them, with nothing in the audit log).
+    await setBan(clerk, confessor, true, "Probe");
+    expect((await db.user.findUniqueOrThrow({ where: { id: confessor } })).bannedAt).not.toBeNull();
+  });
+
   it("players can't pose as an officer of the court (audit 9 #8)", async () => {
     await makeUser("real_judge", "ADMIN");
     await db.user.update({ where: { username: "real_judge" }, data: { displayName: "Judge Realname" } });

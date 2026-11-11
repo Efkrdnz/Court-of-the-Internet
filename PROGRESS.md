@@ -1126,6 +1126,20 @@ Verification tooling, found while confirming this round: the phase script now bu
 | D7 | Spoofable rate limits without a proxy; login lockout blocks the right password | documented | — |
 | — | Dangling "·" in the courtroom greeting at 320px; 60-character words in report details | separators stay with the next item; report details are shown only to officers, wrap anywhere, and aren't filtered (a reporter may need to quote the offending text) | — |
 
+## Fifty-ninth independent audit (fresh agent, build of commit 6d20f6d)
+
+**Result: 15 PASS, 2 CONCERN, 0 FAIL.** Concurrency, recusal, stats, auth and accessibility checks all held.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **High: a refused ban confirmed who filed an anonymous case.** An officer who had claimed or voted on an anonymous case and then tried to ban its confessor was refused with "you've acted on their case", unmasking them | anonymous cases a player filed don't count as a ban conflict (claims, votes and their own role as attorney/prosecutor still do) | integration |
+| D2 | Filter gaps: a dog left in the hot car for hours, whiskey in a baby's bottle, sips of vodka for a little cousin, a child with no seatbelt, selling someone's inhaler, poisoning a pet with antifreeze ("unalived"), phishing a grandma, "make my roommate regret it, he'll never see it coming", "those gypsies are all thieves", "go back to their own country" | patterns for each; hate checks also read the text with spacing removed; near-misses kept (coffee left in the hot car, sips of lemonade for a cousin, antifreeze kept away from the cat, selling a brother's old bike, a grandma who "scammed" at Monopoly, "never see the prank coming") | corpus: 256 everyday sentences, 304 evasions |
+| D3 | Staff-posing bios ("Mod. DM for appeals", "Moderator since 2019", "I moderate this court", "clerk of this court", "send them to me, I handle them", "head of trust and safety", "the judge's deputy") and names with "Registrar" or "Court System" | more bio phrases; both added to the titles | unit |
+| D4 | Tibetan text was refused as one long word (the syllable mark wasn't a break point) | the tsheg and shad marks are break points | unit |
+| D5 | The console offered Ban/Unban on other officers to moderators (always refused) and actions on deleted accounts | only actions the officer can take are shown; a deleted account shows "deleted" and no actions | — |
+| D6–D7 | Mid-word wrapping of very long words; spoofable rate limits without a proxy | documented (README limitations) | — |
+| — | An officer who acted on a case can still react to it or report it, and their own report counts toward its queue | accepted: reacting and reporting don't decide anything, and a dismissed report is logged like any other action | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

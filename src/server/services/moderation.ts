@@ -374,7 +374,10 @@ export async function setBan(moderatorId: string, targetUserId: string, banned: 
       where: {
         status: { not: "CLOSED" },
         OR: [{ accusedId: moderatorId }, { attorneyId: moderatorId }, { prosecutorId: moderatorId }, { claimedById: moderatorId }, { votes: { some: { userId: moderatorId } } }],
-        AND: [{ OR: [{ accusedId: targetUserId }, { attorneyId: targetUserId }, { prosecutorId: targetUserId }, { claimedById: targetUserId }, { votes: { some: { userId: targetUserId } } }] }],
+        // The target as an *anonymous* accused doesn't count: the refusal would tell the officer
+        // who filed that case, with nothing in the audit log (audit 59 D1). Banning them can't
+        // swing that trial anyway (the accused doesn't vote, and anonymous cases stay in play).
+        AND: [{ OR: [{ accusedId: targetUserId, anonymous: false }, { attorneyId: targetUserId }, { prosecutorId: targetUserId }, { claimedById: targetUserId }, { votes: { some: { userId: targetUserId } } }] }],
       },
     });
     if (conflicted) {

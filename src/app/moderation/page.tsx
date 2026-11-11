@@ -113,7 +113,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
     lookupUser
       ? db.user.findUnique({
           where: { username: lookupUser },
-          select: { id: true, username: true, displayName: true, role: true, bannedAt: true, banReason: true, createdAt: true, entitlements: { select: { itemKey: true } }, stats: true },
+          select: { id: true, username: true, displayName: true, role: true, bannedAt: true, banReason: true, createdAt: true, deletedAt: true, entitlements: { select: { itemKey: true } }, stats: true },
         })
       : null,
     db.report.count({ where: { status: "OPEN" } }),
@@ -254,15 +254,19 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
               {focusUser.displayName}
             </Link>{" "}
             <span className="text-base text-parchment/60">
-              @{focusUser.username} · {ROLE_LABEL[focusUser.role] ?? focusUser.role} · joined {relativeTime(focusUser.createdAt)}
+              @{focusUser.username} · {focusUser.deletedAt ? `deleted ${relativeTime(focusUser.deletedAt)}` : (ROLE_LABEL[focusUser.role] ?? focusUser.role)} · joined{" "}
+              {relativeTime(focusUser.createdAt)}
             </span>
           </h2>
           {focusUser.bannedAt ? <p className="text-[#ff9d9d]">Banned {relativeTime(focusUser.bannedAt)}: {focusUser.banReason}</p> : null}
           <p className="text-sm text-parchment/70">
             XP {focusUser.stats?.xp ?? 0} · reputation {focusUser.stats?.reputation ?? 0} · public confessions {focusUser.stats?.casesConfessed ?? 0} · votes {focusUser.stats?.juryVotes ?? 0}
           </p>
-          <div className="flex flex-col gap-3">
-            {focusUser.id !== user.id ? (
+          {/* Only actions this officer can actually take (audit 59 D5): nothing on a deleted account,
+              and no ban/unban of another officer unless you're the presiding judge. */}
+          {focusUser.deletedAt ? <p className="text-sm text-parchment/70">This account was deleted, so there is nothing to act on.</p> : null}
+          <div className={focusUser.deletedAt ? "hidden" : "flex flex-col gap-3"}>
+            {focusUser.id !== user.id && (isAdmin || focusUser.role === "PLAYER") ? (
               focusUser.bannedAt ? (
                 <ModForm op="unban" label="Lift ban" userId={focusUser.id} tone="teal" />
               ) : (

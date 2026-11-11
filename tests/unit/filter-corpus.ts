@@ -279,6 +279,13 @@ export const BENIGN = [
   "I was 14 when I sent my first email and it was all in capitals.",
   "I hope your whole family gets the joke eventually, said the fridge note.",
   "Pay me back the fiver you owe me before the trial starts, I told my brother.",
+  // Audit 59 near-misses.
+  "I kept the antifreeze away from the cat like a responsible owner.",
+  "I gave my little cousin a few sips of lemonade and told her it was champagne.",
+  "I left my coffee in the hot car for two hours and drank it anyway.",
+  "My brother will never see the prank coming, said my sister.",
+  "I sold my brother's old bike at the car boot sale for a fiver.",
+  "My grandma scammed me at Monopoly and I still haven't recovered.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -599,4 +606,15 @@ export const EVASIONS: [string, string][] = [
   ["tinyurl com slash courtappeal","link"],
   ["courtappeal dot help","link"],
   ["Venmo me five dollars and I will vote not guilty","phishing"],
+  // Audit 59.
+  ["I unalived my neighbour's cat with antifreeze because it pooped in my garden","serious-crime"],
+  ["I put whiskey in her bottle so she'd stop crying","serious-crime"],
+  ["Those g y p s i e s down the road are all thieves","hate"],
+  ["I left my dog in the hot car for two hours while I shopped","serious-crime"],
+  ["I'm going to make my roommate regret eating my yogurt, he will never see it coming","violence"],
+  ["They should all go back to their own country","hate"],
+  ["I gave my little cousin a few sips of vodka at the wedding","serious-crime"],
+  ["I let my 4 year old ride in the front with no seatbelt","serious-crime"],
+  ["I sold my brother's inhaler at school","serious-crime"],
+  ["I phished my grandma out of her bank details","serious-crime"],
 ];
