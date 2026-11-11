@@ -69,11 +69,11 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 
 ## GOAL.md §12 verification (final state), line by line
 
-GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (69, 70, 71) of the running production build (fresh agents told to ignore this repo's docs and tests).
+GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (70, 71, 72; the 72nd ran on the final code) of the running production build (fresh agents told to ignore this repo's docs and tests).
 
-Last full run: see the latest "Verified on commit …" line in the audit sections below (`scripts/verify-phases.sh` ×10 phases, `tsc`, ESLint, `next build`, all Vitest, all Playwright on desktop + Pixel 7, `npm run audit:stats`, production route check).
+Last full run, on the final code (commit 2722f6a; later commits change only PROGRESS.md): all 10 phases PASS, `tsc`/ESLint/`next build` clean, Vitest 1089/1089, Playwright 89/89 (desktop + Pixel 7), stats audit matches history, 0 production-log errors; then the 72nd independent audit passed all 17 items on it. Details: the latest "Verified on …" lines in the audit sections below (`scripts/verify-phases.sh` ×10 phases, `tsc`, ESLint, `next build`, all Vitest, all Playwright on desktop + Pixel 7, `npm run audit:stats`, production route check).
 
-| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 69 · 70 · 71 |
+| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 70 · 71 · 72 (final) |
 | --- | --- | --- |
 | "The application starts successfully." | e2e `§12 the application starts successfully (production server)`; phase 10 `next start` route check (200 / 307 / 308 / 400 / 404) | PASS · PASS · PASS |
 | "The complete confession → defense → prosecution → jury → verdict → archive lifecycle works." | e2e `lifecycle › a full trial: confess → defend → prosecute → jury → verdict → archive` (desktop and Pixel 7, 5 browser contexts); integration `runs confession → defense → prosecution → jury → verdict → archive`, plus not-guilty, mistrial, below-quorum extension and dismissal cases | PASS · PASS · PASS |
@@ -84,14 +84,14 @@ Last full run: see the latest "Verified on commit …" line in the audit section
 | "Profiles and leaderboards work." | e2e `leaderboards ›` (4 boards: thresholds, Wilson order, agreement with profiles); `tests/integration/leaderboards.test.ts` | PASS · PASS · PASS |
 | "Archives display real persisted data." | e2e `§12 archives display real persisted data` (counts, conviction rate, newest card and search vs. the DB); integration archive-search tests | PASS · PASS · PASS |
 | "Navigation is functional." | e2e `§12 moderation: officers see a sealed trial as sealed`, `§12 navigation is functional (every header link, signed in)`, `mobile navigation menu opens and navigates`, the Escape/Back/resize menu tests, unknown-id 404s, Back-after-filing, the expired-editor explanation, post-login redirect safety | PASS · PASS · PASS |
-| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (280 everyday sentences accepted, 328 evasions refused) and validation tests (including weak passwords) | PASS · PASS · CONCERN (filter gaps, fixed) |
+| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (280 everyday sentences accepted, 328 evasions refused) and validation tests (including weak passwords) | PASS · CONCERN (filter gaps, fixed) · PASS |
 | "Visual assets render correctly." | e2e `§12 visual assets render correctly` and `(rasterised pixels, all art)`: every illustration drawn to a canvas has visible multi-coloured pixels; fonts loaded; OG PNGs valid | PASS · PASS · PASS |
 | "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
-| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | CONCERN (320px leaderboard names, fixed) · CONCERN (account menu at 320px, fixed) · CONCERN (toast over header, accepted; profile separator, fixed) |
+| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | CONCERN (account menu at 320px, fixed) · CONCERN (toast over header, accepted; profile separator, fixed) · PASS |
 | "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
 | "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 89 Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
 | "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
-| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (README hyphen claim, made true) · CONCERN (README long-word claim, corrected) · CONCERN (proxy warning buried, made prominent) |
+| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (README long-word claim, corrected) · CONCERN (proxy warning buried, made prominent) · PASS |
 
 ## Verification history (honest account)
 
@@ -1308,6 +1308,22 @@ Verified on commit 57d288b: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | 5 | A long @username on a 320px profile left "· sworn in on…" starting the next line | the separator stays with the username (no-break space) | — |
 
 Verified on the code committed as 2722f6a (run started on the identical working tree): phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1089/1089, Playwright 89/89 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
+## Seventy-second independent audit (fresh agent, build of commit 5f6c63c): final
+
+**Result: 17 PASS, 0 CONCERN, 0 FAIL. "No defects that block release or matter for security."** 12 concurrent vote requests gave 1 accepted; 10 concurrent claims by 5 users gave one winner, and grace, theft-after-grace, file-vs-ban and file-vs-seal races stayed consistent; every UserStats counter and XP total recomputed from raw rows for all 54 users matched; adjourn, seal, 3 votes and a report fired together landed consistently; votes 0–900 ms after a deadline kept counters equal to rows, and a late vote on a below-quorum trial triggered the extension and counted; axe WCAG 2 AA clean on 13 pages; no horizontal scroll at 320/360/Pixel 7/568×320/640×360/1024/1440 with 32-character names and 35-character words; the proxy requirement is a prominent README callout.
+
+This is the code the audit ran on. To keep it that way, its low findings are recorded here as **open**, not changed:
+
+| # | Open low finding | Notes |
+| --- | --- | --- |
+| 1 | Filter messages: a self-harm hyperbole ("wanted to kill myself over burnt toast") is refused with the serious-crime wording and no support pointer; "example dot com slash fries" is refused as personal info rather than as a link | The content is refused either way; only the wording is off |
+| 2 | `/jury?case=N` for a case under review moves on to the next case without saying why | The case page itself explains the review |
+| 3 | A sealed case's URL answers 200 with the sealed notice | Deliberate (README): it's `noindex`, out of the sitemap, and its share image is the sealed card |
+| 4 | A vote arriving well after closing says "This case isn't accepting votes"; in-flight votes get the clearer verdict message | Wording only |
+| 5 | Going Back to `/notifications` can still show "N new notifications since your last visit" | Browser back cache; the bell count is right |
+| 6 | The footer's "Leaderboards" link overflows its grid cell by 7px at 640px | Collides with nothing |
+| 7 | A malformed percent-encoding in a path (`/cases/%C0%AF`) gets the framework's plain 400 page | Correct status, unstyled |
 
 ## Per-phase evidence
 
