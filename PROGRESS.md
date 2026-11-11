@@ -1192,6 +1192,8 @@ Verified on commit 6f449c3: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D3 | A defense attorney opening the prosecution editor was told their prosecution claim had "expired, was released or voided"; they never held one | the banner gives the real reason: already filed, a party to the case in another role, or not the claim holder | e2e |
 | D4 | A crafted reaction type said "Please fix the highlighted fields" with nothing to highlight | "That isn't a reaction the court recognises." | — |
 
+Verified on commit f68b0d8: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1048/1048, Playwright 86/86 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
