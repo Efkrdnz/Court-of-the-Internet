@@ -1248,6 +1248,8 @@ Verified on commit 23b5090: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | 2 | Spoofable per-IP limits without a proxy | documented (README) | — |
 | 3 | The session cookie wasn't Secure in production when `SITE_URL` was unset; the cron endpoint's 404 said "CRON_SECRET is not configured" | Secure in production unless `SITE_URL` explicitly starts with `http://` (README notes it); the 404 says only "Not found" | — |
 
+Verified on commit 9818a22: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1070/1070, Playwright 88/88 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
