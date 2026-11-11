@@ -70,7 +70,7 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 ## GOAL.md §12 verification (final state)
 
 Each item is checked against the production build by `e2e/section12.spec.ts` (plus the suites noted).
-Last full run (commit 6b7e505): **85/85 Playwright** (57 desktop, 28 Pixel 7) and **1047/1047 Vitest** passing; `tsc`, ESLint and `next build` clean; all 10 phases PASS; stats audit matches history for 28 players; 0 error lines in the production log. Each item has also been checked by 61 independent audits of the running production build (fresh agents that ignore the repo's own docs and tests); the last one found no functional, security or data-integrity defects.
+Last full run (commit 6b7e505): **85/85 Playwright** (57 desktop, 28 Pixel 7) and **1047/1047 Vitest** passing; `tsc`, ESLint and `next build` clean; all 10 phases PASS; stats audit matches history for 28 players; 0 error lines in the production log. Each item has also been checked by 62 independent audits of the running production build (fresh agents that ignore the repo's own docs and tests); the last one (62nd) passed all 17 items with no correctness, security or data-integrity defects.
 
 | §12 requirement | Evidence |
 | --- | --- |
@@ -1166,6 +1166,17 @@ Verified on commit 70aeb65: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D4 | The header's "Log in" / "Join the court" dropped the current page | they pass it (and its query string) as `next` | — |
 
 Verified on commit 6b7e505: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1047/1047, Playwright 85/85 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
+## Sixty-second independent audit (fresh agent, build of commit 7f609da)
+
+**Result: 17 PASS, 0 CONCERN, 0 FAIL; no correctness, security or data-integrity defect.** 12 concurrent claimers gave 1 winner (and the grace-period boundary held both ways); 20 concurrent votes from one user gave 1; SQL recomputation matched all 28 players' stats after bans, deletions and races; 60 concurrent reaction toggles left counters equal to the rows; 32-character single-word names and 35-character title words wrap with hyphens on the case, jury, profile and notifications pages at 320/360/412px; axe found no WCAG A/AA violations; ~50 fuzzed URLs gave no 500s.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | A below-quorum trial sealed after its deadline and then restored told counsel "the verdict is being read now" and "(it was adjourned)", then "deliberation was extended"; the admin's adjourn result promised it would "close" | the notices say the court rules on it (a verdict if enough jurors voted, otherwise the low-participation rule) and no longer claim it was adjourned | integration |
+| D2 | Opening an editor after the claim expired silently redirected to the case page | the case page says the editor is closed and why | e2e |
+| D3 | A lone UTF-16 surrogate in a crafted request was stored as "�" | lone surrogates and "�" are dropped by text normalisation | unit |
+| D4 | A malformed stale-console guard on Adjourn (crafted, staff-only) was ignored | refused | — |
 
 ## Per-phase evidence
 

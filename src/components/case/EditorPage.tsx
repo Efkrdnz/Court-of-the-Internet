@@ -22,7 +22,8 @@ export async function EditorPage({ role, caseId }: { role: "DEFENSE" | "PROSECUT
   const c = detail.case;
   const expected = role === "DEFENSE" ? "DEFENSE_CLAIMED" : "PROSECUTION_CLAIMED";
   // Only the current, unexpired claim holder may open the editor.
-  if (c.status !== expected || !c.viewer.holdsClaim || !c.claimExpiresAt) redirect(casePath(c));
+  // The case page says why (audit 62 D2: a silent redirect looked like a broken link).
+  if (c.status !== expected || !c.viewer.holdsClaim || !c.claimExpiresAt) redirect(`${casePath(c)}?editor=${role === "DEFENSE" ? "defense" : "prosecution"}`);
   const cat = getCategory(c.category);
 
   return (

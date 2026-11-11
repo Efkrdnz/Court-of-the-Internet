@@ -83,6 +83,11 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
       case "adjourn": {
         const seenEndsAt = str(formData, "endsAt");
         const seenExtensions = Number(str(formData, "extensionsUsed"));
+        // A console always sends what it showed; a malformed value is refused rather than skipping
+        // the stale-console check (audit 62 D4).
+        if ((formData.has("endsAt") || formData.has("extensionsUsed")) && !(seenEndsAt && !Number.isNaN(Date.parse(seenEndsAt)) && Number.isInteger(seenExtensions))) {
+          throw new CourtError("VALIDATION", "The console sent an unreadable trial clock. Reload it and try again.");
+        }
         const seen = seenEndsAt && !Number.isNaN(Date.parse(seenEndsAt)) && Number.isInteger(seenExtensions) ? { endsAt: new Date(seenEndsAt), extensionsUsed: seenExtensions } : undefined;
         const outcome = await adjournNow(mod.id, caseId, seen);
         message =
@@ -96,7 +101,7 @@ export async function moderationAction(_prev: ActionResult | null, formData: For
                   : "Below quorum, so deliberation was extended (low-participation rule)."
                 : outcome.kind === "changed"
                   ? "The trial changed since you opened it (it was sealed, restored or reviewed). Nothing was done; check it and adjourn again if you still mean to."
-                  : "The case was sealed or put under review before it could close. It will close as soon as it is visible again.";
+                  : "The case was sealed or put under review before the court could rule. It will be ruled on (a verdict, or more time if it's below quorum) as soon as it is visible again.";
         break;
       }
       case "feature":

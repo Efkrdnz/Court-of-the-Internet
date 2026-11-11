@@ -527,6 +527,10 @@ describe("scripts with stacked marks survive normalisation (audit 56 D1)", () =>
     expect(withQuery("/court", { q: "x".repeat(600) })).toBe("/court");
     expect(safeNext(withQuery("/moderation", { case: "42", user: "a&b" }))).toBe("/moderation?case=42&user=a%26b");
   });
+  it("normalizeText drops lone surrogates and replacement characters (audit 62 D3)", () => {
+    expect(normalizeText("Gnome \uD800 caper \uFFFD here")).toBe("Gnome caper here");
+    expect(normalizeText("Pizza 🍕 night")).toBe("Pizza 🍕 night");
+  });
   it("hyphenateLong: soft hyphens only inside very long words, never near the ends", () => {
     const shy = (t: string) => hyphenateLong(t).replace(/\u00AD/g, "·");
     expect(shy("Microwaved fish Supercalifragilisticexpialidociouss")).toBe("Microwaved fish Superc·alifra·gilist·icexpi·alidoc·iouss");

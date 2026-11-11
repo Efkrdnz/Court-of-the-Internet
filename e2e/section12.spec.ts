@@ -827,6 +827,21 @@ test("§12 navigation: Back after filing doesn't leave a stale editor (audit 33 
   await context.close();
 });
 
+test("§12 navigation: an expired claim's editor link explains itself (audit 62 D2)", async ({ browser }) => {
+  const c = await prisma.case.findFirstOrThrow({
+    where: { status: "AWAITING_DEFENSE", moderationState: "VISIBLE", arguments: { none: {} }, accused: { username: { not: "counselor_coo" } } },
+    select: { id: true },
+  });
+  const coo = await prisma.user.findUniqueOrThrow({ where: { username: "counselor_coo" }, select: { id: true } });
+  // A claim that ran out (and its grace period) an hour ago.
+  await prisma.case.update({ where: { id: c.id }, data: { status: "DEFENSE_CLAIMED", claimedById: coo.id, claimExpiresAt: new Date(Date.now() - 60 * 60_000) } });
+  const page = await demoPage(browser, "counselor_coo");
+  await page.goto(`/defend/${c.id}`);
+  await page.waitForURL(/\/cases\/.*\?editor=defense/);
+  await expect(page.getByRole("alert").or(page.getByRole("status")).filter({ hasText: "defense editor for this case is closed" })).toBeVisible();
+  await page.context().close();
+});
+
 test("§12 forms: a confession draft survives a reload (audit 33 D5)", async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();

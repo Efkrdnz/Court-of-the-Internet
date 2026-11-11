@@ -32,6 +32,9 @@ export function normalizeText(input: string, { multiline = true }: { multiline?:
     .normalize("NFC");
   // Combining marks with nothing to sit on (at the start, or after a space) are stray.
   s = s.replace(/(^|\s)\p{M}+/gu, "$1");
+  // Lone UTF-16 surrogates (only a crafted request sends them) and the "�" a broken encoding leaves
+  // behind are dropped rather than stored (audit 62 D3).
+  s = s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]|\uFFFD/g, "");
   // ASCII control chars except tab/newline.
   s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
   s = s.replace(/\r\n?/g, "\n").replace(/\t/g, " ");

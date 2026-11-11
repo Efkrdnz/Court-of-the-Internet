@@ -364,7 +364,8 @@ describe("moderation", () => {
     await removeCase(admin, c.id, "Checking");
     await restoreCase(admin, c.id);
     const note = await db.notification.findFirstOrThrow({ where: { userId: attorney, title: { contains: "back in session" } } });
-    expect(note.body).toMatch(/verdict is being read now/);
+    expect(note.body).toMatch(/court rules on it now/);
+    expect(note.body).not.toMatch(/adjourned/); // nobody adjourned it, and it may be below quorum (audit 62 D1)
   });
 
   it("a claim holder keeps their editor while the case is under review (audit 30 D3)", async () => {

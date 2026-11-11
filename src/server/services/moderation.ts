@@ -188,11 +188,12 @@ export async function removeCase(moderatorId: string, caseId: string, reason: st
         await notify(tx, id, {
           type: "MODERATION",
           title: `Case No. ${formatCaseNumber(c.number)} was sealed`,
-          // An adjourned (or due) trial has no time left to resume with (audit 45 D5).
+          // An adjourned (or due) trial has no time left to resume with (audit 45 D5). It may be below
+          // quorum, so don't promise a verdict (audit 62 D1).
           body:
             timeLeft > 0
               ? "A moderator paused this trial. It resumes with its remaining time if the case is restored."
-              : "A moderator sealed this trial after deliberation had ended. If the case is restored, the verdict is read straight away.",
+              : "A moderator sealed this trial after deliberation had ended. If the case is restored, the court rules on it straight away.",
         });
       }
     }
@@ -247,7 +248,7 @@ export async function restoreCase(moderatorId: string, caseId: string, sealSeen?
             title: `Case No. ${formatCaseNumber(exists.number)} is back in session`,
             body: timeLeftWhenPaused(exists) > 0
               ? "The seal was lifted and deliberation resumed with its remaining time."
-              : "The seal was lifted. Its time had already run out (it was adjourned), so the verdict is being read now.",
+              : "The seal was lifted. Its time had already run out, so the court rules on it now: a verdict if enough jurors voted, otherwise the low-participation rule (more time, or a mistrial).",
             href: casePath(exists),
           });
         }
@@ -282,7 +283,7 @@ async function backInSession(tx: Tx, caseId: string) {
       body:
         t.deliberationEndsAt && t.deliberationEndsAt > clock.now()
           ? "The review is over and deliberation is running again with its remaining time."
-          : "The review is over. Its time had already run out (it was adjourned), so the verdict is being read now.",
+          : "The review is over. Its time had already run out, so the court rules on it now: a verdict if enough jurors voted, otherwise the low-participation rule (more time, or a mistrial).",
       href: casePath(t),
     });
   }

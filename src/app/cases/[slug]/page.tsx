@@ -179,8 +179,15 @@ export default async function CasePage({ params, searchParams }: Props) {
   const filedMessage =
     typeof sp.filed === "string" && FILED_STAGE[sp.filed]?.includes(c.status) && viewerRole === FILED_BY[sp.filed] ? FILED_MESSAGES[sp.filed] : undefined;
 
+  // Sent here from an editor this player no longer holds (audit 62 D2).
+  const editorClosed =
+    (sp.editor === "defense" || sp.editor === "prosecution") && !filedMessage && !c.viewer.holdsClaim
+      ? `The ${sp.editor} editor for this case is closed: you don't hold its ${sp.editor} claim any more (it expired, was released or voided, or the case has moved on).`
+      : undefined;
+
   return (
     <article className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-6">
+      {editorClosed ? <FormAlert kind="info" className="mb-6">{editorClosed}</FormAlert> : null}
       {filedMessage ? <FormAlert kind="success" className="mb-6 animate-in">{filedMessage}</FormAlert> : null}
       {detail.underReview ? <FormAlert kind="info" className="mb-6">This case is under review by the clerks and hidden from public listings.</FormAlert> : null}
 
