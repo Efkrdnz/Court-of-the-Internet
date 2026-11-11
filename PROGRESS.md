@@ -1291,6 +1291,8 @@ Verified on commit eb4fa2f: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | D6 | Settings checkboxes were squashed to 13×20 on Pixel 7 | checkboxes don't shrink | — |
 | D7 | An editor link for a case nobody had claimed blamed an expired or released claim | "Nobody holds this case's … claim right now (if you held it, it expired or was released): take the case below" | e2e message updated |
 
+First full run on commit 1608b20: the full-trial e2e test (desktop and Pixel 7) failed. Its signup used "objection-123", which the new weak-password rule correctly refuses (the site's theme word plus a decoration). The test now signs up with "objection-overruled-7"; the lifecycle suite passes 6/6 on both projects.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

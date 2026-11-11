@@ -12,8 +12,8 @@ test("a full trial: confess → defend → prosecute → jury → verdict → ar
   await page.goto("/signup");
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Display name").fill("E2E Defendant");
-  await page.getByLabel("Password", { exact: true }).fill("objection-123");
-  await page.getByLabel("Confirm password").fill("objection-123");
+  await page.getByLabel("Password", { exact: true }).fill("objection-overruled-7");
+  await page.getByLabel("Confirm password").fill("objection-overruled-7");
   await page.getByRole("checkbox", { name: /solemnly swear/ }).check();
   await page.getByRole("button", { name: "Swear me in" }).click();
   await page.waitForURL(/\/court\?welcome=1/);
