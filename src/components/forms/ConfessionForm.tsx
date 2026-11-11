@@ -71,13 +71,24 @@ export function ConfessionForm({
   }, [DRAFT_KEY]);
   // Saved on every edit, and again after each rejected filing: `state` is a new object per
   // response, so two rejections in a row both put the draft back (submitting clears it).
+  // Not when the refusal says this confession is already on file (a first try whose answer was
+  // lost): keeping it would prefill a crime already filed (audit 58 D6). Editing saves it again.
+  const draft = JSON.stringify({ title, category, confession, context, anonymous });
+  const [filedDraft, setFiledDraft] = useState<string | null>(null);
+  const [seenState, setSeenState] = useState(state);
+  // On each new response, remember the text it refused as already on file (if any).
+  if (state !== seenState) {
+    setSeenState(state);
+    setFiledDraft(state && !state.ok && state.href ? draft : null);
+  }
   useEffect(() => {
     try {
-      if (title || confession || context || category) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, category, confession, context, anonymous }));
+      if (draft === filedDraft) localStorage.removeItem(DRAFT_KEY);
+      else if (title || confession || context || category) localStorage.setItem(DRAFT_KEY, draft);
     } catch {
       /* ignore */
     }
-  }, [title, category, confession, context, anonymous, state, DRAFT_KEY]);
+  }, [draft, filedDraft, title, category, confession, context, state, DRAFT_KEY]);
   const cat = category ? getCategory(category) : null;
   const previewAlias = anonymousAlias(title || "preview").name;
 

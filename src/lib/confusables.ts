@@ -15,7 +15,8 @@ const LETTERS: Record<string, string> = {
 // sequences like a family emoji together.)
 export const INVISIBLE = /[­͏؜ᅟᅠ឴឵᠋-᠏​‌‎‏‪-‮⁠-⁯ㅤ﻿ﾠ]/g;
 /** Joiners that aren't between two emoji (i.e. that only serve to hide or split text). */
-export const STRAY_ZWJ = /(?<!\p{Extended_Pictographic}️?)‍|‍(?!\p{Extended_Pictographic})/gu;
+// (After a skin tone too: "🤷🏽‍♀️" and "🧑🏽‍🚀" join through it, audit 58 D3.)
+export const STRAY_ZWJ = /(?<!\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier})?)‍|‍(?!\p{Extended_Pictographic})/gu;
 
 /** Compatibility folding (full-width digits → ASCII), invisibles dropped, look-alikes folded (case kept). */
 export function skeleton(input: string): string {

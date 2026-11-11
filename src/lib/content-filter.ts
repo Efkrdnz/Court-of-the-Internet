@@ -30,7 +30,7 @@ const MESSAGES: Record<FilterIssue, string> = {
   violence: "Threats or encouragement of violence are out of order. This court only hears petty crimes.",
   "serious-crime":
     "This court only hears ridiculous, harmless offenses. Serious real-world crimes belong with real authorities.",
-  phishing: "Asking for someone's password, login or codes isn't allowed. Nobody at this court will ever ask for them.",
+  phishing: "Asking for someone's password, login, codes or money isn't allowed. Nobody at this court will ever ask for them.",
   spam: "That reads like spam (repeated characters, all-caps, or copy-paste). Tidy it up, counselor.",
 };
 /** Specific message for the 36+ character word rule, which isn't about repetition or caps. */
@@ -74,6 +74,11 @@ const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 // Asking for someone's password or login ("message me your password", "reply with your login",
 // "give me your pw", "if you give me your credentials"), audit 49 D3 and audit 51 #2.
 // "just need your login", "all I need is your password", "free robux": scam asks (audit 54 D1).
+// "confirm your password with me", "send me the code you just got", "what's your verification
+// code", "paste your session cookie"; and money for a vote ("Venmo me $5 and I'll vote not
+// guilty"), audit 58 D2.
+const CREDENTIAL_MORE = /\b(?:confirm|paste|enter|type|verify|share|read\s+out)\s+(?:\w+\s+){0,2}?(?:your|ur)\s+(?:\w+\s+)?(?:password|passwd|pw|login|credentials|2fa|passcode|pin|verification\s+code|security\s+code|one[\s-]time\s+code|otp|session(?:\s+cookie)?|cookies?)\b|\b(?:send|give|tell|read|forward|paste|text)\s+(?:me|us)\s+(?:the\s+)?(?:\d[\s-]?digit\s+)?(?:code|pin|otp)\s+(?:that\s+)?(?:you\s+)?(?:just\s+)?(?:got|received|were\s+sent|get)\b|\bwhat(?:'?s|\s+is)\s+your\s+(?:password|pw|login|verification\s+code|security\s+code|code|pin|2fa|otp)\b/i;
+const MONEY_FOR_VERDICTS = /\b(?:venmo|paypal|cash\s*app|zelle|revolut|monzo|pay|send|transfer|give)\s+me\s+(?:[$£€]\s?\d+|\d+\s*(?:dollars|pounds|quid|bucks|euros)|\w+\s+(?:dollars|pounds|quid|bucks|euros)|money|cash)\b.{0,60}\b(?:vote|verdict|acquit|convict|defend|prosecute|unban|unseal|guilty)/i;
 const CREDENTIAL_NEED = /\b(?:need|want|require|needs|wants)\s+(?:is\s+)?(?:your|ur)\s+(?:\w+\s+(?:and|&|or)\s+)?(?:password|passwords|passwd|pw|pwd|login|log-?in(?:\s+details)?|credentials|creds|2fa|passcode|pin|verification\s+code|security\s+code)\b|\bfree\s+(?:robux|v-?bucks|nitro|xp|gems|coins|skins)\b.{0,40}\b(?:login|password|account|creds|credentials)\b/i;
 const CREDENTIAL_ASK = /\b(?:send|give|tell|share|reply|respond|dm|pm|messag|email|text|whisper|post|drop|hand\s+over|type)\w*\s+(?:\w+\s+){0,4}?(?:your|ur|yer|their|his|her)\s+(?:\w+\s+(?:and|&|or)\s+)?(?:password|passwords|passwd|pw|pwd|pass\s*word|login|log-?in(?:\s+details)?|credentials|creds|2fa|two[\s-]factor|passcode|pin|verification\s+code|security\s+code|session|cookies?)\b/i;
 const PHONE = /(?:\+?\p{Nd}[\s()./_,\-\u2013\u2014\u00b7]*){8,}\p{Nd}/u;
@@ -108,7 +113,7 @@ const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
 // "bit . ly / 3xYz": a dot set apart by spaces, before an ending that can't start a sentence
 // (lower case, and not one that reads as a word: no ". me", ". it", ". co"), audit 50 D2.
 const DOMAIN_SPACED = /\b(?!polka\b)[A-Za-z0-9-]{2,}(?:\s+\.\s*|\s*\.\s+)(?:com|net|org|io|ly|gg|xyz|app|dev|info|shop|biz|tv|uk|ru|de)\b(?:\s*\/|\s|$)/;
-const DOMAIN_SPELLED = /\b(?!polka\b)[a-z0-9-]{2,}\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|shop|store|online|site|blog|link|ly|biz|club|live|art|page|ai|ca|au|fr|nl|ie|tech|website|space|top|vip|cc|eu|nz|fm|lol|wtf|fun)\b/i;
+const DOMAIN_SPELLED = /\b(?!polka\b)[a-z0-9-]{2,}\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*(?:com|net|org|io|co|uk|de|ru|me|tv|gg|xyz|app|dev|info|shop|store|online|site|blog|link|ly|biz|club|live|art|page|ai|ca|au|fr|nl|ie|tech|website|space|top|vip|cc|eu|nz|fm|lol|wtf|fun|help|click|win|today|world|email|cloud|life|zone|guru|ninja|fyi|support|link|claims|services)\b/i;
 const EMAIL_SPELLED =
   /\b[\w.+-]+\s*(?:[[({]\s*at\s*[\])}]|\sat\s)\s*[\w-]+\s*(?:[[({]\s*dot\s*[\])}]|\sdot\s)\s*[a-z]{2,}\b/i;
 // "find him on insta as john_smith_1990": a platform name followed shortly by a handle-like token
@@ -210,7 +215,7 @@ const VIOLENCE = [
   // "Kill all [group]" (audit 50 D2), with or without "lol jk".
   new RegExp(`\\b(?:kill|murder|exterminate|gas|shoot|nuke|wipe\\s+out)\\s+(?:all|every|each)\\s+(?:of\\s+)?(?:the\\s+|those\\s+)?(?:${GROUPS})\\b`, "i"),
   // Wishing a disease on someone ("I hope you all get cancer", audit 45).
-  new RegExp(`\\b(?:hope|wish|pray|praying)\\s+(?:that\\s+)?(?:${TARGET}|you\\s+all|they|he|she|(?:your|ur|his|her|their)\\s+(?:\\w+\\s+)?(?:kids|children|child|family|baby|babies|son|daughter|wife|husband|mum|mom|mother|dad|father|parents|dog|cat))\\s+(?:all\\s+)?(?:gets?|catch(?:es)?|develops?)\\s+(?:cancer|aids|ebola|a\\s+tumou?r|leprosy|the\\s+plague)\\b`, "i"),
+  new RegExp(`\\b(?:hope|wish|pray|praying)\\s+(?:that\\s+)?(?:${TARGET}|you\\s+all|they|he|she|(?:your|ur|his|her|their)\\s+(?:\\w+\\s+)?(?:kids|children|child|family|baby|babies|son|daughter|wife|husband|mum|mom|mother|dad|father|parents|dog|cat))\\s+(?:all\\s+)?(?:(?:gets?|catch(?:es)?|develops?)\\s+(?:cancer|aids|ebola|a\\s+tumou?r|leprosy|the\\s+plague)|gets?\\s+hit\\s+by\\s+a\\s+(?:bus|car|train|truck|lorry)|dies?|drops?\\s+dead|burns?\\s+(?:alive|to\\s+death))\\b`, "i"),
   // "My roommate is getting a knife in the ribs", "he'll get a bullet in the head" (audit 44 #2).
   // Not the idiom "a knife in the back".
   /\b(?:getting|get|gets|gonna\s+get|going\s+to\s+get|will\s+get|deserves?|has\s+earned|earned\s+(?:himself|herself|themselves))\s+(?:a\s+|one\s+)?(?:knife|blade|shank|bullet|bullets|machete|hammer|bat|screwdriver)\s+(?:in|to|through|between|across)\s+(?:the|his|her|their|your|ur)\s+(?:ribs|gut|guts|stomach|belly|head|skull|face|neck|throat|chest|heart|kneecaps?|eyes?|spine)\b/i,
@@ -287,6 +292,15 @@ const HARM_DONE = new RegExp(
 );
 
 const SERIOUS = [
+  // Audit 58 D2: shaking a baby, alcohol or sedatives given to a child, a small child left home
+  // alone, a pet left without food or water for days, someone recorded in the shower, a minor
+  // sending pictures to an adult.
+  /\bshook\s+(?:the|my|a|his|her|their|our)\s+(?:\w+\s+)?(?:baby|babies|infant|newborn|toddler|kid|kids|child|children|son|daughter|little\s+(?:one|brother|sister)|\d+[-\s]?(?:year|yr)[-\s]?old)\b/i,
+  /\b(?:gave|fed|slipped|put)\s+(?:my|the|a|his|her|their|our)\s+(?:\w+\s+)?(?:baby|babies|infant|newborn|toddler|kid|kids|child|children|son|daughter|little\s+(?:one|brother|sister)|\d+[-\s]?(?:year|yr)[-\s]?old)\s+(?:some\s+|a\s+bit\s+of\s+|a\s+glass\s+of\s+)?(?:wine|beer|vodka|alcohol|booze|whisk(?:e)?y|rum|gin|sleeping\s+pills|benadryl|nyquil|cough\s+syrup|weed|xanax|edibles?)\b/i,
+  /\bleft\s+(?:my|the|a|his|her|their|our)\s+(?:\w+\s+)?(?:baby|babies|infant|newborn|toddler|kid|kids|child|children|son|daughter|little\s+(?:one|brother|sister)|\d+[-\s]?(?:year|yr)[-\s]?old)\s+(?:\w+\s+)?(?:home\s+)?alone\b/i,
+  /\bleft\s+(?:my|the|a|his|her|their|our)\s+(?:\w+\s+)?(?:dog|cat|hamster|rabbit|bird|parrot|pet|fish|puppy|kitten|guinea\s+pig|tortoise)s?\s+(?:without|with\s+no)\s+(?:any\s+)?(?:food|water|food\s+(?:or|and)\s+water)\s+for\s+(?:days|weeks|a\s+week|\d+\s+days|(?:two|three|four|five|several)\s+days)\b/i,
+  /\b(?:recorded|filmed|videoed|photographed|took\s+(?:a\s+)?(?:video|photos?|pictures?|pics?)\s+of)\s+(?:her|him|them|someone|somebody|(?:my|a|an|the|his|her|their|our)\s+(?:\w+\s+)?(?:coworker|co-worker|colleague|classmate|friend|date|girlfriend|boyfriend|roommate|flatmate|housemate|neighbou?r|boss|student|teacher|stranger|girl|woman|guy|man|boy|wife|husband|partner|cousin|sister|brother|sibling|ex|mum|mom|dad|aunt|uncle))\s+(?:in|while|when|during)\s+(?:(?:the|a|her|his|their)\s+)?(?:shower|bath|changing|undressing|getting\s+changed|naked|nude|toilet)\b(?!.{0,15}\bsinging\b)/i,
+  /\b(?:i'?m|i\s+am|i\s+was|she'?s|she\s+(?:is|was)|he'?s|he\s+(?:is|was))\s+(?:only\s+)?(?:1[0-7]|[5-9]|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)\b.{0,60}\b(?:sent|send|sending|shared)\s+(?:\w+\s+){0,2}(?:pics|pictures|photos|nudes|selfies|videos)\b.{0,40}\b(?:older|adult|grown|guy|man|stranger|online|someone)\b/i,
   // Audit 56 D2: a camera hidden in a bathroom or bedroom; a laxative brownie given to someone;
   // someone who can't swim pushed into water.
   /\b(?:hid|hide|hiding|stashed|concealed)\s+(?:a|my|the|some)\s+(?:\w+\s+)?cam(?:era)?s?\s+in\s+(?:the|a|my|his|her|their|our)\s+(?:\w+\s+)?(?:bathroom|shower|bedroom|changing\s+rooms?|toilets?|locker\s+room|restroom|dressing\s+room)\b/i,
@@ -591,7 +605,7 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
     .replace(/\b(?:[a-z][\s.\-_*]+){2,}[a-z]\b/gi, (run) => run.replace(/[^a-z]/gi, ""));
   // …and words broken up or stretched inside: "st.abbed", "stab_bed", "stabbbbed" (audit 49 D2).
   const squeezed = joined.replace(/(\p{L})[.\-_*]+(?=\p{L})/gu, "$1").replace(/(\p{L})\1{2,}/gu, "$1$1");
-  if (CREDENTIAL_ASK.test(text) || CREDENTIAL_NEED.test(text)) return fail("phishing");
+  if (CREDENTIAL_ASK.test(text) || CREDENTIAL_NEED.test(text) || CREDENTIAL_MORE.test(text) || MONEY_FOR_VERDICTS.test(text)) return fail("phishing");
   if (EMAIL.test(undotted) || EMAIL.test(text) || EMAIL_PROVIDER.test(text) || SSN.test(text) || STREET.test(text) || UK_POSTCODE.test(text) || STREET_LOWER.test(text) || STREET_SPELLED.test(text)) return fail("personal-info");
   // "j o h n @ g m a i l . c o m", "e v i l . c o m": runs of single characters, squashed back together.
   // Built from whole single-character tokens, so neighbouring words don't glue on ("visit e v i l . c o m to").
@@ -621,6 +635,8 @@ export function screenText(raw: string, { allowSpamCheck = true }: { allowSpamCh
       .replace(/([a-z0-9])\.(so|my|no|it|is|in|am|at|by|do|go|as|on|or|we|hi|ok|up|if|of|he|an)(?=\s+[a-z])/gi, "$1. $2");
   // Version numbers ("firmware 2.10.3.1") look like IP addresses.
   const IPV4 = /(?<!\b(?:v|ver|version|firmware|update|build|release|patch|ios|android|windows|macos|python|node|chrome|firefox)\s?)\b(?:\d{1,3}\.){3}\d{1,3}\b/i;
+  // Link shorteners named outright ("tinyurl com slash …"), audit 58 D2.
+  if (/\b(?:tinyurl|bitly|bit\s?ly|goo\s?gl|is\s?gd|cutt\s?ly|rebrand\s?ly|shorturl|t\s?ly)\s*(?:\.|dot|com|\/|slash)/i.test(text)) return fail("link");
   if (IPV4.test(text) || /\b[a-z0-9-]{2,}\.(?:example|test|invalid|localhost|onion|local)\b/i.test(undotted) || URL.test(sentences(text)) || URL.test(sentences(undotted)) || /\b[a-z0-9-]{2,}\.(?:com|net|org)\b/i.test(leet) || DOMAIN_SPELLED.test(text) || DOMAIN_SPACED.test(text) || /https?:\/\/|www\.[a-z0-9-]{2,}\.[a-z]{2,}/i.test(text.replace(/\s+/g, ""))) return fail("link");
   // "@ pettyking on twitter": a detached @name next to a platform name.
   const detachedHandle = /@\s+[a-z0-9_.]{3,}\b.{0,25}\b(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?|twitter|discord|telegram|whatsapp|facebook|fb|threads|bluesky|reddit|youtube|twitch|kik)\b/i.test(text);

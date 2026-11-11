@@ -538,6 +538,8 @@ export async function grantEntitlement(moderatorId: string, targetUserId: string
     const mod = await assertStaff(tx, moderatorId);
     if (mod.role !== "ADMIN") throw new CourtError("FORBIDDEN", "Only admins can grant cosmetics.");
     if (!GRANTABLE.has(itemKey)) throw new CourtError("VALIDATION", "Unknown cosmetic item.");
+    // Gifts are for others: an admin can't hand themselves Patron perks (audit 58 D5).
+    if (targetUserId === moderatorId) throw new CourtError("FORBIDDEN", "You can't grant cosmetics to yourself.");
     await liveTarget(tx, targetUserId);
     // Insert-or-nothing: a repeat grant (or two admins at once) is a clean no-op, not a second
     // gift notification and log entry.

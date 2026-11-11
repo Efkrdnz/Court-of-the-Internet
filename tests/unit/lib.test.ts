@@ -499,6 +499,16 @@ describe("scripts with stacked marks survive normalisation (audit 56 D1)", () =>
     const zalgo = "e" + "\u0301\u0300\u0302\u0303\u0304\u0305\u0306\u0307".repeat(5);
     expect([...normalizeText(zalgo).normalize("NFD")].length).toBeLessThanOrEqual(3);
   });
+  it("keeps skin-tone emoji sequences joined (audit 58 D3)", () => {
+    for (const t of ["\u{1F937}\u{1F3FD}\u200D\u2640\uFE0F", "\u{1F9D1}\u{1F3FD}\u200D\u{1F680}"]) expect(normalizeText(t)).toBe(t);
+  });
+  it("audit 58 D4: presiding titles for moderators, 'No' alias tags, crew bios", () => {
+    expect(hasAdminTitle("Presiding Clerk Pemberton")).toBe(true);
+    expect(signupRefuses("Sweaty Otter No C953")).toBe(true);
+    expect(bioImpersonatesStaff("Part of the moderation crew. Reports go through me.")).toBe(true);
+    expect(bioImpersonatesStaff("I sit next to the judge and I can get your sealed case back")).toBe(true);
+    expect(bioImpersonatesStaff("Part of the pub quiz crew")).toBe(false);
+  });
   it.each(["anon_pigeon", "sneaky_otter", "sneakypigeon_a1b2"])("refuses the alias-like username %j (audit 56 D5)", (u) => {
     expect(usernameSchema.safeParse(u).success).toBe(false);
   });

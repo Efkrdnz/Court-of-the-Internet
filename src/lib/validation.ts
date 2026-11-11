@@ -95,7 +95,7 @@ const displayNameField = text({ ...LIMITS.displayName, label: "Display name", mu
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
   })
   // …or without the hash at all: "Sneaky Pigeon D577" (an alias critter followed by a 4-hex tag).
-  .refine((s) => !new RegExp(`\\b(?:${CRITTERS.join("|")})\\W*[0-9a-f]{4}\\W*$`, "iu").test(s.normalize("NFKC")), {
+  .refine((s) => !new RegExp(`\\b(?:${CRITTERS.join("|")})\\W*(?:(?:no|nr|num|number)\\.?\\W*)?[0-9a-f]{4}\\W*$`, "iu").test(s.normalize("NFKC")), {
     message: "Names with a #tag look like an anonymous alias. Pick something else.",
   })
   // "Anonymous", "Anonymous Defendant", "Anon Pigeon": what anonymous confessors are labelled as (audit 47 D4).
@@ -198,6 +198,10 @@ const BIO_IMPERSONATION = [
   /\bone\s+of\s+the\s+(?:clerks|moderators|mods|admins|judges|bailiffs|officers)\b/iu,
   /\b(?:officially\s+)?appointed\s+by\s+(?:the\s+)?(?:judge|court|bench|presiding|admin|administrator|moderators?|clerks?|staff)\b/iu,
   /\b(?:dms?|messages?|inbox|pms?)\s+(?:are\s+|is\s+)?open\s+for\s+(?:appeals|unbans|bans|reports|pardons)\b/iu,
+  // Audit 58 D4: "part of the moderation crew", "reports go through me", "I can get your sealed case back".
+  /\b(?:part\s+of|on|in|with)\s+the\s+(?:moderation|mod|admin|clerks?'?|court)\s+(?:crew|squad|team|staff|desk|office)\b/iu,
+  /\b(?:reports?|appeals?|bans?|unbans?|verdicts?)\s+(?:go|goes|come|comes|run|runs)\s+(?:through|past|via)\s+me\b/iu,
+  /\b(?:get|bring)\s+(?:your|a)\s+(?:sealed|banned|removed|struck|deleted)\s+(?:case|account|argument|profile)\s+back\b/iu,
   /\b(?:get|have)\s+(?:your|a)\s+(?:case|ban|verdict|contempt|sentence)\s+(?:restored|unsealed|lifted|overturned|reversed|removed|cleared)\b/iu,
   // Audit 55 D2: announcements accounts, "in charge of bans", notices from the court, "verify your account".
   /\b(?:official\s+)?(?:court\s+of\s+the\s+internet\s+|court\s+|site\s+)?announcements?\s+(?:account|channel|page)\b/iu,
@@ -215,7 +219,7 @@ export function bioImpersonatesStaff(bio: string): boolean {
 }
 
 /** The presiding judge's own titles: a moderator may carry clerk titles, but not these (audit 47 D2). */
-const ADMIN_TITLES = ["presiding judge", "chief justice", "chief judge", "head judge", "lord justice", "the judge", "your honour", "your honor", "his honour", "his honor", "her honour", "her honor", "their honour", "their honor", "administrator"].map(foldTitle);
+const ADMIN_TITLES = ["presiding", "presiding judge", "chief justice", "chief judge", "head judge", "lord justice", "the judge", "your honour", "your honor", "his honour", "his honor", "her honour", "her honor", "their honour", "their honor", "administrator"].map(foldTitle);
 export function hasAdminTitle(name: string): boolean {
   const folded = foldTitle(name);
   if (ADMIN_TITLES.some((title) => folded.includes(title))) return true;

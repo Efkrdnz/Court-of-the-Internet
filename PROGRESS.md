@@ -1111,6 +1111,21 @@ Verification tooling, found while confirming this round: the phase script now bu
 | 4 | Escape closed the mobile menu but left focus on `<body>` | focus returns to the menu toggle | e2e |
 | 5 | An officer whose own press adjourned a trial (closed first by a concurrent page view) was told it "had already closed" | the press that logged the adjournment is told the trial closed (or that it extended below quorum) | — |
 
+## Fifty-eighth independent audit (fresh agent, build of commit 94b4f40)
+
+**Result: 15 PASS, 2 CONCERN (10, 17), 0 FAIL.** 18 concurrent claims gave 1 winner and 10 concurrent votes 1; ban/unban re-votes refused with tally and XP rolled back; 6 players' stats matched; officers who revealed, dismissed, struck or banned were refused claims and votes; a 6-way race for one username gave 1 account; axe (WCAG 2.0/2.1/2.2 AA) clean.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | **The console's user lookup counted anonymous confessions**, so an officer could spot a new anonymous case without the logged Reveal | the lookup shows public confessions only | — |
+| D2 | Filter gaps: shaking a baby, recording someone in the shower, wine for a toddler, a 4-year-old left home alone, a hamster without water for a week, a 14-year-old sending pictures to an adult, a family wished under a bus, more credential asks ("what's your verification code", "send me the code you just got", "paste your session cookie"), link shorteners and "dot help", money for a vote | patterns for each; asks for money or codes share the phishing message; near-misses kept (a snow globe, grape juice, an hour alone for the dog, a first email at 14, "pay me back the fiver") | corpus: 250 everyday sentences, 294 evasions |
+| D3 | Skin-tone emoji sequences ("🤷🏽‍♀️", "🧑🏽‍🚀") lost their joiner | a joiner after a skin-tone modifier is kept | unit |
+| D4 | "Presiding Clerk …" for a moderator, "Sweaty Otter No C953", bios "part of the moderation crew", "reports go through me", "I can get your sealed case back" | "presiding" is the judge's; "No"/"Nr" before an alias tag; more bio phrases | unit |
+| D5 | An admin could grant cosmetics to themselves | refused | integration |
+| D6 | After a lost answer, the refused (already-filed) confession stayed saved as a draft | a confession refused as already on file isn't saved as the draft (until edited) | — |
+| D7 | Spoofable rate limits without a proxy; login lockout blocks the right password | documented | — |
+| — | Dangling "·" in the courtroom greeting at 320px; 60-character words in report details | separators stay with the next item; report details are shown only to officers, wrap anywhere, and aren't filtered (a reporter may need to quote the offending text) | — |
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.

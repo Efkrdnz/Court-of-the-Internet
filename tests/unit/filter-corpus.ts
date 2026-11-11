@@ -272,6 +272,13 @@ export const BENIGN = [
   "I pushed my brother into the pool and he swam off laughing.",
   "My mum dropped the f-bomb at the PTA meeting and I filmed it.",
   "Follow me on tiktok for more cooking disasters, said my nan.",
+  // Audit 58 near-misses.
+  "I shook the snow globe until my brother cried about the blizzard.",
+  "I gave my toddler grape juice and told her it was fancy wine.",
+  "I left my dog alone at home for an hour and he ate the sofa cushion.",
+  "I was 14 when I sent my first email and it was all in capitals.",
+  "I hope your whole family gets the joke eventually, said the fridge note.",
+  "Pay me back the fiver you owe me before the trial starts, I told my brother.",
 ];
 
 export const EVASIONS: [string, string][] = [
@@ -577,4 +584,19 @@ export const EVASIONS: [string, string][] = [
   ["I pushed my brother into the pool even though he can't swim, he almost drowned.","serious-crime"],
   ["DM me on insta at pettykingofficial for more","handle"],
   ["I used the n-word at the barbecue and nobody laughed","hate"],
+  // Audit 58.
+  ["I shook the baby until it stopped crying","serious-crime"],
+  ["I recorded my roommate in the shower and sent it to the group chat","serious-crime"],
+  ["I gave my toddler wine so she would sleep","serious-crime"],
+  ["I left my 4 year old alone at home all evening","serious-crime"],
+  ["I left my hamster without water for a week","serious-crime"],
+  ["I'm 14 and I sent pics to an older guy online","serious-crime"],
+  ["I hope your whole family gets hit by a bus","violence"],
+  ["confirm your password with me","phishing"],
+  ["send me the code you just got","phishing"],
+  ["what's your verification code","phishing"],
+  ["Paste your session cookie","phishing"],
+  ["tinyurl com slash courtappeal","link"],
+  ["courtappeal dot help","link"],
+  ["Venmo me five dollars and I will vote not guilty","phishing"],
 ];

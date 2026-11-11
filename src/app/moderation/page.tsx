@@ -259,7 +259,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
           </h2>
           {focusUser.bannedAt ? <p className="text-[#ff9d9d]">Banned {relativeTime(focusUser.bannedAt)}: {focusUser.banReason}</p> : null}
           <p className="text-sm text-parchment/70">
-            XP {focusUser.stats?.xp ?? 0} · reputation {focusUser.stats?.reputation ?? 0} · confessions {focusUser.stats?.totalConfessions ?? 0} · votes {focusUser.stats?.juryVotes ?? 0}
+            XP {focusUser.stats?.xp ?? 0} · reputation {focusUser.stats?.reputation ?? 0} · public confessions {focusUser.stats?.casesConfessed ?? 0} · votes {focusUser.stats?.juryVotes ?? 0}
           </p>
           <div className="flex flex-col gap-3">
             {focusUser.id !== user.id ? (

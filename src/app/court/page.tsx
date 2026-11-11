@@ -59,7 +59,12 @@ export default async function CourtPage({ searchParams }: { searchParams: Promis
             Good day, {greetingName}.
           </h1>
           <p className="text-parchment/70">
-            Level {summary.level.level} · <span className="text-gold-light">{summary.level.title}</span> · Reputation {summary.reputation}
+            {/* Each separator stays with the item after it, so a wrap never leaves a dangling "·". */}
+            <span className="whitespace-nowrap">Level {summary.level.level}</span>{" "}
+            <span className="whitespace-nowrap">
+              · <span className="text-gold-light">{summary.level.title}</span>
+            </span>{" "}
+            <span className="whitespace-nowrap">· Reputation {summary.reputation}</span>
           </p>
           <div className="mt-3 max-w-md">
             <div className="h-2.5 overflow-hidden rounded-full bg-night/60 ring-1 ring-gold/25" role="progressbar" aria-valuenow={summary.level.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to next level">

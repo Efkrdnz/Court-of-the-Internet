@@ -1029,6 +1029,8 @@ describe("moderation", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(grantEntitlement(player, player, "theme:velvet-rope")).rejects.toMatchObject({ code: "FORBIDDEN" });
     await grantEntitlement(admin, player, "theme:velvet-rope");
+    // …but not to themselves (audit 58 D5).
+    await expect(grantEntitlement(admin, admin, "theme:gilded")).rejects.toMatchObject({ code: "FORBIDDEN" });
     // A repeat grant is refused (no second gift notice or log entry), also when two arrive together (audit 35 D2).
     await expect(grantEntitlement(admin, player, "theme:velvet-rope")).rejects.toMatchObject({ code: "INVALID_STATE" });
     const both = await Promise.allSettled([grantEntitlement(admin, player, "theme:gilded"), grantEntitlement(admin, player, "theme:gilded")]);
