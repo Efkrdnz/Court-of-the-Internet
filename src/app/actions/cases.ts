@@ -6,8 +6,9 @@ import type { ArgumentRole, ReactionType, ReportReason, VoteChoice } from "@pris
 import { argumentSchema, confessionSchema, reactionSchema, reportSchema, voteSchema } from "@/lib/validation";
 import { clientIp, requireActiveUser } from "@/server/auth/current-user";
 import { enforceRateLimit, reserveAttempt } from "@/server/rate-limit";
-import { castVote, claimCase, confess, precheckConfession, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
+import { claimCase, confess, precheckConfession, releaseClaim, screenArgument, screenConfession, submitArgument } from "@/server/services/cases";
 import { toggleReaction } from "@/server/services/reactions";
+import { castVoteRuling } from "@/server/services/voting";
 import { assertNotYetReported, fileReport } from "@/server/services/moderation";
 import { CourtError, isCourtError } from "@/server/errors";
 import { db } from "@/server/db";
@@ -139,7 +140,7 @@ export async function voteAction(
     const refund = await reserveAttempt([{ key: `vote:${user.id}`, limit: 60, windowSeconds: 600, message: "Order in the court! You're doing that too fast. Try again in a moment." }]);
     let result;
     try {
-      result = await castVote(user.id, input.caseId, input.choice);
+      result = await castVoteRuling(user.id, input.caseId, input.choice);
     } catch (e) {
       await refund();
       throw e;

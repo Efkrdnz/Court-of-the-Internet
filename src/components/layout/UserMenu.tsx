@@ -75,8 +75,9 @@ export function UserMenu({
         <div
           role="menu"
           // Scrolls when the screen is shorter than the menu (a phone held sideways), so "log out"
-          // is always reachable (audit 64 D2).
-          className="velvet !absolute right-0 top-full z-50 mt-2 max-h-[calc(100dvh-5rem)] w-64 overflow-y-auto overscroll-contain p-2"
+          // is always reachable (audit 64 D2). On the narrowest phones it spans the screen under the
+          // header instead of hanging off the avatar, whose left edge would fall off-screen (audit 70 D3).
+          className="velvet !absolute right-0 top-full z-50 mt-2 max-h-[calc(100dvh-5rem)] w-64 overflow-y-auto overscroll-contain p-2 max-[400px]:!fixed max-[400px]:inset-x-4 max-[400px]:top-[4.25rem] max-[400px]:mt-0 max-[400px]:w-auto"
         >
           <div className="px-3 py-2">
             <p className="font-display font-bold text-parchment"><LongWords text={displayName} /></p>

@@ -197,7 +197,9 @@ export default async function CasePage({ params, searchParams }: Props) {
             ? "The prosecution can't start yet: this case is still waiting for its defense."
             : (editorSide === "defense" ? !["AWAITING_DEFENSE", "DEFENSE_CLAIMED"].includes(c.status) : !["AWAITING_PROSECUTION", "PROSECUTION_CLAIMED"].includes(c.status))
               ? `This case's ${editorSide} has already been filed, so its editor is closed.`
-              : `The ${editorSide} editor for this case is only open to the player holding its ${editorSide} claim, and you don't hold it (it may have expired or been released).`
+              : c.status === (editorSide === "defense" ? "AWAITING_DEFENSE" : "AWAITING_PROSECUTION")
+                ? `Nobody holds this case's ${editorSide} claim right now (if you held it, it expired or was released): take the case below to open the editor.`
+                : `The ${editorSide} editor for this case is only open to the player holding its ${editorSide} claim, and you don't hold it (it may have expired or been released).`
       : undefined;
 
   return (

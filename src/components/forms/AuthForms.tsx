@@ -101,7 +101,7 @@ export function SignupForm({ next }: { next: string }) {
         </div>
       </div>
       <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" name="acceptRules" className="mt-1 h-4 w-4 accent-burgundy" required />
+        <input type="checkbox" name="acceptRules" className="mt-1 h-4 w-4 shrink-0 accent-burgundy" required />
         <span>
           I solemnly swear to confess only harmless, petty, or fictional crimes, and to follow the{" "}
           <Link href="/rules" target="_blank" className="py-3 font-bold text-burgundy underline">

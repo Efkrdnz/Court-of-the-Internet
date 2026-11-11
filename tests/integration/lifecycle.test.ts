@@ -1,7 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { resetClock } from "@/server/clock";
-import { castVote, claimCase, confess, releaseClaim, submitArgument } from "@/server/services/cases";
+import { DELIBERATION_TIME_UP, castVote, claimCase, confess, releaseClaim, submitArgument } from "@/server/services/cases";
+import { castVoteRuling } from "@/server/services/voting";
 import { closeDeliberation } from "@/server/services/verdict";
 import { expireStaleClaims, runMaintenanceNow } from "@/server/services/maintenance";
 import { listArchive, listJuryCases, listQueue, pickRandomQueueCase } from "@/server/queries/cases";
@@ -178,6 +179,27 @@ describe("complete case lifecycle", () => {
     expect((await stats(prosecutor)).xp).toBe(25 + 10);
     row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
     expect(row.verdict).toBe("DISMISSED");
+  });
+
+  it("a vote just after the deadline counts if the trial is extended, and says a verdict was read if not (audit 70 D1)", async () => {
+    const [accused, attorney, prosecutor] = [await makeUser(), await makeUser(), await makeUser()];
+    const jurors = await makeUsers(11);
+    // Below quorum (10): the late vote triggers the ruling, the trial is extended, and the vote counts.
+    const c = await makeCase(accused);
+    await toDeliberation(c.id, attorney, prosecutor);
+    await voteAll(c.id, jurors.slice(0, 2), 1);
+    advance(hours(25));
+    await expect(castVote(jurors[2], c.id, "GUILTY")).rejects.toMatchObject({ message: DELIBERATION_TIME_UP });
+    await castVoteRuling(jurors[2], c.id, "GUILTY");
+    const row = await db.case.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row).toMatchObject({ status: "DELIBERATION", extensionsUsed: 1, guiltyVotes: 2, notGuiltyVotes: 1 });
+    // Quorum met: the late vote is refused and told the verdict has been read.
+    const d = await makeCase(accused);
+    await toDeliberation(d.id, attorney, prosecutor);
+    await voteAll(d.id, jurors.slice(0, 10), 6);
+    advance(hours(25));
+    await expect(castVoteRuling(jurors[10], d.id, "GUILTY")).rejects.toMatchObject({ message: /verdict has been read/ });
+    expect((await db.case.findUniqueOrThrow({ where: { id: d.id } })).status).toBe("CLOSED");
   });
 
   it("reaches a verdict after an extension when quorum arrives", async () => {

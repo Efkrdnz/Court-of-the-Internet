@@ -528,8 +528,8 @@ describe("scripts with stacked marks survive normalisation (audit 56 D1)", () =>
     expect(safeNext(withQuery("/moderation", { case: "42", user: "a&b" }))).toBe("/moderation?case=42&user=a%26b");
   });
   it("refuses the most common and trivially guessable passwords (audit 65 #3)", () => {
-    for (const p of ["password", "12345678", "Password1", "aaaaaaaa", "abcabcabc", "12121212", "abcdefgh", "98765432", "qwertyuiop"]) expect(isWeakPassword(p), p).toBe(true);
-    for (const p of ["objection-sustained", "pigeon in a suit", "correct horse battery", "Wig&Gavel2026"]) expect(isWeakPassword(p), p).toBe(false);
+    for (const p of ["password", "12345678", "Password1", "aaaaaaaa", "abcabcabc", "12121212", "abcdefgh", "98765432", "qwertyuiop", "Passw0rd!", "letmein!!", "dragon12", "11111111a", "!Monkey2024"]) expect(isWeakPassword(p), p).toBe(true);
+    for (const p of ["objection-sustained", "pigeon in a suit", "correct horse battery", "Wig&Gavel2026", "dragonfly-pancakes", "Passwordless7!x9"]) expect(isWeakPassword(p), p).toBe(false);
   });
   it("normalizeText drops lone surrogates and replacement characters (audit 62 D3)", () => {
     expect(normalizeText("Gnome \uD800 caper \uFFFD here")).toBe("Gnome caper here");

@@ -227,7 +227,7 @@ export function ConfessionForm({
         <div className="velvet space-y-4 p-5 sm:p-6">
           <p className="font-display text-xl font-bold text-parchment">3. Sign (or don&apos;t)</p>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gold/25 bg-night/30 p-4">
-            <input type="checkbox" name="anonymous" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="mt-1 h-5 w-5 accent-gold" />
+            <input type="checkbox" name="anonymous" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-gold" />
             <span>
               <span className="block font-bold text-parchment">Confess anonymously</span>
               <span className="block text-sm text-parchment/65">
@@ -237,7 +237,7 @@ export function ConfessionForm({
             </span>
           </label>
           <label className="flex items-start gap-3 text-sm text-parchment/85">
-            <input type="checkbox" name="acceptRules" className="mt-1 h-5 w-5 accent-gold" required aria-invalid={!!fe?.acceptRules} />
+            <input type="checkbox" name="acceptRules" className="mt-1 h-5 w-5 shrink-0 accent-gold" required aria-invalid={!!fe?.acceptRules} />
             <span>
               This crime is harmless, petty or fictional. It names no real people and contains no personal information, per the{" "}
               <Link href="/rules" target="_blank" className="py-3 font-bold text-gold-light underline">

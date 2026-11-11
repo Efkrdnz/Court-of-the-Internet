@@ -309,9 +309,25 @@ const COMMON_PASSWORDS = new Set([
   "jennifer", "shadow12", "master12", "admin123", "administrator", "changeme", "changeme1", "default1", "secret123", "loveyou1",
   "court123", "internet", "courtoftheinternet", "objection", "guilty123", "notguilty",
 ]);
+// Words that, dressed up with a digit, symbol or capital ("Dragon12", "letmein!!", "Passw0rd!"),
+// are still among the first guesses (audit 70 D5).
+const COMMON_BASES = new Set([
+  "password", "passwd", "letmein", "welcome", "dragon", "monkey", "shadow", "master", "football", "baseball", "soccer",
+  "sunshine", "princess", "iloveyou", "qwerty", "qwertyuiop", "admin", "login", "hello", "freedom", "whatever", "trustno",
+  "superman", "batman", "starwars", "secret", "changeme", "abc", "abcdef", "court", "internet", "objection", "guilty",
+]);
+const LEET: Record<string, string> = { "0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i" };
 export function isWeakPassword(password: string): boolean {
   const p = password.toLowerCase();
   if (COMMON_PASSWORDS.has(p)) return true;
+  // Strip a decoration of digits/symbols from either end, then undo leetspeak.
+  const core = p.replace(/^[^a-z]+(?=[a-z])/, "").replace(/(?<=[a-z0-9])[^a-z]+$/, "");
+  const decoded = p.replace(/[013457@$!]/g, (ch) => LEET[ch] ?? ch).replace(/[^a-z]+$/, "");
+  for (const c of [core, decoded, decoded.replace(/^[^a-z]+/, "")]) {
+    if (COMMON_PASSWORDS.has(c) || COMMON_BASES.has(c)) return true;
+  }
+  // One character repeated with a single extra character tacked on ("11111111a").
+  if (/^(.)\1{5,}.?$/.test(p) || /^.?(.)\1{5,}$/.test(p)) return true;
   if (/^(.)\1+$/.test(p)) return true; // "aaaaaaaa"
   // One short chunk repeated ("abcabcabc", "12121212").
   if (/^(.{1,4})\1{2,}$/.test(p)) return true;

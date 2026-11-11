@@ -455,6 +455,13 @@ export async function submitArgument(userId: string, caseId: string, role: Argum
 /* Phase 4: Jury                                                       */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The trial's time ran out before this vote landed. Whether that means a verdict or the
+ * low-participation extension is only settled when the court rules, so the vote action rules
+ * first and then retries or reports the real outcome (audit 70 D1).
+ */
+export const DELIBERATION_TIME_UP = "Deliberation time has just run out.";
+
 export async function castVote(userId: string, caseId: string, choice: VoteChoice) {
   return db.$transaction(async (tx) => {
     await assertActiveUser(tx, userId);
@@ -479,7 +486,7 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
       throw new CourtError("INVALID_STATE", "Voting is paused while the clerks review this case.");
     }
     if (!c.deliberationEndsAt || c.deliberationEndsAt <= now) {
-      throw new CourtError("INVALID_STATE", "Deliberation has closed. The verdict is being read.");
+      throw new CourtError("INVALID_STATE", DELIBERATION_TIME_UP);
     }
     if ([c.accusedId, c.attorneyId, c.prosecutorId].includes(userId)) {
       throw new CourtError("INELIGIBLE", "You're part of this case, so you can't sit on its jury. Nice try.");
@@ -508,7 +515,7 @@ export async function castVote(userId: string, caseId: string, choice: VoteChoic
           ? "That case has just been sealed by the clerks, so its jury is dismissed."
           : now2?.moderationState === "UNDER_REVIEW"
             ? "This case was just put under review, so voting is paused until the clerks are done."
-            : "Deliberation has just closed, so this vote can't be counted.",
+            : DELIBERATION_TIME_UP,
       );
     }
     try {

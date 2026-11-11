@@ -69,11 +69,11 @@ Legend: `[x]` done and verified · `[~]` in progress · `[ ]` not started
 
 ## GOAL.md §12 verification (final state), line by line
 
-GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (67, 68, 69) of the running production build (fresh agents told to ignore this repo's docs and tests).
+GOAL.md §12 ("Final Quality Requirements", lines 382–398) quoted verbatim, each with the automated tests that check it (all passing in the last full run, below) and the verdicts of the last three independent audits (68, 69, 70) of the running production build (fresh agents told to ignore this repo's docs and tests).
 
 Last full run: see the latest "Verified on commit …" line in the audit sections below (`scripts/verify-phases.sh` ×10 phases, `tsc`, ESLint, `next build`, all Vitest, all Playwright on desktop + Pixel 7, `npm run audit:stats`, production route check).
 
-| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 67 · 68 · 69 |
+| GOAL.md §12 line | Automated tests (names as in the suites) | Audit 68 · 69 · 70 |
 | --- | --- | --- |
 | "The application starts successfully." | e2e `§12 the application starts successfully (production server)`; phase 10 `next start` route check (200 / 307 / 308 / 400 / 404) | PASS · PASS · PASS |
 | "The complete confession → defense → prosecution → jury → verdict → archive lifecycle works." | e2e `lifecycle › a full trial: confess → defend → prosecute → jury → verdict → archive` (desktop and Pixel 7, 5 browser contexts); integration `runs confession → defense → prosecution → jury → verdict → archive`, plus not-guilty, mistrial, below-quorum extension and dismissal cases | PASS · PASS · PASS |
@@ -84,14 +84,14 @@ Last full run: see the latest "Verified on commit …" line in the audit section
 | "Profiles and leaderboards work." | e2e `leaderboards ›` (4 boards: thresholds, Wilson order, agreement with profiles); `tests/integration/leaderboards.test.ts` | PASS · PASS · PASS |
 | "Archives display real persisted data." | e2e `§12 archives display real persisted data` (counts, conviction rate, newest card and search vs. the DB); integration archive-search tests | PASS · PASS · PASS |
 | "Navigation is functional." | e2e `§12 moderation: officers see a sealed trial as sealed`, `§12 navigation is functional (every header link, signed in)`, `mobile navigation menu opens and navigates`, the Escape/Back/resize menu tests, unknown-id 404s, Back-after-filing, the expired-editor explanation, post-login redirect safety | PASS · PASS · PASS |
-| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (271 everyday sentences accepted, 319 evasions refused) and validation tests (including weak passwords) | CONCERN (filter wording gaps, fixed) · PASS · PASS |
+| "Forms have appropriate validation." | e2e `§12 forms:` tests (invalid submissions don't use up the rate limit, every signup problem at once, drafts survive reloads and dropped connections, report confirmation); unit content-filter corpus (271 everyday sentences accepted, 319 evasions refused) and validation tests (including weak passwords) | PASS · PASS · PASS |
 | "Visual assets render correctly." | e2e `§12 visual assets render correctly` and `(rasterised pixels, all art)`: every illustration drawn to a canvas has visible multi-coloured pixels; fonts loaded; OG PNGs valid | PASS · PASS · PASS |
 | "Animations work without breaking interactions." | e2e `§12 animations work without breaking interactions ›` (verdict reveal then everything clickable; vote booth and reaction bump don't block input; reduce-motion setting disables animation) | PASS · PASS · PASS |
-| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · PASS · CONCERN (320px leaderboard names, fixed) |
+| "Mobile layouts are usable." | e2e `§12 mobile: an officer can log out from a phone held sideways`; e2e `mobile ›` (13 pages fit at Pixel 7, every page at 360px and 320px, touch flows: confess, claim + defend, vote + react, dashboard/queues/settings); `§12 mobile: very long title words and names stay whole or break at a hyphen` (every in-word line break checked at 320/360px on case pages, archives, notifications and a confession) | PASS · CONCERN (320px leaderboard names, fixed) · CONCERN (account menu at 320px, fixed) |
 | "No obvious runtime, build, or TypeScript errors remain." | `tsc --noEmit`, ESLint, `next build`; e2e asserts no page/console errors; 0 error lines in the production log; a11y suite (axe, 13 pages) | PASS · PASS · PASS |
 | "Important gameplay flows have automated tests." | 1048+ Vitest (unit + integration against Postgres, including concurrency races) and 88 Playwright tests (desktop and Pixel 7) | PASS · PASS · PASS |
 | "The README explains setup, development, and deployment." | README: Quick start, Scripts, Testing, Deployment (checked by each audit against the real behaviour) | PASS · PASS · PASS |
-| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | CONCERN (filter claims overstated, fixed) · PASS · CONCERN (README hyphen claim, made true) |
+| "Remaining external dependencies and limitations are clearly documented." | README → Known limitations; `docs/MONETIZATION.md` | PASS · CONCERN (README hyphen claim, made true) · CONCERN (README long-word claim, corrected) |
 
 ## Verification history (honest account)
 
@@ -1276,6 +1276,20 @@ Verified on commit 94c59bb: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 | C2 | `/defend/<id>` after the defense was filed (or `/prosecute/<id>` in deliberation) gave the generic "only open to the claim holder" notice | says the side has already been filed | — |
 
 Verified on commit eb4fa2f: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1070/1070, Playwright 88/88 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
+## Seventieth independent audit (fresh agent, build of commit 2d6c95d)
+
+**Result: 15 PASS, 2 CONCERN (13: D3; 17: D4), 0 FAIL.** A crawl of ~120 pages each as anonymous, admin and player gave no non-200 statuses and no console errors; 8 simultaneous claimers gave 1 winner and the grace-window race held both ways; 6 concurrent mixed votes from one juror left 1 row; the admin stats audit passed for all 36 users and hand recomputation matched 4 players; 35 ordinary confessions were accepted and 21 slur-evasion variants refused; no control covered during the verdict animation.
+
+| # | Issue | Fix | Test |
+| --- | --- | --- | --- |
+| D1 | A juror voting just after a below-quorum trial's deadline was told "Deliberation has closed. The verdict is being read", although the next page view extended the trial and the same vote then succeeded (also when two officers adjourned at once) | the vote service rules on the trial first (verdict or low-participation extension), then counts the vote if it was extended, or says the verdict has been read | integration |
+| D2 | Spoofable per-IP limits without a proxy | documented (README) | — |
+| D3 | The account menu's left edge fell 4px off a 320px screen | on phones up to 400px it spans the screen under the header | e2e (320px, menu fully on screen) |
+| D4 | README said words over 35 characters "are refused", but bios accept them (and wrap at hyphens) | README names exactly which fields refuse them (titles, confessions, context, arguments) | — |
+| D5 | "Passw0rd!", "letmein!!", "dragon12", "11111111a" were accepted | common passwords and base words dressed up with digits, symbols or leetspeak are refused, as is one repeated character plus one extra; README updated | unit |
+| D6 | Settings checkboxes were squashed to 13×20 on Pixel 7 | checkboxes don't shrink | — |
+| D7 | An editor link for a case nobody had claimed blamed an expired or released claim | "Nobody holds this case's … claim right now (if you held it, it expired or was released): take the case below" | e2e message updated |
 
 ## Per-phase evidence
 

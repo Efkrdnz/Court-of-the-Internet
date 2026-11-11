@@ -882,8 +882,20 @@ test("§12 navigation: an expired claim's editor link explains itself (audit 62 
   const page = await demoPage(browser, "counselor_coo");
   await page.goto(`/defend/${c.id}`);
   await page.waitForURL(/\/cases\/.*\?editor=defense/);
-  await expect(page.getByRole("alert").or(page.getByRole("status")).filter({ hasText: "defense editor for this case is only open to the player holding its defense claim" })).toBeVisible();
+  await expect(page.getByRole("alert").or(page.getByRole("status")).filter({ hasText: "Nobody holds this case's defense claim right now (if you held it, it expired or was released)" })).toBeVisible();
   await page.context().close();
+});
+
+test("§12 mobile: the account menu stays on screen on a 320px phone (audit 70 D3)", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.locator('form:has(input[name="username"][value="clerk_pemberton"]) button').click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
+  await page.getByRole("button", { name: /account menu/i }).click();
+  const box = await page.getByRole("menu").boundingBox();
+  expect(box && box.x >= 0 && box.x + box.width <= 320, `menu at ${JSON.stringify(box)} on a 320px screen`).toBe(true);
+  await context.close();
 });
 
 test("§12 mobile: an officer can log out from a phone held sideways (audit 64 D2)", async ({ browser }) => {

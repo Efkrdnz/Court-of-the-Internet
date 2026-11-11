@@ -209,14 +209,14 @@ export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean
   return (
     <form {...formProps} className="space-y-5">
       <label className="flex items-start gap-3">
-        <input type="checkbox" name="reducedMotion" defaultChecked={initial.reducedMotion} className="mt-1 h-5 w-5 accent-burgundy" />
+        <input type="checkbox" name="reducedMotion" defaultChecked={initial.reducedMotion} className="mt-1 h-5 w-5 shrink-0 accent-burgundy" />
         <span>
           <span className="block font-bold">Reduce motion</span>
           <span className="block text-sm text-sepia">Turns off gavel slams, stamps, confetti and character animations, on top of your system setting.</span>
         </span>
       </label>
       <label className="flex items-start gap-3">
-        <input type="checkbox" name="allowFeaturing" defaultChecked={initial.allowFeaturing} className="mt-1 h-5 w-5 accent-burgundy" />
+        <input type="checkbox" name="allowFeaturing" defaultChecked={initial.allowFeaturing} className="mt-1 h-5 w-5 shrink-0 accent-burgundy" />
         <span>
           <span className="block font-bold">Allow my confessions to be featured</span>
           <span className="block text-sm text-sepia">
@@ -230,7 +230,7 @@ export function PreferencesForm({ initial }: { initial: { reducedMotion: boolean
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CATEGORIES.map((c) => (
             <label key={c.key} className="flex items-center gap-2 rounded-lg border border-sepia/25 bg-white/30 px-3 py-2 text-sm">
-              <input type="checkbox" name="mutedCategories" value={c.key} defaultChecked={initial.mutedCategories.includes(c.key)} className="h-4 w-4 accent-burgundy" />
+              <input type="checkbox" name="mutedCategories" value={c.key} defaultChecked={initial.mutedCategories.includes(c.key)} className="h-4 w-4 shrink-0 accent-burgundy" />
               <CategoryIcon category={c.key} className="h-6 w-6" />
               {c.label}
             </label>
