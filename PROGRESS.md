@@ -1236,6 +1236,8 @@ Verified on commit 35141eb: phases PASS ×10, tsc/ESLint/`next build` clean, vit
 
 First full run on commit dbbe94a: everything passed in the combined suite (Vitest 1056/1056, Playwright 88/88), but the separate phase-9 run failed once in `mobile: serve on a jury and react on a phone` (the confirm tap didn't register). Not reproducible in 8 reruns, including the full phase-9 sequence twice. The test now waits for the first tap to settle, taps again only if the confirm button is still there with no error, and fails with the text of any error shown; Next's empty route-announcer alert is ignored.
 
+Verified on commit 23b5090: phases PASS ×10, tsc/ESLint/`next build` clean, vitest 1056/1056, Playwright 88/88 (desktop + Pixel 7), stats audit matches history for 28 players, 0 error lines in the production log.
+
 ## Per-phase evidence
 
 `bash scripts/verify-phases.sh` runs each phase's suites **separately** and prints PASS/FAIL per phase. Latest run (after the mobile-menu fix): **PASS ×10**.
